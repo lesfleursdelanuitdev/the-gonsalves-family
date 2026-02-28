@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Light theme — ivory/museum palette
+   ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #f1eee8;
+  --surface-elevated: #f8f6f2;
+  --border: #e2ded6;
+  --border-subtle: #ebe8e2;
+  --text: #1f1f1f;
+  --text-muted: #5c5c5c;
+  --text-subtle: #8a8782;
+  --text-inverse: #ffffff;
+  --primary: #1f5a38;
+  --primary-hover: #256343;
+  --primary-active: #1a4a2e;
+  --primary-foreground: #ffffff;
+  --accent: #c9a34a;
+  --accent-hover: #d6b25a;
+  --accent-muted: #9a8240;
+  --accent-foreground: #1f1f1f;
+  --link: #1f5a38;
+  --link-hover: #256343;
+  --focus-ring: #c9a34a;
+  --danger: #9c1e1e;
+  --success: #2e7a52;
+  --warning: #c9a34a;
+  --info: #2563eb;
+  --hover-overlay: rgba(0, 0, 0, 0.04);
+  --active-overlay: rgba(0, 0, 0, 0.08);
+  --crest-bg: #ffffff;
+  --crest-border: #e2ded6;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dark theme — deep green archive at night
+   Role-based tokens; crest remains visual centerpiece.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.dark {
+  --bg: #0E1A13;
+  --surface: #12241A;
+  --surface-2: #183124;
+  --surface-elevated: #183124;
+  --border: #244536;
+  --border-subtle: #1B3327;
+  --text: #F3F1EA;
+  --text-muted: #B8B3A7;
+  --text-subtle: #8F8A80;
+  --text-inverse: #08110C;
+  --primary: #2E7A52;
+  --primary-hover: #3C9465;
+  --primary-active: #256343;
+  --primary-foreground: #08110C;
+  --accent: #D6B25A;
+  --accent-hover: #E3C36E;
+  --accent-muted: #9A8240;
+  --accent-foreground: #08110C;
+  --link: #D6B25A;
+  --link-hover: #E3C36E;
+  --focus-ring: #D6B25A;
+  --danger: #D14A4A;
+  --success: #4FA574;
+  --warning: #E3B04A;
+  --info: #4A8FD1;
+  --hover-overlay: rgba(255, 255, 255, 0.04);
+  --active-overlay: rgba(0, 0, 0, 0.25);
+  --crest-bg: #12241A;
+  --crest-border: #244536;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tailwind @theme — maps tokens to utilities
+   Use: bg-surface, text-muted, border-border, hover:bg-surface-elevated, etc.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-inverse: var(--text-inverse);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-focus-ring: var(--focus-ring);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-hover-overlay: var(--hover-overlay);
+  --color-active-overlay: var(--active-overlay);
+  --color-crest-bg: var(--crest-bg);
+  --color-crest-border: var(--crest-border);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Font utilities: use -raw vars directly to avoid Tailwind @theme circular ref bug */
+.font-display {
+  font-family: var(--font-display-raw), serif;
+}
+.font-heading {
+  font-family: var(--font-heading-raw), serif;
+}
+.font-body {
+  font-family: var(--font-body-raw), system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body-raw), system-ui, sans-serif;
 }
