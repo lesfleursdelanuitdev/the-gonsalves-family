@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   TREE_MENU,
@@ -62,15 +62,28 @@ export function Navbar() {
     [pathname]
   );
 
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    handleScroll(); // check initial state
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="relative z-30 w-full">
-      <div className="relative font-body bg-surface text-text py-3 border-b border-border shadow-[0_2px_8px_rgba(60,45,25,0.04)] dark:bg-bg/25 dark:backdrop-blur-md dark:border-border/80 dark:shadow-none overflow-visible">
+    <header className="sticky top-0 z-30 w-full">
+      <div
+        className={`relative font-body text-text py-3 shadow-[0_4px_24px_rgba(60,45,25,0.04),0_8px_40px_rgba(60,45,25,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.04),0_8px_40px_rgba(0,0,0,0.03)] overflow-visible transition-colors duration-200 ${
+          isScrolled ? "bg-white dark:bg-bg" : "bg-white dark:bg-bg"
+        }`}
+      >
         <div className="relative mx-auto w-full max-w-5xl px-6">
           <div className="flex min-h-12 items-center gap-4">
             <div className="flex flex-1 md:flex-initial items-center gap-6 shrink-0 min-w-0">
               <NavLogo />
 
-              <nav className="hidden md:flex items-center gap-0 text-sm text-muted">
+              <nav className="hidden md:flex items-center gap-0 text-xs uppercase tracking-wide text-muted">
                 <NavDropdown
                   label="Tree"
                   href="/tree"
@@ -92,7 +105,7 @@ export function Navbar() {
             </div>
 
             <div className="hidden md:flex items-center gap-4 ml-auto shrink-0">
-              <nav className="flex items-center gap-0 text-sm text-muted">
+              <nav className="flex items-center gap-0 text-xs uppercase tracking-wide text-muted">
                 <NavDropdown
                   label="Archive"
                   href="/archive"

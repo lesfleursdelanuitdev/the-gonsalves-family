@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "daisyui";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Light theme — aged parchment, archival, museum
@@ -130,11 +131,12 @@
 }
 
 /* Font utilities: use -raw vars directly to avoid Tailwind @theme circular ref bug */
-.font-display {
-  font-family: var(--font-display-raw), serif;
-}
+.font-display,
 .font-heading {
   font-family: var(--font-heading-raw), serif;
+}
+.font-accent {
+  font-family: var(--font-accent-raw), serif;
 }
 .font-body {
   font-family: var(--font-body-raw), system-ui, sans-serif;
@@ -144,4 +146,114 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body-raw), system-ui, sans-serif;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(139, 94, 60, 0.22);
+  transform: translateY(-50%);
+}
+
+.dark .timeline::before {
+  background: rgba(201, 168, 130, 0.18);
+}
+
+.timeline-arrow {
+  stroke: rgba(139, 94, 60, 0.22);
+}
+
+.dark .timeline-arrow {
+  stroke: rgba(201, 168, 130, 0.18);
+}
+
+.timeline-card {
+  transition: box-shadow 0.2s ease;
+}
+
+.timeline-card:hover {
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.journey-panel {
+  background: #f3ece4;
+  border: 1px solid rgba(106, 75, 58, 0.15);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.dark .journey-panel {
+  background: rgba(15, 22, 19, 0.6);
+  border: 1px solid rgba(201, 168, 130, 0.2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+/* Journey section: warm parchment, museum archival */
+.journey-section {
+  padding-top: 72px;
+  padding-bottom: 72px;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.38) 0%,
+      rgba(255, 255, 255, 0.1) 45%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 80% 60% at 100% 100%,
+      rgba(245, 240, 230, 0.7) 0%,
+      rgba(245, 240, 230, 0.2) 45%,
+      transparent 65%
+    ),
+    linear-gradient(180deg, #f4efe7 0%, #e8dfd2 100%);
+}
+
+.dark .journey-section {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      rgba(212, 201, 168, 0.12) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, #0f1613 0%, #080d0a 100%);
+}
+
+.journey-card-date {
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #8b5e3c;
+}
+
+.dark .journey-card-date {
+  color: #c9a882;
+}
+
+.journey-card-location {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.dark .journey-card-location {
+  color: var(--primary);
+}
+
+.journey-card-body {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #5a524a;
+}
+
+.dark .journey-card-body {
+  color: var(--text-muted);
 }

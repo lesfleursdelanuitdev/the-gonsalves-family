@@ -7,5 +7,6 @@ export { Card } from "./Card";
 export { Grid } from "./Grid";
 export { Button } from "./Button";
 export { ButtonGroup } from "./ButtonGroup";
+export { Arrow } from "./Arrow";
 export { Crest } from "./Crest";
 export { CrestPlaceholder } from "./CrestPlaceholder";

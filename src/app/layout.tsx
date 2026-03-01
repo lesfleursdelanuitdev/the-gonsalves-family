@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
-import {
-  Playfair_Display,
-  Cormorant_Garamond,
-  Inter,
-} from "next/font/google";
+import { Playfair_Display, Cormorant_Garamond, Inter } from "next/font/google";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import "./globals.css";
 
 const playfair = Playfair_Display({
-  variable: "--font-display-raw",
+  variable: "--font-heading-raw",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 const cormorant = Cormorant_Garamond({
-  variable: "--font-heading-raw",
+  variable: "--font-accent-raw",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],

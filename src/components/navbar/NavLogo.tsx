@@ -9,10 +9,6 @@ export function NavLogo() {
       aria-label="Go to home"
     >
       <Crest size="sm" alt="Gonsalves family crest" />
-      <div className="leading-tight">
-        <div className="font-display text-sm font-semibold text-text">Gonsalves</div>
-        <div className="text-[10px] text-muted uppercase">of Guyana</div>
-      </div>
     </Link>
   );
 }
