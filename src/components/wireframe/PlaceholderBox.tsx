@@ -11,7 +11,7 @@ export function PlaceholderBox({
 }: PlaceholderBoxProps) {
   return (
     <div
-      className={`min-h-24 border border-border bg-surface-2 ${className}`}
+      className={`min-h-24 border border-border dark:border-accent/50 bg-surface-2 ${className}`}
       style={aspectRatio ? { aspectRatio } : undefined}
     >
       {children}

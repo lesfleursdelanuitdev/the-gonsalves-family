@@ -1,74 +1,88 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Light theme — ivory/museum palette
+   Light theme — aged parchment, archival, museum
+   Matches hero: old map + modern UI. Ink, not black. Gold, not bright.
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #f6f4ef;
-  --surface: #ffffff;
-  --surface-2: #f1eee8;
-  --surface-elevated: #f8f6f2;
-  --border: #e2ded6;
-  --border-subtle: #ebe8e2;
-  --text: #1f1f1f;
-  --text-muted: #5c5c5c;
-  --text-subtle: #8a8782;
-  --text-inverse: #ffffff;
-  --primary: #1f5a38;
-  --primary-hover: #256343;
+  --bg: #EFE7D6;
+  --surface: #F7F1E4;
+  --surface-2: #F4EFE2;
+  --surface-elevated: #FBF7EE;
+  --border: #D9CCB3;
+  --border-subtle: #E5DCC8;
+  --text: #2C2A26;
+  --text-muted: #6F675A;
+  --text-subtle: #9A8F7C;
+  --text-inverse: #F7F1E4;
+  --primary: #1F5A38;
+  --primary-hover: #18452B;
   --primary-active: #1a4a2e;
-  --primary-foreground: #ffffff;
-  --accent: #c9a34a;
-  --accent-hover: #d6b25a;
-  --accent-muted: #9a8240;
-  --accent-foreground: #1f1f1f;
-  --link: #1f5a38;
-  --link-hover: #256343;
-  --focus-ring: #c9a34a;
+  --primary-foreground: #F7F1E4;
+  --accent: #C3A45A;
+  --accent-hover: #B3924D;
+  --accent-muted: #8F7740;
+  --accent-foreground: #2C2A26;
+  --link: #1F5A38;
+  --link-hover: #18452B;
+  --focus-ring: #C3A45A;
+  --secondary: #5E7F7A;
+  --secondary-muted: #8FA9A4;
   --danger: #9c1e1e;
   --success: #2e7a52;
-  --warning: #c9a34a;
+  --warning: #C3A45A;
   --info: #2563eb;
-  --hover-overlay: rgba(0, 0, 0, 0.04);
-  --active-overlay: rgba(0, 0, 0, 0.08);
-  --crest-bg: #ffffff;
-  --crest-border: #e2ded6;
+  --hover-overlay: rgba(44, 42, 38, 0.04);
+  --active-overlay: rgba(44, 42, 38, 0.08);
+  --crest-bg: #F7F1E4;
+  --crest-border: #D9CCB3;
+  --surface-inset: #E5DCC8;
+  --map-land: #D4C9A8;
+  --map-land-stroke: #C9BC94;
+  --heading: #2C2A26;
+  --nav-underline: #8B2E2E;
+  --crimson: #8B2E2E;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Dark theme — deep green archive at night
-   Role-based tokens; crest remains visual centerpiece.
+   Darker greens, golden headings, warm ivory text.
    ═══════════════════════════════════════════════════════════════════════════ */
 .dark {
-  --bg: #0E1A13;
-  --surface: #12241A;
-  --surface-2: #183124;
-  --surface-elevated: #183124;
-  --border: #244536;
-  --border-subtle: #1B3327;
+  --bg: #050806;
+  --surface: #080D0A;
+  --surface-2: #0C1210;
+  --surface-elevated: #0F1613;
+  --border: #16221C;
+  --border-subtle: #0F1613;
   --text: #F3F1EA;
   --text-muted: #B8B3A7;
   --text-subtle: #8F8A80;
-  --text-inverse: #08110C;
-  --primary: #2E7A52;
-  --primary-hover: #3C9465;
-  --primary-active: #256343;
-  --primary-foreground: #08110C;
+  --text-inverse: #050806;
+  --heading: #D6B25A;
+  --primary: #1A5235;
+  --primary-hover: #245C3F;
+  --primary-active: #16452D;
+  --primary-foreground: #F3F1EA;
   --accent: #D6B25A;
   --accent-hover: #E3C36E;
   --accent-muted: #9A8240;
-  --accent-foreground: #08110C;
+  --accent-foreground: #050806;
   --link: #D6B25A;
   --link-hover: #E3C36E;
   --focus-ring: #D6B25A;
   --danger: #D14A4A;
-  --success: #4FA574;
+  --success: #2E7A52;
   --warning: #E3B04A;
   --info: #4A8FD1;
   --hover-overlay: rgba(255, 255, 255, 0.04);
   --active-overlay: rgba(0, 0, 0, 0.25);
-  --crest-bg: #12241A;
-  --crest-border: #244536;
+  --crest-bg: #080D0A;
+  --crest-border: #16221C;
+  --surface-inset: #030504;
+  --map-land: #020403;
+  --map-land-stroke: #0A0F0D;
+  --crimson: #C94A4E;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -83,6 +97,7 @@
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
   --color-text: var(--text);
+  --color-heading: var(--heading);
   --color-muted: var(--text-muted);
   --color-subtle: var(--text-subtle);
   --color-inverse: var(--text-inverse);
@@ -105,6 +120,13 @@
   --color-active-overlay: var(--active-overlay);
   --color-crest-bg: var(--crest-bg);
   --color-crest-border: var(--crest-border);
+  --color-surface-inset: var(--surface-inset);
+  --color-map-land: var(--map-land);
+  --color-map-land-stroke: var(--map-land-stroke);
+  --color-secondary: var(--secondary);
+  --color-secondary-muted: var(--secondary-muted);
+  --color-nav-underline: var(--nav-underline);
+  --color-crimson: var(--crimson);
 }
 
 /* Font utilities: use -raw vars directly to avoid Tailwind @theme circular ref bug */

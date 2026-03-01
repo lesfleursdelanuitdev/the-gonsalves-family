@@ -15,9 +15,9 @@ export function ThemeToggle() {
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {theme === 'dark' ? (
-        <FontAwesomeIcon icon={faSun} style={{ width: 18, height: 18 }} />
+        <FontAwesomeIcon icon={faSun} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px]" />
       ) : (
-        <FontAwesomeIcon icon={faMoon} style={{ width: 18, height: 18 }} />
+        <FontAwesomeIcon icon={faMoon} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px]" />
       )}
     </button>
   );

@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "@/components/navbar";
 import {
   Hero,
   JourneyStrip,
@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 overflow-visible">
         <Hero />
         <JourneyStrip />
         <DiasporaSection />
