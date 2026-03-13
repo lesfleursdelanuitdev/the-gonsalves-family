@@ -19,7 +19,10 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/descendancy-chart": ["./src/lib/descendancy-chart"],
+      "@/descendancy-chart/*": ["./src/lib/descendancy-chart/*"]
     }
   },
   "include": [

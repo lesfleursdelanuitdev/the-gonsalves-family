@@ -1,11 +1,12 @@
 'use client';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
-import { useTheme } from '@/providers/theme-provider';
+import { Sun, Moon } from 'lucide-react';
+import { DARK_MODE_ENABLED, useTheme } from '@/providers/theme-provider';
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
+
+  if (!DARK_MODE_ENABLED) return null;
 
   return (
     <button
@@ -15,9 +16,9 @@ export function ThemeToggle() {
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {theme === 'dark' ? (
-        <FontAwesomeIcon icon={faSun} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px]" />
+        <Sun size={18} strokeWidth={2} />
       ) : (
-        <FontAwesomeIcon icon={faMoon} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px]" />
+        <Moon size={18} strokeWidth={2} />
       )}
     </button>
   );

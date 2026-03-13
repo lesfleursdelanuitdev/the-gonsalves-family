@@ -1,13 +1,16 @@
 import { Navbar } from "@/components/navbar";
 import {
   Hero,
+  PeopleStoriesMediaSection,
   JourneyStrip,
-  DiasporaSection,
   IdentitySection,
+  DiasporaSection,
   ArchivePreview,
-  CulturePreview,
+  AnniversariesBirthdaysSection,
   TreePreview,
+  FindFamilyMembersSection,
   ContributeSection,
+  AboutThisSiteSection,
   Footer,
 } from "@/components/homepage";
 
@@ -17,12 +20,15 @@ export default function Home() {
       <Navbar />
       <main className="flex-1 overflow-visible">
         <Hero />
+        <PeopleStoriesMediaSection />
         <JourneyStrip />
-        <DiasporaSection />
         <IdentitySection />
+        <DiasporaSection />
         <ArchivePreview />
-        <CulturePreview />
+        <AnniversariesBirthdaysSection />
         <TreePreview />
+        <FindFamilyMembersSection />
+        <AboutThisSiteSection />
         <ContributeSection />
       </main>
       <Footer />

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { ChevronDown } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -12,7 +11,7 @@ function cx(...classes: Array<string | false | undefined>) {
 type MobileExpandableSectionItem = {
   label: string;
   href: string;
-  icon?: IconDefinition;
+  icon?: LucideIcon;
   active: boolean;
 };
 
@@ -52,19 +51,20 @@ export function MobileExpandableSection(props: MobileExpandableSectionProps) {
         aria-controls={id}
       >
         <span>{label}</span>
-        <FontAwesomeIcon
-          icon={faChevronDown}
-          className={cx("w-3 transition-transform duration-200", expanded && "rotate-180")}
+        <ChevronDown
+          size={12}
+          strokeWidth={2}
+          className={cx("transition-transform duration-200", expanded && "rotate-180")}
         />
       </button>
       <div
         id={id}
         className={cx(
-          "overflow-hidden transition-all duration-200",
-          expanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          "transition-all duration-200",
+          expanded ? "max-h-80 opacity-100 overflow-y-auto" : "max-h-0 opacity-0 overflow-hidden"
         )}
       >
-        <div className="ml-4 grid gap-1 border-l-2 border-border pl-3 py-1">
+        <div className="ml-4 grid gap-1 pl-3 py-1">
           {items.map((it) => (
             <Link
               key={it.href}
@@ -78,10 +78,7 @@ export function MobileExpandableSection(props: MobileExpandableSectionProps) {
               onClick={onLinkClick}
             >
               {it.icon && (
-                <FontAwesomeIcon
-                  icon={it.icon}
-                  className="w-3 shrink-0 opacity-70"
-                />
+                <it.icon size={12} className="shrink-0 opacity-70" strokeWidth={2} />
               )}
               {it.label}
             </Link>

@@ -7,7 +7,7 @@ export interface JourneyStep {
 export const JOURNEY_STEPS: JourneyStep[] = [
   {
     date: "c. 1800",
-    location: "Madeira",
+    location: "Madeira, Portugal",
     content: "Birth of Augustino Gracis.",
   },
   {
@@ -18,7 +18,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     date: "1861",
     location: "British Guiana",
-    content: "Mary Mias Gracis completes her indenture at Enmore Estate and establishes the family’s line in Guyana.",
+    content: "Mary Mias Gracis completes her indenture at Enmore Estate and later marries Agus Gonsalves, establishing the Gonsalves family line in Guyana.",
   },
   {
     date: "1900s",

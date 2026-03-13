@@ -12,9 +12,9 @@ function cx(...classes: Array<string | false | undefined>) {
 type MobileNavProps = {
   open: boolean;
   onClose: () => void;
-  treeItems: Array<{ label: string; href: string; icon?: import("@fortawesome/fontawesome-svg-core").IconDefinition; active: boolean }>;
-  archiveItems: Array<{ label: string; href: string; icon?: import("@fortawesome/fontawesome-svg-core").IconDefinition; active: boolean }>;
-  cultureItems: Array<{ label: string; href: string; icon?: import("@fortawesome/fontawesome-svg-core").IconDefinition; active: boolean }>;
+  treeItems: Array<NavItem & { active: boolean }>;
+  archiveItems: Array<NavItem & { active: boolean }>;
+  cultureItems: Array<NavItem & { active: boolean }>;
   treeExpanded: boolean;
   archiveExpanded: boolean;
   cultureExpanded: boolean;

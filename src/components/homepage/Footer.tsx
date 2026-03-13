@@ -11,7 +11,7 @@ const FOOTER_LINKS = [
 export function Footer() {
   return (
     <footer className="font-body border-t border-border py-8 bg-surface">
-      <PageContainer>
+      <PageContainer narrow>
         <div className="flex flex-col items-center gap-4 text-center">
           <Crest size="sm" />
           <nav className="flex flex-wrap justify-center gap-4">

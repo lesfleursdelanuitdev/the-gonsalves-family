@@ -8,7 +8,7 @@ import { HeroRightColumn } from "./HeroRightColumn";
 
 export function Hero() {
   return (
-    <Section className="-mt-12 dark:-mt-20 relative overflow-hidden min-h-[420px] flex flex-col justify-center pt-16 sm:pt-28 md:pt-32 lg:pt-40 shadow-[inset_0_-4px_24px_rgba(60,45,25,0.04)] dark:shadow-[inset_0_-4px_24px_rgba(0,0,0,0.04)]">
+    <Section className="-mt-12 dark:-mt-20 relative overflow-hidden min-h-[420px] flex flex-col justify-center pt-16 sm:pt-28 md:pt-32 lg:pt-40 pb-24 md:pb-32 shadow-[inset_0_-4px_24px_rgba(60,45,25,0.04)] dark:shadow-[inset_0_-4px_24px_rgba(0,0,0,0.04)]">
       <div className="absolute inset-0 z-0">
         <Image
           src="/images/heroimagemobile2.png"
@@ -39,9 +39,9 @@ export function Hero() {
         }}
       />
       <div className="relative z-10">
-        <PageContainer>
+        <PageContainer narrow>
           <div className="flex flex-col md:flex-row md:items-center md:justify-center gap-6 md:gap-10 lg:gap-12 text-center">
-              <div className="relative z-20 overflow-visible shrink-0 self-center md:self-auto md:flex-1 md:flex md:items-center md:justify-center">
+              <div className="relative z-20 overflow-visible shrink-0 self-center md:self-auto md:flex-[0.7] md:flex md:items-center md:justify-center">
                 <div className="md:scale-125 lg:scale-[1.4]">
                   <Crest size="3xl" alt="Gonsalves family crest" priority />
                 </div>

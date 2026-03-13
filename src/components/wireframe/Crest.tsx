@@ -1,14 +1,17 @@
 import Image from "next/image";
 
+/* crest.png is 986×1216 px — use its aspect ratio to avoid object-contain letterboxing */
+const CREST_ASPECT = "aspect-[986/1216]";
+
 const SIZE_MAP = {
-  xs: "w-6 aspect-[2/3]",    // 24px wide
-  sm: "w-10 aspect-[2/3]",   // 40px wide
-  md: "w-16 aspect-[2/3]",   // 64px wide
-  lg: "w-24 aspect-[2/3]",   // 96px wide
-  xl: "w-32 aspect-[2/3]",   // 128px wide
-  "2xl": "w-48 aspect-[2/3]",   // 192px wide
-  "2.5xl": "w-56 aspect-[2/3]",  // 224px wide
-  "3xl": "w-64 aspect-[2/3]",   // 256px wide
+  xs: `w-6 ${CREST_ASPECT}`,
+  sm: `w-10 ${CREST_ASPECT}`,
+  md: `w-16 ${CREST_ASPECT}`,
+  lg: `w-24 ${CREST_ASPECT}`,
+  xl: `w-32 ${CREST_ASPECT}`,
+  "2xl": `w-48 ${CREST_ASPECT}`,
+  "2.5xl": `w-56 ${CREST_ASPECT}`,
+  "3xl": `w-64 ${CREST_ASPECT}`,
 } as const;
 
 type CrestSize = keyof typeof SIZE_MAP;

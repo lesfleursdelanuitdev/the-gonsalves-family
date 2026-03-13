@@ -1,42 +1,49 @@
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import type { LucideIcon } from "lucide-react";
 import {
-  faUser,
-  faHouse,
-  faCalendarDays,
-  faSitemap,
-  faLocationDot,
-  faFont,
-  faImages,
-  faVideo,
-  faMusic,
-  faUtensils,
-  faLanguage,
-  faMapPin,
-  faNewspaper,
-} from "@fortawesome/free-solid-svg-icons";
+  User,
+  Home,
+  CalendarDays,
+  GitBranch,
+  MapPin,
+  Type,
+  Images,
+  Video,
+  Music,
+  UtensilsCrossed,
+  Languages,
+  Newspaper,
+  Map,
+  Route,
+  FileSignature,
+  BarChart3,
+} from "lucide-react";
 
-export type NavItem = { label: string; href: string; icon?: IconDefinition };
+export type NavItem = { label: string; href: string; icon?: LucideIcon };
 
 export const TREE_MENU: NavItem[] = [
-  { label: "Individuals", href: "/tree/individuals", icon: faUser },
-  { label: "Families", href: "/tree/families", icon: faHouse },
-  { label: "Events", href: "/tree/events", icon: faCalendarDays },
-  { label: "Tree Viewer", href: "/tree/viewer", icon: faSitemap },
-  { label: "Places", href: "/tree/places", icon: faLocationDot },
-  { label: "Surnames", href: "/tree/surnames", icon: faFont },
+  { label: "Events", href: "/tree/events", icon: CalendarDays },
+  { label: "Families", href: "/tree/families", icon: Home },
+  { label: "Given Names", href: "/tree/given-names", icon: FileSignature },
+  { label: "Individuals", href: "/tree/individuals", icon: User },
+  { label: "Maps", href: "/maps", icon: Map },
+  { label: "Places", href: "/tree/places", icon: MapPin },
+  { label: "Statistics", href: "/tree/statistics", icon: BarChart3 },
+  { label: "Surnames", href: "/tree/surnames", icon: Type },
+  { label: "Timelines", href: "/timelines", icon: Route },
+  { label: "Tree Viewer", href: "/tree/viewer", icon: GitBranch },
 ];
 
 export const ARCHIVE_MENU: NavItem[] = [
-  { label: "Photos", href: "/archive/photos", icon: faImages },
-  { label: "Videos", href: "/archive/videos", icon: faVideo },
-  { label: "Audio", href: "/archive/audio", icon: faMusic },
+  { label: "Audio", href: "/archive/audio", icon: Music },
+  { label: "Photos", href: "/archive/photos", icon: Images },
+  { label: "Videos", href: "/archive/videos", icon: Video },
 ];
 
 export const CULTURE_MENU: NavItem[] = [
-  { label: "Recipes", href: "/culture/recipes", icon: faUtensils },
-  { label: "Language", href: "/culture/language", icon: faLanguage },
-  { label: "Places", href: "/culture/places", icon: faMapPin },
-  { label: "Articles", href: "/culture/articles", icon: faNewspaper },
+  { label: "Articles", href: "/culture/articles", icon: Newspaper },
+  { label: "Language", href: "/culture/language", icon: Languages },
+  { label: "Places", href: "/culture/places", icon: MapPin },
+  { label: "Recipes", href: "/culture/recipes", icon: UtensilsCrossed },
 ];
 
 export const NAV_LEFT: NavItem[] = [{ label: "Stories", href: "/stories" }];

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { feature } from "topojson-client";
@@ -32,11 +31,21 @@ const JOURNEY_PATHS: [number, number][][] = [
   [LOCATIONS.guyana, LOCATIONS.uk],
 ];
 
-type DiasporaMapProps = {
-  variant?: "default" | "background";
+type MapControlsHandlers = {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
 };
 
-export function DiasporaMap({ variant = "default" }: DiasporaMapProps) {
+type DiasporaMapProps = {
+  variant?: "default" | "background";
+  onRegisterControls?: (handlers: MapControlsHandlers) => void;
+};
+
+export function DiasporaMap({
+  variant = "default",
+  onRegisterControls,
+}: DiasporaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [loading, setLoading] = useState(true);
@@ -246,6 +255,16 @@ export function DiasporaMap({ variant = "default" }: DiasporaMapProps) {
     }
   };
 
+  useEffect(() => {
+    if (variant === "background" && onRegisterControls && !loading && !error) {
+      onRegisterControls({
+        onZoomIn: handleZoomIn,
+        onZoomOut: handleZoomOut,
+        onReset: handleReset,
+      });
+    }
+  }, [variant, onRegisterControls, loading, error]);
+
   return (
     <div
       ref={containerRef}
@@ -267,43 +286,33 @@ export function DiasporaMap({ variant = "default" }: DiasporaMapProps) {
         className="w-full h-auto cursor-grab active:cursor-grabbing touch-none"
         style={{ display: loading || error ? "none" : "block" }}
       />
-      {!loading && !error && (
-        <>
-          <div className="absolute bottom-3 right-3 flex flex-col gap-1">
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              className="flex h-8 w-8 items-center justify-center rounded bg-surface/90 text-lg font-medium text-text shadow-sm transition hover:bg-surface-elevated active:scale-95"
-              aria-label="Zoom in"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              className="flex h-8 w-8 items-center justify-center rounded bg-surface/90 text-lg font-medium text-text shadow-sm transition hover:bg-surface-elevated active:scale-95"
-              aria-label="Zoom out"
-            >
-              −
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="flex h-8 w-8 items-center justify-center rounded bg-surface/90 text-sm font-medium text-text shadow-sm transition hover:bg-surface-elevated active:scale-95"
-              aria-label="Reset view"
-            >
-              ⟲
-            </button>
-          </div>
-          <p className="absolute bottom-3 left-1/2 -translate-x-1/2">
-            <Link
-              href="/maps"
-              className="font-body text-sm text-link hover:text-link-hover underline"
-            >
-              See more maps…
-            </Link>
-          </p>
-        </>
+      {!loading && !error && variant !== "background" && (
+        <div className="absolute bottom-3 right-3 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className="flex h-8 w-8 items-center justify-center rounded bg-surface/90 text-lg font-medium text-text shadow-sm transition hover:bg-surface-elevated active:scale-95"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="flex h-8 w-8 items-center justify-center rounded bg-surface/90 text-lg font-medium text-text shadow-sm transition hover:bg-surface-elevated active:scale-95"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="flex h-8 w-8 items-center justify-center rounded bg-surface/90 text-sm font-medium text-text shadow-sm transition hover:bg-surface-elevated active:scale-95"
+            aria-label="Reset view"
+          >
+            ⟲
+          </button>
+        </div>
       )}
     </div>
   );

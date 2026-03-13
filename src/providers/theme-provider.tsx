@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
+/** Set to true to re-enable dark mode and the theme toggle */
+export const DARK_MODE_ENABLED = false;
+
 type Theme = 'light' | 'dark';
 
 type ThemeContextType = {
@@ -15,6 +18,7 @@ const ThemeContext = createContext<ThemeContextType | null>(null);
 const STORAGE_KEY = 'gonsalves-theme';
 
 function getInitialTheme(): Theme {
+  if (!DARK_MODE_ENABLED) return 'light';
   if (typeof window === 'undefined') return 'light';
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === 'dark') return 'dark';
@@ -33,6 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setTheme = (newTheme: Theme) => {
+    if (!DARK_MODE_ENABLED) return;
     setThemeState(newTheme);
     localStorage.setItem(STORAGE_KEY, newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');

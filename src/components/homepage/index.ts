@@ -1,10 +1,16 @@
 export { Header } from "./Header";
 export { Hero } from "./Hero";
+export { PeopleStoriesMediaSection } from "./PeopleStoriesMediaSection";
 export { JourneyStrip } from "./JourneyStrip";
 export { DiasporaSection } from "./DiasporaSection";
 export { IdentitySection } from "./IdentitySection";
 export { ArchivePreview } from "./ArchivePreview";
-export { CulturePreview } from "./CulturePreview";
+export { AnniversariesBirthdaysSection } from "./AnniversariesBirthdaysSection";
 export { TreePreview } from "./TreePreview";
+export { PreviewTree } from "./PreviewTree";
+export { Statistics } from "./Statistics";
+export { UpcomingDates } from "./UpcomingDates";
+export { FindFamilyMembersSection } from "./FindFamilyMembersSection";
 export { ContributeSection } from "./ContributeSection";
+export { AboutThisSiteSection } from "./AboutThisSiteSection";
 export { Footer } from "./Footer";

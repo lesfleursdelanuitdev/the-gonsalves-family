@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { AnimatePresence, motion } from "motion/react";
+import type { LucideIcon } from "lucide-react";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -11,7 +11,7 @@ function cx(...classes: Array<string | false | undefined>) {
 type NavDropdownItem = {
   label: string;
   href: string;
-  icon?: IconDefinition;
+  icon?: LucideIcon;
   active: boolean;
 };
 
@@ -22,6 +22,8 @@ type NavDropdownProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   isActive: boolean;
+  /** Align dropdown to the right edge of the trigger (useful when near viewport edge) */
+  alignRight?: boolean;
 };
 
 export function NavDropdown({
@@ -31,6 +33,7 @@ export function NavDropdown({
   isOpen,
   onOpenChange,
   isActive,
+  alignRight = false,
 }: NavDropdownProps) {
   return (
     <div
@@ -50,32 +53,42 @@ export function NavDropdown({
       >
         {label}
       </Link>
-      {isOpen && (
-        <div className="absolute left-0 top-full pt-1 z-50">
-          <div className="min-w-[200px] rounded-lg border border-border bg-bg py-1 shadow-lg normal-case">
-            {items.map((it) => (
-              <Link
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className={cx(
+              "absolute top-full pt-1 z-50",
+              alignRight ? "right-0" : "left-0"
+            )}
+          >
+            <div className="min-w-[200px] rounded-lg border border-border bg-bg/90 dark:bg-bg/95 backdrop-blur-md py-1 shadow-lg normal-case">
+              {items.map((it) => (
+                <Link
                 key={it.href}
                 href={it.href}
                 className={cx(
-                  "flex items-center gap-3 px-4 py-2 text-sm transition no-underline",
+                  "group flex items-center gap-3 px-4 py-2 text-sm transition no-underline",
                   it.active
                     ? "text-primary bg-black/[0.04] dark:bg-white/[0.04]"
                     : "text-text hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-primary"
                 )}
               >
                 {it.icon && (
-                  <FontAwesomeIcon
-                    icon={it.icon}
-                    className="w-4 shrink-0 opacity-70"
-                  />
+                  <it.icon size={16} className="shrink-0 opacity-70" strokeWidth={2} />
                 )}
-                {it.label}
+                <span className="inline-block transition-transform duration-200 ease-out group-hover:translate-x-1">
+                  {it.label}
+                </span>
               </Link>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,8 +1,12 @@
-import type { Metadata } from "next";
-import { Playfair_Display, Cormorant_Garamond, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Playfair_Display, Cormorant_Garamond, Inter, Geist } from "next/font/google";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { AppHeightSync } from "@/components/AppHeightSync";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const playfair = Playfair_Display({
   variable: "--font-heading-raw",
@@ -29,25 +33,37 @@ export const metadata: Metadata = {
   description: "The Gonsalves family history and genealogy",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-visual",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('gonsalves-theme');document.documentElement.classList.toggle('dark',t==='dark');})();`,
+            __html: `(function(){var darkModeEnabled=false;if(darkModeEnabled){var t=localStorage.getItem('gonsalves-theme');document.documentElement.classList.toggle('dark',t==='dark');}else{document.documentElement.classList.remove('dark');}})();`,
           }}
         />
       </head>
       <body
         className={`${playfair.variable} ${cormorant.variable} ${inter.variable} antialiased`}
+        suppressHydrationWarning
       >
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <AppHeightSync />
+            <div className="min-w-0 w-full max-w-full min-h-screen overflow-x-clip flex flex-col" data-viewport-constrain>
+              {children}
+            </div>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { Search } from "lucide-react";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -35,7 +34,7 @@ export function NavSearchLink({
             : "text-muted hover:text-primary"
         )}
       >
-        <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" />
+        <Search size={16} strokeWidth={2} />
       </Link>
     </span>
   );
