@@ -8,7 +8,9 @@ export type PersonCardAction =
   | "root"
   | "closeSpouse"
   | "closeLinkedUnion"
-  | "expandDown"; // Leaf-only down-arrow button; behavior TBD
+  | "expandDown" // Leaf-only down-arrow button; behavior TBD
+  | "collapseSubtree"
+  | "expandSubtree";
 
 export interface HandlePersonCardActionContext {
   dispatch: (action: TreeAction) => void;

@@ -17,6 +17,8 @@ export interface UseTreeBuildOptions {
   descendancyDataKey: number;
   /** When set, tree is built via builder.buildView. When null, a placeholder root is returned (show loading/error in UI). */
   builder?: FamilyTreeBuilder | null;
+  /** Effective person card height when display settings hide photo/dates. Omit or pass 0 to use default PERSON_HEIGHT. */
+  effectivePersonHeight?: number;
 }
 
 export interface TreeBuildResult {
@@ -45,6 +47,7 @@ export function useTreeBuild({
   maxDepth,
   descendancyDataKey,
   builder,
+  effectivePersonHeight,
 }: UseTreeBuildOptions): TreeBuildResult {
   return useMemo(() => {
     const currentDepth = viewState.currentDepth ?? viewState.displayDepth ?? maxDepth;
@@ -66,9 +69,13 @@ export function useTreeBuild({
       "rendered depth": maxDepthRendered,
     });
     const strategy = builder?.getCurrentStrategy() ?? descendancyDescriptor;
-    strategy.layout(rootNode);
+    const layoutOptions =
+      effectivePersonHeight != null && effectivePersonHeight > 0
+        ? { personHeight: effectivePersonHeight }
+        : undefined;
+    strategy.layout(rootNode, layoutOptions);
     strategy.markUnions?.(rootNode);
-    const b = strategy.getBounds(rootNode);
+    const b = strategy.getBounds(rootNode, layoutOptions);
     const padding = strategy.constants.PADDING;
     return {
       root: rootNode,
@@ -77,5 +84,5 @@ export function useTreeBuild({
       bounds: b,
       maxDepthRendered,
     };
-  }, [effectiveRootId, viewState, maxDepth, descendancyDataKey, builder]);
+  }, [effectiveRootId, viewState, maxDepth, descendancyDataKey, builder, effectivePersonHeight]);
 }

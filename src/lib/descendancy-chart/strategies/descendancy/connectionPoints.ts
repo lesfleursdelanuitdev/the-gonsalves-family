@@ -10,6 +10,7 @@ import {
   CONNECTOR_WIDTH,
   DIAMOND_SIZE,
 } from "./constants";
+import type { ConnectorHelpers } from "../ViewStrategyDescriptor";
 import { isContainer } from "./layout";
 import type { ChartNode } from "../../nodes";
 import {
@@ -61,4 +62,23 @@ export function outgoingY(node: ChartNode): number {
     return node.y + DIAMOND_SIZE;
   }
   return node.y + PERSON_HEIGHT / 2;
+}
+
+/** Connector helpers that use a given person height (for dynamic card height from display settings). */
+export function getConnectors(personHeight: number): ConnectorHelpers {
+  return {
+    hasIncomingConnector,
+    incomingX,
+    incomingY(node: ChartNode) {
+      return node.y - personHeight / 2;
+    },
+    outgoingX,
+    outgoingY(node: ChartNode) {
+      if (node instanceof UnionNode) {
+        return node.y + DIAMOND_SIZE;
+      }
+      return node.y + personHeight / 2;
+    },
+    isContainer,
+  };
 }

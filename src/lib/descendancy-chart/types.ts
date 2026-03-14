@@ -53,7 +53,7 @@ export interface SiblingView {
   adoptiveCatchAlls: string[];
 }
 
-/** Chart view state: revealed spouses, linked unions, sibling view, expand-down. */
+/** Chart view state: revealed spouses, linked unions, sibling view, expand-down, pan target. */
 export interface ViewState {
   revealedUnions?: Map<string, string[]>;
   linkedUnions?: Map<string, LinkedUnionEntry[]>;
@@ -64,4 +64,8 @@ export interface ViewState {
   currentDepth?: number;
   /** When set, top row of tree should show these person IDs in this order (Case 2: preserve G_2 row). */
   expandDownTopRow?: string[];
+  /** When set, viewport should center on this person (used by history for "Pan to person" entries). */
+  panToPersonId?: string;
+  /** Person IDs whose subtrees are collapsed (descendants hidden). Stored as array for JSON-serializable state. */
+  collapsedSubtrees?: string[];
 }

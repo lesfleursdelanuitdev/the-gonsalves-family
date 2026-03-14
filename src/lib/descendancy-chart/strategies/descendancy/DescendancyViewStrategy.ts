@@ -23,6 +23,11 @@ export class DescendancyViewStrategy implements ViewStrategy {
     private readonly maxDepth: number
   ) {}
 
+  isSubtreeCollapsed(personId: string): boolean {
+    const list = this.viewState.collapsedSubtrees ?? [];
+    return list.includes(personId);
+  }
+
   buildUnionNodes(personId: string, depth: number, ctx: BuildContext): UnionNode[] {
     const people = ctx.people;
     const revealedUnions = this.viewState.revealedUnions ?? new Map<string, string[]>();

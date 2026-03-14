@@ -33,13 +33,25 @@ export function useDepth({
 }: UseDepthOptions): UseDepthResult {
   const [maxDepth, setMaxDepth] = useState(DEFAULT_MAX_DEPTH);
 
-  const effectiveMaxDepth = Math.min(maxDepth, DEFAULT_MAX_DEPTH);
+  // Use reducer as source of truth so info/settings panels update when depth changes (e.g. from dropdown or SET_CURRENT_DEPTH).
+  const effectiveMaxDepth = Math.min(
+    viewState.currentDepth ?? maxDepth,
+    DEFAULT_MAX_DEPTH
+  );
   const effectiveFetchDepth = Math.max(
     effectiveMaxDepth,
     viewState.displayDepth ?? 0
   );
   const effectiveCurrentDepth =
     viewState.currentDepth ?? viewState.displayDepth ?? maxDepth;
+
+  // Keep local maxDepth in sync when depth is set from reducer (e.g. history or other dispatch).
+  useEffect(() => {
+    const reducerDepth = viewState.currentDepth;
+    if (reducerDepth != null && reducerDepth !== maxDepth) {
+      setMaxDepth(reducerDepth);
+    }
+  }, [viewState.currentDepth, maxDepth]);
 
   const handleMaxDepthChange = useCallback(
     (newDepth: number) => {
@@ -54,25 +66,21 @@ export function useDepth({
     [maxDepth, dispatch]
   );
 
-  // Reset current depth to rendered depth when rendered is less than current (e.g. after re-root)
+  // Sync current depth to rendered depth when they differ and we're not in a displayDepth-driven build (e.g. mid–Show children).
+  // After re-root or "Show parents", rendered depth may be less or more than current; keep reducer and UI in sync.
   useEffect(() => {
     if (builder == null) return;
     if (maxDepthRendered === 0) return; // no tree built yet
-    if (viewState.displayDepth != null) return;
-    if (maxDepthRendered < effectiveCurrentDepth) {
+    if (viewState.displayDepth != null) return; // let Show children / displayDepth drive depth for this build
+    const current = effectiveCurrentDepth;
+    if (maxDepthRendered !== current) {
       console.log(
-        "[Depth] Resetting current depth to rendered depth because rendered depth (%d) < current depth (%d)",
-        maxDepthRendered,
-        effectiveCurrentDepth
+        "[Depth] Syncing current depth to rendered depth: %d → %d",
+        current,
+        maxDepthRendered
       );
       dispatch({ type: "SET_CURRENT_DEPTH", depth: maxDepthRendered });
       setMaxDepth(maxDepthRendered);
-      console.log(
-        "[Depth] (rendered depth, current depth, max depth):",
-        maxDepthRendered,
-        maxDepthRendered,
-        DEFAULT_MAX_DEPTH
-      );
     }
   }, [
     builder,

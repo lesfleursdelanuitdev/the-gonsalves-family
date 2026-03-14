@@ -122,7 +122,7 @@ export function MobileNavPanel({
                   onLinkClick={onClose}
                 />
                 <Link
-                  href="/search"
+                  href="/tree/viewer/searchDatabase"
                   className={cx(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition no-underline",
                     searchActive

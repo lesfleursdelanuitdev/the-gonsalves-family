@@ -3,7 +3,7 @@
  * Discoverable via builder.getCurrentStrategy().constants.
  */
 
-export const PERSON_WIDTH = 300;
+export const PERSON_WIDTH = 330;
 export const PERSON_HEIGHT = 200;
 export const DIAMOND_SIZE = 7;
 export const CONNECTOR_WIDTH = 40;

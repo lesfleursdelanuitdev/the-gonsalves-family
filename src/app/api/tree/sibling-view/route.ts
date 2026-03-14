@@ -212,6 +212,27 @@ export async function GET(req: NextRequest) {
       for (const cid of familyToChildIds.get(famId) ?? []) peopleIds.add(cid);
     }
 
+    // Include every family where husband, wife, or any child is in peopleIds (sibling subtrees need their unions)
+    for (const fam of allFamilies) {
+      const husbId = idForXref(fam.husbandXref);
+      const wifeId = idForXref(fam.wifeXref);
+      const childIds = familyToChildIds.get(fam.id) ?? [];
+      const husbIn = husbId != null && peopleIds.has(husbId);
+      const wifeIn = wifeId != null && peopleIds.has(wifeId);
+      const anyChildIn = childIds.some((c) => peopleIds.has(c));
+      if (husbIn || wifeIn || anyChildIn) includedFamilyIds.add(fam.id);
+    }
+
+    for (const famId of includedFamilyIds) {
+      const fam = allFamilies.find((f) => f.id === famId);
+      if (!fam) continue;
+      const husbId = idForXref(fam.husbandXref);
+      const wifeId = idForXref(fam.wifeXref);
+      if (husbId) peopleIds.add(husbId);
+      if (wifeId) peopleIds.add(wifeId);
+      for (const cid of familyToChildIds.get(famId) ?? []) peopleIds.add(cid);
+    }
+
     const individualRows = await prisma.gedcomIndividual.findMany({
       where: { id: { in: Array.from(peopleIds) } },
       select: INDIVIDUAL_SELECT,

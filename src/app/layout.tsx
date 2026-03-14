@@ -3,8 +3,8 @@ import { Playfair_Display, Cormorant_Garamond, Inter, Geist } from "next/font/go
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AppHeightSync } from "@/components/AppHeightSync";
-import "./globals.css";
 import { cn } from "@/lib/utils";
+import "./globals.css";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 

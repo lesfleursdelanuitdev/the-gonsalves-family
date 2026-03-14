@@ -30,4 +30,6 @@ export interface BuildContext {
 export interface ViewStrategy {
   /** Return union nodes (normal, linked, catch-all, sibling) for this person. Empty = no union row, use default children. */
   buildUnionNodes(personId: string, depth: number, ctx: BuildContext): UnionNode[];
+  /** When true, do not render this person's descendants (collapse subtree). */
+  isSubtreeCollapsed?(personId: string): boolean;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { TREE_VIEWER_REFRESH_VIEWPORT, TREE_VIEWER_VIEWPORT_RESIZED } from "./viewportRefresh";
+import { TREE_VIEWER_REFRESH_VIEWPORT, TREE_VIEWER_VIEWPORT_RESIZED } from "./v2/utils/viewportRefresh";
 
 const MOBILE_MAX_WIDTH = 640;
 /** Only update stored viewport size when viewport is "full" (keyboard likely closed) so the main container doesn't shrink when the keyboard opens. */

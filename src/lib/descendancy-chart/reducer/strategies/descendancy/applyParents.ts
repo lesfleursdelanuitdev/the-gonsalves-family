@@ -68,11 +68,24 @@ function applyParentsAsRoot(
     expandDownTopRow: undefined,
   };
   const p = people.get(primaryParent);
-  const newRootInitials =
+  const newRootFullName =
+    (p ? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() : null) || primaryParent;
+  const newRootInitialsStr =
     (p ? ((p.firstName?.trim() || "")[0] ?? "") + ((p.lastName?.trim() || "")[0] ?? "") : "") ||
-    primaryParent.slice(0, 2);
-  const actionLabel = `Show parents, make ${(newRootInitials || "?").toUpperCase()} root`;
-  const hist = pushHistory(state, primaryParent, newViewState, actionLabel, personId);
+    (/^@I[^@]*@$/.test(primaryParent) ? "?" : primaryParent.slice(0, 2));
+  const triggerP = people.get(personId);
+  const triggerFullName =
+    (triggerP ? `${triggerP.firstName ?? ""} ${triggerP.lastName ?? ""}`.trim() : null) || personId;
+  const triggerInitials = triggerP
+    ? ((triggerP.firstName?.trim() || "")[0] ?? "") + ((triggerP.lastName?.trim() || "")[0] ?? "")
+    : "?";
+  const actionLabel = `Show parents, make ${newRootFullName} root`;
+  const hist = pushHistory(state, primaryParent, newViewState, actionLabel, personId, {
+    triggerPersonFullName: triggerFullName,
+    triggerPersonInitials: (triggerInitials || "?").toUpperCase(),
+    rootPersonFullName: newRootFullName,
+    rootPersonInitials: (newRootInitialsStr || "?").toUpperCase(),
+  });
   return { ...state, rootId: primaryParent, viewState: newViewState, ...hist };
 }
 

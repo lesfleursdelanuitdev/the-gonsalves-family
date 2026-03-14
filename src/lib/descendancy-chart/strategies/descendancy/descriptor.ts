@@ -8,6 +8,7 @@ import type { ViewStrategyDescriptor, BuildStrategyOptions, ConnectorHelpers } f
 import { DescendancyViewStrategy } from "./DescendancyViewStrategy";
 import { layout, markUnions, isContainer } from "./layout";
 import {
+  getConnectors as getConnectorsImpl,
   hasIncomingConnector,
   incomingX,
   incomingY,
@@ -42,6 +43,8 @@ export const descendancyDescriptor: ViewStrategyDescriptor = {
     outgoingY,
     isContainer,
   },
+
+  getConnectors: getConnectorsImpl,
 
   getBounds,
 

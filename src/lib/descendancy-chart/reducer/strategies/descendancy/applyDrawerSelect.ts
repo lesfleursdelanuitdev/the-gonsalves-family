@@ -25,7 +25,15 @@ export function applyDrawerSelect(
   const newViewState = { ...vs, revealedUnions: nextRevealed };
   const personName = getFullName(personId);
   const spouseName = getFullName(spouseId);
+  const person = getPeople().get(personId);
+  const initials = person
+    ? ((person.firstName?.trim() || "")[0] ?? "") + ((person.lastName?.trim() || "")[0] ?? "")
+    : "?";
   const actionLabel = `Select partner of ${personName}: ${spouseName}`;
-  const hist = pushHistory(state, state.rootId, newViewState, actionLabel);
+  const hist = pushHistory(state, state.rootId, newViewState, actionLabel, personId, {
+    triggerPersonId: personId,
+    triggerPersonFullName: personName,
+    triggerPersonInitials: (initials || "?").toUpperCase(),
+  });
   return { ...state, viewState: newViewState, ...hist };
 }

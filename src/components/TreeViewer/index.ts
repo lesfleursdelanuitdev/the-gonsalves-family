@@ -1,6 +1,3 @@
-export { TreeViewer } from "./TreeViewer";
-export { FamilyTree } from "./FamilyTree";
+export { FamilyTree } from "./v2/FamilyTree";
 export { LockViewportOnMobile } from "./LockViewportOnMobile";
-export { dispatchRefreshViewport, TREE_VIEWER_REFRESH_VIEWPORT } from "./viewportRefresh";
-export { ChartContent } from "./ChartContent";
-export type { ChartContentProps } from "./ChartContent";
+export { dispatchRefreshViewport, TREE_VIEWER_REFRESH_VIEWPORT } from "./v2/utils/viewportRefresh";

@@ -117,7 +117,7 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
     >
       <form
         ref={formRef}
-        action="/search"
+        action="/tree/viewer/searchDatabase"
         method="GET"
         className="flex w-full"
         onFocus={() => setFocused(true)}

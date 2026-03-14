@@ -40,7 +40,17 @@ export function applyShowChildren(
       displayDepth: nextDepth,
       currentDepth: nextDepth,
     };
-    const hist = pushHistory(state, state.rootId, newViewState, "Show children", personId);
+    const people = getPeople();
+    const triggerP = people.get(personId);
+    const triggerFullName =
+      (triggerP ? `${triggerP.firstName ?? ""} ${triggerP.lastName ?? ""}`.trim() : null) || personId;
+    const triggerInitials = triggerP
+      ? ((triggerP.firstName?.trim() || "")[0] ?? "") + ((triggerP.lastName?.trim() || "")[0] ?? "")
+      : "?";
+    const hist = pushHistory(state, state.rootId, newViewState, "Show children", personId, {
+      triggerPersonFullName: triggerFullName,
+      triggerPersonInitials: (triggerInitials || "?").toUpperCase(),
+    });
     return { ...state, viewState: newViewState, ...hist };
   }
 
@@ -60,10 +70,23 @@ export function applyShowChildren(
 
   const people = getPeople();
   const p = people.get(newRootId);
+  const newRootFullName =
+    (p ? `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() : null) || newRootId;
   const newRootInitials =
     (p ? ((p.firstName?.trim() || "")[0] ?? "") + ((p.lastName?.trim() || "")[0] ?? "") : "") ||
-    newRootId.slice(0, 2);
-  const actionLabel = `Show children, make ${(newRootInitials || "?").toUpperCase()} root`;
-  const hist = pushHistory(state, newRootId, newViewState, actionLabel, personId);
+    (/^@I[^@]*@$/.test(newRootId) ? "?" : newRootId.slice(0, 2));
+  const triggerP = people.get(personId);
+  const triggerFullName =
+    (triggerP ? `${triggerP.firstName ?? ""} ${triggerP.lastName ?? ""}`.trim() : null) || personId;
+  const triggerInitials = triggerP
+    ? ((triggerP.firstName?.trim() || "")[0] ?? "") + ((triggerP.lastName?.trim() || "")[0] ?? "")
+    : "?";
+  const actionLabel = `Show children, make ${newRootFullName} root`;
+  const hist = pushHistory(state, newRootId, newViewState, actionLabel, personId, {
+    triggerPersonFullName: triggerFullName,
+    triggerPersonInitials: (triggerInitials || "?").toUpperCase(),
+    rootPersonFullName: newRootFullName,
+    rootPersonInitials: (newRootInitials || "?").toUpperCase(),
+  });
   return { ...state, rootId: newRootId, viewState: newViewState, ...hist };
 }

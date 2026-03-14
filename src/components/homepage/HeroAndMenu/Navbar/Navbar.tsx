@@ -36,7 +36,7 @@ export function Navbar({ isStuck: isStuckProp }: NavbarProps) {
   const [archiveExpanded, setArchiveExpanded] = React.useState(false);
   const [cultureExpanded, setCultureExpanded] = React.useState(false);
 
-  const searchActive = React.useMemo(() => pathname === "/search", [pathname]);
+  const searchActive = React.useMemo(() => pathname === "/tree/viewer/searchDatabase", [pathname]);
   const treeItems = React.useMemo(
     () => TREE_MENU.map((it) => ({ ...it, active: pathname === it.href })),
     [pathname]
@@ -86,7 +86,7 @@ export function Navbar({ isStuck: isStuckProp }: NavbarProps) {
           </span>
           <CultureMenu />
           <SearchLink
-            href="/search"
+            href="/tree/viewer/searchDatabase"
             active={searchActive}
             showSeparator
           />

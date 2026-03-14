@@ -1,8 +1,9 @@
 "use client";
 
-import { getPeople, getBirthUnionByChild, PERSON_HEIGHT, PERSON_WIDTH } from "@/descendancy-chart";
+import { getPeople, getBirthUnionByChild, PERSON_WIDTH } from "@/descendancy-chart";
 import type { DescendancyPerson, PersonCardAction } from "@/descendancy-chart";
-import { IconCrown, IconHeart, IconArrowUp, IconArrowDown, IconHome, IconUsers, IconX, IconPerson, IconPersonMale, IconPersonFemale } from "../../TreeViewer/Misc/SvgIcons";
+import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
+import { IconCrown, IconHeart, IconArrowUp, IconArrowDown, IconHome, IconUsers, IconX, IconPerson, IconPersonMale, IconPersonFemale, IconChevronUp, IconChevronDown } from "../../TreeViewer/Misc/SvgIcons";
 
 const BTN_ROW_H = 52;
 const BTN_CIRCLE_R = 22;
@@ -10,6 +11,12 @@ const BTN_GAP = 10;
 const BTN_ICON = 22;
 /** Vertical offset for profile picture, name, and dates (shifts content down from top of card) */
 const CONTENT_TOP_OFFSET = 14;
+
+/** Fallbacks so action buttons and icons stay visible when CSS variables don't cascade (e.g. tree-viewer-test). */
+const FALLBACK_TREE_TEXT = "#2C2A26";
+const FALLBACK_TREE_TEXT_MUTED = "#6F675A";
+const FALLBACK_TREE_BUTTON_BORDER = "#D9CCB3";
+const FALLBACK_SUCCESS = "#2e7a52";
 
 export interface PersonCardSettings {
   showDates?: boolean;
@@ -29,16 +36,21 @@ export interface PersonCardProps {
   onlyRoot?: boolean;
   /** When true, this person is a leaf in the tree (no children shown); show e.g. a down-arrow button. */
   isLeaf?: boolean;
+  /** When true, this person has descendants in the full data (for showing collapse/expand only when relevant). */
+  hasDescendantsInData?: boolean;
+  /** When true, this person's subtree is collapsed (show "Expand subtree" instead of "Collapse subtree"). */
+  isSubtreeCollapsed?: boolean;
   onAction?: (action: PersonCardAction, personId: string) => void;
   settings?: PersonCardSettings;
 }
 
-export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, isLinkedSpouse = false, hasSpouses = false, hasParents = false, onlyRoot = false, isLeaf = false, onAction, settings = {} }: PersonCardProps) {
+export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, isLinkedSpouse = false, hasSpouses = false, hasParents = false, onlyRoot = false, isLeaf = false, hasDescendantsInData = false, isSubtreeCollapsed = false, onAction, settings = {} }: PersonCardProps) {
   const { id, firstName, lastName, birthYear, deathYear, _hiddenCount, _isShadow } = person;
   const isUnknown = firstName === "Unknown";
+  const effectiveHeight = getEffectivePersonHeight(settings);
   const x = cx - PERSON_WIDTH / 2;
-  const top = y - PERSON_HEIGHT / 2;
-  const btnY = top + PERSON_HEIGHT - BTN_ROW_H - 16;
+  const top = y - effectiveHeight / 2;
+  const btnY = top + effectiveHeight - BTN_ROW_H - 16;
 
   if (_isShadow) {
     const people = getPeople();
@@ -60,7 +72,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           x={x}
           y={top}
           width={PERSON_WIDTH}
-          height={PERSON_HEIGHT}
+          height={effectiveHeight}
           rx={8}
           fill="var(--surface-2)"
           stroke="var(--border)"
@@ -100,7 +112,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         </text>
         <text
           x={cx}
-          y={top + PERSON_HEIGHT - 10}
+          y={top + effectiveHeight - 10}
           textAnchor="middle"
           fontSize={7.5}
           fill="var(--tree-linked)"
@@ -133,7 +145,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           x={x}
           y={top}
           width={PERSON_WIDTH}
-          height={PERSON_HEIGHT}
+          height={effectiveHeight}
           rx={8}
           fill="var(--surface-2)"
           stroke="var(--border)"
@@ -177,18 +189,18 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
   }
 
   return (
-    <g>
-      {/* Card: recipe-card style — soft fill, subtle shadow. Root: red 2px border; spouse: thin top accent; else: 1px border */}
+    <g className="person-card">
+      {/* Card: recipe-card style — soft fill, shadow. Root: 2px crimson border; else: 1px #c8beaa border */}
       <rect
         x={x}
         y={top}
         width={PERSON_WIDTH}
-        height={PERSON_HEIGHT}
+        height={effectiveHeight}
         rx={8}
         fill="var(--surface-2)"
-        stroke={isRoot ? "var(--crimson)" : "var(--border)"}
+        stroke={isRoot ? "var(--crimson)" : "#c8beaa"}
         strokeWidth={isRoot ? 2 : 1}
-        style={{ filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.08))" }}
+        style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.14))" }}
       />
       {/* Thin accent line at top for spouse only (root uses full red border) */}
       {isSpouse && (
@@ -250,7 +262,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
       {_hiddenCount != null && _hiddenCount > 0 && (
         <text
           x={x + PERSON_WIDTH - 10}
-          y={top + PERSON_HEIGHT - 8}
+          y={top + effectiveHeight - 8}
           fontSize={15}
           fontWeight={600}
           fill="var(--tree-text-muted)"
@@ -297,17 +309,24 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         const btnCy = btnY + BTN_ROW_H / 2;
         const buttons: { Icon: typeof IconUsers; stroke: string; title: string; action: PersonCardAction }[] = [];
         if (!isSpouse && !isLinkedSpouse && isRoot && hasParents) {
-          buttons.push({ Icon: IconUsers, stroke: "var(--success)", title: "Show siblings", action: "showSiblings" });
+          buttons.push({ Icon: IconUsers, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Show siblings", action: "showSiblings" });
         }
         if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasSpouses) {
-          buttons.push({ Icon: IconHeart, stroke: "var(--accent)", title: "Show spouses", action: "showSpouses" });
+          buttons.push({ Icon: IconHeart, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Show spouses", action: "showSpouses" });
         }
         if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasParents) {
-          buttons.push({ Icon: IconArrowUp, stroke: "var(--tree-text-muted)", title: "Go to parents", action: "parents" });
+          buttons.push({ Icon: IconArrowUp, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Go to parents", action: "parents" });
         }
-        buttons.push({ Icon: IconHome, stroke: "var(--tree-text-muted)", title: "Set as root", action: "root" });
+        buttons.push({ Icon: IconHome, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Set as root", action: "root" });
+        if (hasDescendantsInData && !isSpouse && !isLinkedSpouse) {
+          if (isSubtreeCollapsed) {
+            buttons.push({ Icon: IconChevronDown, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Expand subtree", action: "expandSubtree" });
+          } else {
+            buttons.push({ Icon: IconChevronUp, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Collapse subtree", action: "collapseSubtree" });
+          }
+        }
         if (isLeaf) {
-          buttons.push({ Icon: IconArrowDown, stroke: "var(--tree-text-muted)", title: "More", action: "expandDown" });
+          buttons.push({ Icon: IconArrowDown, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "More", action: "expandDown" });
         }
 
         const count = buttons.length;
@@ -322,12 +341,22 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
             onClick={(e) => { e.stopPropagation(); onAction(action, id); }}
             onMouseEnter={(e) => {
               const g = e.currentTarget as SVGGElement;
-              g.querySelector("circle")?.setAttribute("fill", "var(--tree-button-border)");
-              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text)"));
+              const circle = g.querySelector("circle");
+              if (circle) {
+                circle.setAttribute("fill", "#e5dcc8");
+                circle.setAttribute("fillOpacity", "0.5");
+                circle.setAttribute("stroke", "#e5dcc8");
+              }
+              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", `var(--tree-text, ${FALLBACK_TREE_TEXT})`));
             }}
             onMouseLeave={(e) => {
               const g = e.currentTarget as SVGGElement;
-              g.querySelector("circle")?.setAttribute("fill", "var(--tree-button-border)");
+              const circle = g.querySelector("circle");
+              if (circle) {
+                circle.setAttribute("fill", "#e5dcc8");
+                circle.setAttribute("fillOpacity", "0.5");
+                circle.setAttribute("stroke", "#e5dcc8");
+              }
               g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", stroke));
             }}
           >
@@ -336,9 +365,9 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
               cx={slot(slotIndex)}
               cy={btnCy}
               r={BTN_CIRCLE_R}
-              fill="var(--tree-button-border)"
-              fillOpacity={0.25}
-              stroke="var(--tree-button-border)"
+              fill="#e5dcc8"
+              fillOpacity={0.5}
+              stroke="#e5dcc8"
               strokeWidth={1}
             />
             <Icon x={slot(slotIndex)} y={btnCy} size={BTN_ICON} stroke={stroke} fill="none" />

@@ -66,6 +66,10 @@ export function buildTree(
       if (!basePerson) return null;
       const person = { ...basePerson, _onlyRoot: onlyRoot };
 
+      if (strategy.isSubtreeCollapsed?.(personId)) {
+        return new PersonNode(person, []);
+      }
+
       if (depth >= maxDepth) {
         const hiddenCount = getHiddenCount?.(personId);
         return new PersonNode({ ...person, ...(hiddenCount != null && { _hiddenCount: hiddenCount }) });

@@ -8,6 +8,7 @@ import {
   CONNECTOR_WIDTH,
   DIAMOND_SIZE,
 } from "./constants";
+import type { LayoutBoundsOptions } from "../ViewStrategyDescriptor";
 import type { ChartNode } from "../../nodes";
 import {
   UnionNode,
@@ -47,7 +48,8 @@ export interface Bounds {
   maxY: number;
 }
 
-export function getBounds(root: ChartNode): Bounds {
+export function getBounds(root: ChartNode, options?: LayoutBoundsOptions): Bounds {
+  const personHeight = options?.personHeight ?? PERSON_HEIGHT;
   let minX = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
@@ -55,7 +57,8 @@ export function getBounds(root: ChartNode): Bounds {
     const half = visualHalfWidth(n);
     minX = Math.min(minX, n.x - half);
     maxX = Math.max(maxX, n.x + half);
-    maxY = Math.max(maxY, n.y + PERSON_HEIGHT / 2);
+    const halfY = n.type === "person" ? personHeight / 2 : DIAMOND_SIZE;
+    maxY = Math.max(maxY, n.y + halfY);
   }
   return { minX, maxX, maxY };
 }

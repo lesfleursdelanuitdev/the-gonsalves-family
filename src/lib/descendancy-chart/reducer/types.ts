@@ -13,6 +13,12 @@ export interface HistoryEntry {
   actionLabel?: string;
   /** When the action changed the root (e.g. Show parents), the person who triggered it; display uses this for initials. */
   triggerPersonId?: string;
+  /** Stored at push time so history displays correctly even when getPeople() later lacks this person. */
+  triggerPersonFullName?: string;
+  triggerPersonInitials?: string;
+  /** Display for the root (newRootId) when it changed; stored at push time. */
+  rootPersonFullName?: string;
+  rootPersonInitials?: string;
 }
 
 export interface TreeState {
@@ -28,7 +34,9 @@ export type CoreAction =
   | { type: "ROOT_KEEP_VIEW"; personId: string }
   | { type: "BACK" }
   | { type: "FORWARD" }
-  | { type: "NAVIGATE_TO_INDEX"; index: number };
+  | { type: "NAVIGATE_TO_INDEX"; index: number }
+  | { type: "CLEAR_HISTORY" }
+  | { type: "RESTORE_HISTORY"; history: HistoryEntry[]; historyIndex: number };
 
 export type TreeAction = CoreAction | DescendancyAction;
 
@@ -38,6 +46,8 @@ export const CORE_ACTION_TYPES: CoreAction["type"][] = [
   "BACK",
   "FORWARD",
   "NAVIGATE_TO_INDEX",
+  "CLEAR_HISTORY",
+  "RESTORE_HISTORY",
 ];
 
 export function isCoreAction(action: { type: string }): action is CoreAction {

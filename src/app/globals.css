@@ -71,10 +71,11 @@
   --tree-text: var(--text);
   --tree-text-muted: var(--text-muted);
   --tree-text-subtle: var(--text-subtle);
-  --tree-root: var(--primary);
+  --tree-root: var(--success);
   --tree-spouse: var(--accent);
-  --tree-linked: var(--secondary);
-  --tree-connector: var(--border);
+  /* Connector lines: visible on tree-bg (--border/--secondary are too light on parchment) */
+  --tree-linked: var(--text-muted);
+  --tree-connector: var(--text-subtle);
   --tree-join: var(--accent-muted);
   --tree-shadow-stroke: var(--accent-muted);
   --tree-divider: var(--border);
@@ -180,6 +181,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* Tree connectors: visible on dark background */
+  --tree-linked: var(--text-muted);
+  --tree-connector: var(--text-subtle);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -268,6 +272,17 @@
 }
 .font-body {
   font-family: var(--font-body-raw), system-ui, sans-serif;
+}
+
+/* TreeViewer v2 desktop: person card scales up very slightly on hover */
+@media (min-width: 641px) {
+  .tree-viewer-root .person-card {
+    transition: transform 0.15s ease;
+    transform-origin: center;
+  }
+  .tree-viewer-root .person-card:hover {
+    transform: scale(1.005);
+  }
 }
 
 html {

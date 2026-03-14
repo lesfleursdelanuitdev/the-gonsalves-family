@@ -2,7 +2,6 @@
 
 import {
   defaultConnectors,
-  PERSON_HEIGHT,
   PersonNode,
   UnionNode,
   LinkedParentNode,
@@ -21,6 +20,10 @@ function getUnionConnectorColor(node: UnionNode): string | undefined {
   return undefined;
 }
 
+/** Fallback colors when CSS variables are not available (e.g. no cascade). Match light-theme --text-subtle / --text-muted. */
+const FALLBACK_CONNECTOR = "#9A8F7C";
+const FALLBACK_LINKED = "#6F675A";
+
 interface ConnectorLinesProps {
   root: ChartNode;
   /** When provided (e.g. from builder.getCurrentStrategy()?.connectors), use for geometry. Else use default (descendancy). */
@@ -29,6 +32,8 @@ interface ConnectorLinesProps {
 
 export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLinesProps) {
   const conn = connectorsProp ?? defaultConnectors;
+  const strokeConnector = "var(--tree-connector, " + FALLBACK_CONNECTOR + ")";
+  const strokeLinked = "var(--tree-linked, " + FALLBACK_LINKED + ")";
   const lines: React.ReactNode[] = [];
 
   const posMap = new Map<string, ChartNode>();
@@ -49,7 +54,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
           const childNode = posMap.get(childId);
           if (!childNode) continue;
           const cx = conn.incomingX(childNode);
-          const toY = childNode.y - PERSON_HEIGHT / 2;
+          const toY = conn.incomingY(childNode);
           const midY = fromY + (toY - fromY) / 2;
           const uid = `${node.linkedUnionId}-${childId}`;
           lines.push(
@@ -59,9 +64,10 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
               y1={fromY}
               x2={node.x}
               y2={midY}
-              stroke="var(--tree-linked)"
+              stroke={strokeLinked}
               strokeWidth={1.5}
               strokeDasharray="6 3"
+              strokeOpacity={0.8}
             />
           );
           lines.push(
@@ -71,9 +77,10 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
               y1={midY}
               x2={cx}
               y2={midY}
-              stroke="var(--tree-linked)"
+              stroke={strokeLinked}
               strokeWidth={1.5}
               strokeDasharray="6 3"
+              strokeOpacity={0.8}
             />
           );
           lines.push(
@@ -83,9 +90,10 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
               y1={midY}
               x2={cx}
               y2={toY}
-              stroke="var(--tree-linked)"
+              stroke={strokeLinked}
               strokeWidth={1.5}
               strokeDasharray="6 3"
+              strokeOpacity={0.8}
             />
           );
         }
@@ -95,11 +103,11 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
 
     if (node instanceof SiblingAdoptiveUnionNode) {
       const sibNode = posMap.get(node.siblingPersonId);
-      const color = node.connectorColor ?? "var(--tree-linked)";
+      const color = node.connectorColor ?? strokeLinked;
       if (sibNode) {
         const fromY = node.y + DIAMOND_SIZE;
         const cx = conn.incomingX(sibNode);
-        const toY = sibNode.y - PERSON_HEIGHT / 2;
+        const toY = conn.incomingY(sibNode);
         const midY = fromY + (toY - fromY) / 2;
         const uid = `sib-${node.linkedUnionId ?? `${node.x}-${node.y}`}-${node.siblingPersonId}`;
         lines.push(
@@ -112,6 +120,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
             stroke={color}
             strokeWidth={1.5}
             strokeDasharray="6 3"
+            strokeOpacity={0.8}
           />
         );
         lines.push(
@@ -124,6 +133,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
             stroke={color}
             strokeWidth={1.5}
             strokeDasharray="6 3"
+            strokeOpacity={0.8}
           />
         );
         lines.push(
@@ -136,6 +146,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
             stroke={color}
             strokeWidth={1.5}
             strokeDasharray="6 3"
+            strokeOpacity={0.8}
           />
         );
       }
@@ -151,7 +162,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
     const strokeColor =
       node instanceof UnionNode && getUnionConnectorColor(node)
         ? getUnionConnectorColor(node)!
-        : "var(--tree-connector)";
+        : strokeConnector;
     const fromY = conn.outgoingY(node);
     const toY = conn.incomingY(node.children[0]);
     const midY = fromY + (toY - fromY) / 2;
@@ -168,6 +179,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
         y2={midY}
         stroke={strokeColor}
         strokeWidth={1.5}
+        strokeOpacity={0.8}
       />
     );
 
@@ -181,6 +193,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
           y2={midY}
           stroke={strokeColor}
           strokeWidth={1.5}
+          strokeOpacity={0.8}
         />
       );
     }
@@ -202,6 +215,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
             y2={cy}
             stroke={childStroke}
             strokeWidth={1.5}
+            strokeOpacity={0.8}
           />
         );
       } else if (child instanceof CatchAllNode) {
@@ -214,6 +228,7 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
             y2={cy}
             stroke={childStroke}
             strokeWidth={1.5}
+            strokeOpacity={0.8}
           />
         );
       }

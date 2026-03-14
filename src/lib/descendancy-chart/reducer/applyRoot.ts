@@ -5,11 +5,17 @@
 import type { TreeState } from "./types";
 import { pushHistory } from "./pushHistory";
 import { getStrategyReducer } from "./strategies/registry";
+import { getPersonDisplay } from "./getPersonDisplay";
 
 export function applyRoot(state: TreeState, personId: string): TreeState {
   const strategy = getStrategyReducer(state.strategyName);
   const newViewState = strategy?.getInitialViewState() ?? {};
-  const hist = pushHistory(state, personId, newViewState, "Set as root");
+  const { fullName, initials } = getPersonDisplay(personId);
+  const actionLabel = `Make ${fullName} root`;
+  const hist = pushHistory(state, personId, newViewState, actionLabel, undefined, {
+    rootPersonFullName: fullName,
+    rootPersonInitials: initials,
+  });
   return {
     ...state,
     rootId: personId,

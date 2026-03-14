@@ -24,6 +24,11 @@ export interface ConnectorHelpers {
   isContainer?(node: ChartNode): boolean;
 }
 
+/** Options for layout and bounds when person card height varies by display settings. */
+export interface LayoutBoundsOptions {
+  personHeight?: number;
+}
+
 /** Bounding box of the laid-out tree. */
 export interface Bounds {
   minX: number;
@@ -55,7 +60,7 @@ export interface ViewStrategyDescriptor {
   getHiddenCount?: (personId: string) => number;
 
   /** Assign x, y, _computedWidth to the tree. Called after build. */
-  layout(root: ChartNode): void;
+  layout(root: ChartNode, options?: LayoutBoundsOptions): void;
 
   /** Optional: mark primary/secondary unions (e.g. for connector styling). */
   markUnions?(root: ChartNode): void;
@@ -63,8 +68,11 @@ export interface ViewStrategyDescriptor {
   /** Connector geometry and visibility for drawing lines. */
   connectors: ConnectorHelpers;
 
+  /** Optional: return connector helpers that use the given person height (for dynamic card height). */
+  getConnectors?(personHeight: number): ConnectorHelpers;
+
   /** Compute bounding box of the laid-out tree. */
-  getBounds(root: ChartNode): Bounds;
+  getBounds(root: ChartNode, options?: LayoutBoundsOptions): Bounds;
 
   /** Strategy-specific constants (padding, dimensions) for viewport and UI. */
   constants: StrategyConstants;

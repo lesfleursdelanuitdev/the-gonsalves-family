@@ -24,31 +24,38 @@ export interface UnionRowProps {
   settings?: ChartSettings;
 }
 
+/** Fallbacks so diamond and lines stay visible when CSS variables don't cascade (e.g. tree-viewer-test). */
+const FALLBACK_TREE_ROOT = "#1a3d2a";
+const FALLBACK_TREE_JOIN = "#8F7740";
+const FALLBACK_TREE_TEXT_SUBTLE = "#9A8F7C";
+const FALLBACK_TREE_LINKED = "#6F675A";
+const FALLBACK_TREE_CONNECTOR = "#9A8F7C";
+
 function getDiamondColor(node: UnionNode): string {
   if (node instanceof NormalUnionNode)
-    return node._isPrimary ? "var(--tree-root)" : "var(--tree-join)";
-  if (node instanceof CatchAllNode) return node.connectorColor ?? "var(--tree-text-subtle)";
-  if (node instanceof LinkedParentNode) return "var(--tree-linked)";
-  if (node instanceof SiblingAdoptiveUnionNode) return node.connectorColor;
-  return "var(--tree-text-subtle)";
+    return node._isPrimary ? `var(--tree-root, ${FALLBACK_TREE_ROOT})` : `var(--tree-join, ${FALLBACK_TREE_JOIN})`;
+  if (node instanceof CatchAllNode) return node.connectorColor ?? `var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE})`;
+  if (node instanceof LinkedParentNode) return `var(--tree-linked, ${FALLBACK_TREE_LINKED})`;
+  if (node instanceof SiblingAdoptiveUnionNode) return node.connectorColor ?? FALLBACK_TREE_TEXT_SUBTLE;
+  return `var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE})`;
 }
 
 function getDiamondGlow(node: UnionNode): string {
   if (node instanceof NormalUnionNode)
-    return node._isPrimary ? "var(--tree-root)" : "var(--tree-join)";
+    return node._isPrimary ? `var(--tree-root, ${FALLBACK_TREE_ROOT})` : `var(--tree-join, ${FALLBACK_TREE_JOIN})`;
   if (node instanceof CatchAllNode)
-    return node.connectorColor ?? "var(--tree-text-subtle)";
-  if (node instanceof LinkedParentNode) return "var(--tree-linked)";
-  if (node instanceof SiblingAdoptiveUnionNode) return node.connectorColor;
-  return "var(--tree-text-subtle)";
+    return node.connectorColor ?? `var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE})`;
+  if (node instanceof LinkedParentNode) return `var(--tree-linked, ${FALLBACK_TREE_LINKED})`;
+  if (node instanceof SiblingAdoptiveUnionNode) return node.connectorColor ?? FALLBACK_TREE_TEXT_SUBTLE;
+  return `var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE})`;
 }
 
 function getLineStroke(node: UnionNode): string {
-  if (node instanceof NormalUnionNode) return "var(--tree-connector)";
-  if (node instanceof CatchAllNode) return node.connectorColor ?? "var(--tree-text-subtle)";
-  if (node instanceof LinkedParentNode) return "var(--tree-linked)";
-  if (node instanceof SiblingAdoptiveUnionNode) return node.connectorColor;
-  return "var(--tree-text-subtle)";
+  if (node instanceof NormalUnionNode) return `var(--tree-connector, ${FALLBACK_TREE_CONNECTOR})`;
+  if (node instanceof CatchAllNode) return node.connectorColor ?? `var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE})`;
+  if (node instanceof LinkedParentNode) return `var(--tree-linked, ${FALLBACK_TREE_LINKED})`;
+  if (node instanceof SiblingAdoptiveUnionNode) return node.connectorColor ?? FALLBACK_TREE_TEXT_SUBTLE;
+  return `var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE})`;
 }
 
 function showLeftCard(node: UnionNode): boolean {
@@ -108,7 +115,7 @@ export function UnionRow({ node, rootId, onAction, settings }: UnionRowProps) {
       <polygon
         points={`${x},${y - DIAMOND_SIZE} ${x + DIAMOND_SIZE},${y} ${x},${y + DIAMOND_SIZE} ${x - DIAMOND_SIZE},${y}`}
         fill={diamondColor}
-        style={{ filter: "drop-shadow(0 0 5px var(--tree-text-subtle))" }}
+        style={{ filter: `drop-shadow(0 0 5px var(--tree-text-subtle, ${FALLBACK_TREE_TEXT_SUBTLE}))` }}
       />
 
       {node.right && (

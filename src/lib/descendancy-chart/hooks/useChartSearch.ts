@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useTreeIndividualsSearchInfinite } from "@/hooks/useTreeData";
+import { useTreeIndividuals } from "@/hooks/useTreeData";
 import type { DescendancyPerson } from "../types";
 
 const DEBOUNCE_MS = 300;
@@ -25,30 +25,22 @@ export function useChartSearch() {
 
   const hasSearchCriteria =
     debouncedGivenName.length > 0 || debouncedLastName.length > 0;
-  const {
-    data: searchPagesData,
-    isFetching: isSearchFetching,
-    isFetchingNextPage: isSearchFetchingMore,
-    hasNextPage: searchHasMore,
-    fetchNextPage: searchFetchNextPage,
-  } = useTreeIndividualsSearchInfinite({
+  const { data: individualsList, isFetching: isSearchFetching } = useTreeIndividuals({
     givenName: debouncedGivenName,
     lastName: debouncedLastName,
-    limit: 10,
     enabled: hasSearchCriteria,
   });
 
   const searchResults = useMemo((): DescendancyPerson[] => {
-    if (!hasSearchCriteria || !searchPagesData?.pages) return [];
-    const individuals = searchPagesData.pages.flatMap((p) => p.individuals);
-    return individuals.map((r) => ({
+    if (!hasSearchCriteria || !individualsList) return [];
+    return individualsList.map((r) => ({
       id: r.xref,
       firstName: r.names.givenNames.join(" ") || "",
       lastName: r.names.lastName ?? "",
       birthYear: null,
       deathYear: null,
     }));
-  }, [hasSearchCriteria, searchPagesData]);
+  }, [hasSearchCriteria, individualsList]);
 
   const searchPendingDebounce =
     trimmedGiven !== debouncedGivenName || trimmedLast !== debouncedLastName;
@@ -61,8 +53,8 @@ export function useChartSearch() {
     setSearchLastName,
     searchResults,
     searchLoading,
-    searchHasMore: searchHasMore ?? false,
-    isSearchFetchingMore: isSearchFetchingMore,
-    fetchNextPage: searchFetchNextPage,
+    searchHasMore: false,
+    isSearchFetchingMore: false,
+    fetchNextPage: () => {},
   };
 }

@@ -102,6 +102,16 @@ export function handlePersonCardAction(
     }
   }
 
+  if (action === "collapseSubtree") {
+    dispatch({ type: "COLLAPSE_SUBTREE", personId });
+    return;
+  }
+
+  if (action === "expandSubtree") {
+    dispatch({ type: "EXPAND_SUBTREE", personId });
+    return;
+  }
+
   if (action === "expandDown") {
     const currentDepth = ctx.currentDepth ?? 0;
     const maxDepth = ctx.maxDepth ?? 0;

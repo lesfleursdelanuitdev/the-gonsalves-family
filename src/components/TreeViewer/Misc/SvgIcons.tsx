@@ -8,6 +8,10 @@ export const ICON_PATHS = {
   x: ["M18 6 6 18", "m6 6 12 12"],
   /** Lucide "User" (head circle + body) – used for person / male / female placeholders */
   person: ["M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"],
+  /** Lucide ChevronDown – expand subtree (show descendants) */
+  chevronDown: ["m6 9 6 6 6-6"],
+  /** Lucide ChevronUp – collapse subtree (hide descendants) */
+  chevronUp: ["m18 15-6-6-6 6"],
 } as const;
 
 /** Lucide "User" circle (head): cx=12, cy=7, r=4 */
@@ -79,4 +83,12 @@ export function IconPersonMale(props: IconInSvgProps) {
 /** Same as IconPerson (Lucide has no separate female icon). */
 export function IconPersonFemale(props: IconInSvgProps) {
   return <IconPaths paths={ICON_PATHS.person} circle={ICON_PERSON_CIRCLE} {...props} />;
+}
+
+export function IconChevronDown(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.chevronDown} {...props} />;
+}
+
+export function IconChevronUp(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.chevronUp} {...props} />;
 }

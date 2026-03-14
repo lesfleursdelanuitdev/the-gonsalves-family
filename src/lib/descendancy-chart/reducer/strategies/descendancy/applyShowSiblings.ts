@@ -37,11 +37,26 @@ export function applyShowSiblings(state: TreeState, personId: string): TreeState
   };
 
   const people = getPeople();
-  const p = people.get(newRoot);
-  const newRootInitials =
-    (p ? ((p.firstName?.trim() || "")[0] ?? "") + ((p.lastName?.trim() || "")[0] ?? "") : "") ||
-    newRoot.slice(0, 2);
-  const actionLabel = `Show siblings, make ${(newRootInitials || "?").toUpperCase()} root`;
-  const hist = pushHistory(state, newRoot, newViewState, actionLabel, personId);
+  const personForLabel = people.get(personId);
+  const personFullName =
+    (personForLabel
+      ? `${personForLabel.firstName ?? ""} ${personForLabel.lastName ?? ""}`.trim()
+      : null) || personId;
+  const triggerInitials = personForLabel
+    ? ((personForLabel.firstName?.trim() || "")[0] ?? "") + ((personForLabel.lastName?.trim() || "")[0] ?? "")
+    : "?";
+  const rootPerson = people.get(newRoot);
+  const rootFullName =
+    (rootPerson ? `${rootPerson.firstName ?? ""} ${rootPerson.lastName ?? ""}`.trim() : null) || newRoot;
+  const rootInitials = rootPerson
+    ? ((rootPerson.firstName?.trim() || "")[0] ?? "") + ((rootPerson.lastName?.trim() || "")[0] ?? "")
+    : "?";
+  const actionLabel = `Show siblings of ${personFullName}`;
+  const hist = pushHistory(state, newRoot, newViewState, actionLabel, personId, {
+    triggerPersonFullName: personFullName,
+    triggerPersonInitials: (triggerInitials || "?").toUpperCase(),
+    rootPersonFullName: rootFullName,
+    rootPersonInitials: (rootInitials || "?").toUpperCase(),
+  });
   return { ...state, rootId: newRoot, viewState: newViewState, ...hist };
 }

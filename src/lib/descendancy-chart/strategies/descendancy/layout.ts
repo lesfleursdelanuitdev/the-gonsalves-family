@@ -7,6 +7,7 @@
 import { GAP, PERSON_HEIGHT, VERTICAL_GAP, CONNECTOR_WIDTH, PERSON_WIDTH } from "./constants";
 import type { ChartNode } from "../../nodes";
 import { PersonNode, UnionNode, NormalUnionNode } from "../../nodes";
+import type { LayoutBoundsOptions } from "../ViewStrategyDescriptor";
 
 function computeWidths(node: ChartNode): void {
   for (const child of node.children) computeWidths(child);
@@ -22,9 +23,14 @@ export function isContainer(node: ChartNode): boolean {
   );
 }
 
-function assignPositions(node: ChartNode, x: number, depth: number): void {
+function assignPositions(
+  node: ChartNode,
+  x: number,
+  depth: number,
+  personHeight: number
+): void {
   node.x = x;
-  node.y = depth * (PERSON_HEIGHT + VERTICAL_GAP);
+  node.y = depth * (personHeight + VERTICAL_GAP);
   // Set positions on union left/right so Go To Person and bounds see correct coords
   if (node instanceof UnionNode) {
     const leftCX = x - CONNECTOR_WIDTH / 2 - PERSON_WIDTH / 2;
@@ -45,14 +51,15 @@ function assignPositions(node: ChartNode, x: number, depth: number): void {
   let leftEdge = x - childrenSpan / 2;
   const childDepth = isContainer(node) ? depth : depth + 1;
   for (const child of node.children) {
-    assignPositions(child, leftEdge + child._computedWidth / 2, childDepth);
+    assignPositions(child, leftEdge + child._computedWidth / 2, childDepth, personHeight);
     leftEdge += child._computedWidth + GAP;
   }
 }
 
-export function layout(root: ChartNode): void {
+export function layout(root: ChartNode, options?: LayoutBoundsOptions): void {
+  const personHeight = options?.personHeight ?? PERSON_HEIGHT;
   computeWidths(root);
-  assignPositions(root, 0, 0);
+  assignPositions(root, 0, 0, personHeight);
 }
 
 /**

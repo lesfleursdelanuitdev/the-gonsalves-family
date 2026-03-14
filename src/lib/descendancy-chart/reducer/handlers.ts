@@ -8,6 +8,8 @@ import { applyRootKeepView } from "./applyRootKeepView";
 import { applyBack } from "./applyBack";
 import { applyForward } from "./applyForward";
 import { applyNavigateToIndex } from "./applyNavigateToIndex";
+import { applyClearHistory } from "./applyClearHistory";
+import { applyRestoreHistory } from "./applyRestoreHistory";
 
 export type Handler = (state: TreeState, action: TreeAction) => TreeState;
 
@@ -19,4 +21,9 @@ export const coreHandlers: Partial<Record<TreeAction["type"], Handler>> = {
   FORWARD: (s) => applyForward(s),
   NAVIGATE_TO_INDEX: (s, a) =>
     applyNavigateToIndex(s, (a as Extract<TreeAction, { type: "NAVIGATE_TO_INDEX" }>).index),
+  CLEAR_HISTORY: (s) => applyClearHistory(s),
+  RESTORE_HISTORY: (s, a) => {
+    const { history, historyIndex } = a as Extract<TreeAction, { type: "RESTORE_HISTORY" }>;
+    return applyRestoreHistory(s, history, historyIndex);
+  },
 };

@@ -8,7 +8,7 @@ export function MobileSearchForm({ onClose }: MobileSearchFormProps) {
   return (
     <div className="rounded-lg border border-border bg-surface-elevated p-3">
       <form
-        action="/search"
+        action="/tree/viewer/searchDatabase"
         method="GET"
         className="grid gap-2"
         onSubmit={onClose}

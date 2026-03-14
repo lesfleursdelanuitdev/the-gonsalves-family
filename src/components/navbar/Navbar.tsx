@@ -126,7 +126,7 @@ export function Navbar() {
                   isActive={cultureActive}
                 />
                 {rightItems.map((it) =>
-                  it.href === "/search" ? (
+                  it.href === "/tree/viewer/searchDatabase" ? (
                     <NavSearchLink
                       key={it.href}
                       href={it.href}

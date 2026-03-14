@@ -48,4 +48,4 @@ export const CULTURE_MENU: NavItem[] = [
 
 export const NAV_LEFT: NavItem[] = [{ label: "Stories", href: "/stories" }];
 
-export const NAV_RIGHT: NavItem[] = [{ label: "Search", href: "/search" }];
+export const NAV_RIGHT: NavItem[] = [{ label: "Search", href: "/tree/viewer/searchDatabase" }];
