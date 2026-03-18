@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { TreeAction } from "@/descendancy-chart";
+import type { TreeAction } from "@/genealogy-visualization-engine";
 
 export interface UseHistoryHandlersParams {
   dispatch: (action: TreeAction) => void;

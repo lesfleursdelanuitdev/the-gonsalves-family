@@ -4,7 +4,8 @@
  */
 
 export const PERSON_WIDTH = 330;
-export const PERSON_HEIGHT = 200;
+/** Height of person card; includes extra space for name area top/bottom padding. */
+export const PERSON_HEIGHT = 212;
 export const DIAMOND_SIZE = 7;
 export const CONNECTOR_WIDTH = 40;
 

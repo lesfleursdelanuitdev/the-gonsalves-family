@@ -4,10 +4,10 @@ import { useMemo, useState, useReducer, useEffect, useCallback, useRef } from "r
 import {
   treeReducer,
   createInitialState,
-} from "@/descendancy-chart";
-import type { ViewState } from "@/descendancy-chart";
-import type { TreeState, HistoryEntry } from "@/descendancy-chart";
-import { usePanelVisibility, useSpouseDrawer } from "@/descendancy-chart";
+} from "@/genealogy-visualization-engine";
+import type { ViewState } from "@/genealogy-visualization-engine";
+import type { TreeState, HistoryEntry } from "@/genealogy-visualization-engine";
+import { usePanelVisibility, useSpouseDrawer } from "@/genealogy-visualization-engine";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
 
 const TREE_HISTORY_STORAGE_KEY = "treeViewerHistoryV2";

@@ -24,7 +24,7 @@ For the v2 FamilyTree, **every** dependency must use the v2 implementation when 
 | Toast             | `v2/ToastMessage` |
 | Settings type     | `ChartSettingsV2` from `v2/ChartPanels/SettingsPanel` |
 
-Shared hooks, providers, and lib (e.g. `@/descendancy-chart`, `@/providers`) stay as-is unless a v2 variant exists.
+Shared hooks, providers, and lib (e.g. `@/genealogy-visualization-engine`, `@/providers`) stay as-is unless a v2 variant exists.
 
 ### 1.2 No viewport-resized toast in v2
 

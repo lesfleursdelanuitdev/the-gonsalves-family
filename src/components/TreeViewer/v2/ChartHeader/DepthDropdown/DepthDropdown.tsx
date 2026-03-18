@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_MAX_DEPTH } from "@/descendancy-chart";
+import { DEFAULT_MAX_DEPTH } from "@/genealogy-visualization-engine";
 
 const DEPTH_OPTIONS = Array.from({ length: DEFAULT_MAX_DEPTH }, (_, i) => i + 1);
 

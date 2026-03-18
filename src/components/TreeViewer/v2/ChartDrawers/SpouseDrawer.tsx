@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
-import { getPeople, getSpousesOf } from "@/descendancy-chart";
-import type { ViewState } from "@/descendancy-chart";
+import { getPeople, getSpousesOf } from "@/genealogy-visualization-engine";
+import type { ViewState } from "@/genealogy-visualization-engine";
 import { IconPerson, IconPersonMale, IconPersonFemale } from "@/components/TreeViewer/Misc/SvgIcons";
 import { ChartDrawer } from "./ChartDrawer";
 import type { ChartDrawerAnchor } from "./ChartDrawer";

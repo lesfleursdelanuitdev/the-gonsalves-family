@@ -4,7 +4,7 @@
  */
 
 import type { ComponentType } from "react";
-import type { ChartNode, ConnectorHelpers } from "@/descendancy-chart";
+import type { ChartNode, ConnectorHelpers } from "@/genealogy-visualization-engine";
 import type { PersonCardProps } from "../../DescendancyChart/FamilyTreeNodes/PersonNodeView";
 import type { UnionRowProps } from "../../DescendancyChart/FamilyTreeNodes/UnionNodeView";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { TreeAction } from "@/descendancy-chart";
+import type { TreeAction } from "@/genealogy-visualization-engine";
 
 export interface UsePanToPartnerModalParams {
   dispatch: (action: TreeAction) => void;

@@ -3,7 +3,7 @@
  * Used so PersonNodeView and layout shrink when photo and/or dates are hidden.
  */
 
-import { PERSON_HEIGHT } from "@/descendancy-chart";
+import { PERSON_HEIGHT } from "@/genealogy-visualization-engine";
 
 /** Full height of a person card when photo and dates are shown. */
 export const FULL_PERSON_HEIGHT = PERSON_HEIGHT;

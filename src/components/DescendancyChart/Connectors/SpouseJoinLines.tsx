@@ -1,7 +1,7 @@
 "use client";
 
-import type { ChartNode } from "@/descendancy-chart";
-import { UnionNode } from "@/descendancy-chart";
+import type { ChartNode } from "@/genealogy-visualization-engine";
+import { UnionNode } from "@/genealogy-visualization-engine";
 
 interface SpouseJoinLinesProps {
   root: ChartNode;

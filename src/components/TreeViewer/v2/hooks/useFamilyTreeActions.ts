@@ -6,9 +6,9 @@ import {
   handlePersonCardAction,
   type PersonCardAction,
   type HandlePersonCardActionContext,
-} from "@/descendancy-chart";
-import type { ViewState } from "@/descendancy-chart";
-import type { TreeAction } from "@/descendancy-chart";
+} from "@/genealogy-visualization-engine";
+import type { ViewState } from "@/genealogy-visualization-engine";
+import type { TreeAction } from "@/genealogy-visualization-engine";
 import { dispatchRefreshViewport } from "../utils/viewportRefresh";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
 import type { ToastState } from "./useFamilyTreeState";

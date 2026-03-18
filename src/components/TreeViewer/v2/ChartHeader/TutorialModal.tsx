@@ -24,6 +24,7 @@ export interface TutorialModalProps {
 }
 
 const iconSize = 18;
+const strongLabelStyle: React.CSSProperties = { color: "#2e7a52" };
 const rowStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -42,13 +43,18 @@ const sectionTitleStyle: React.CSSProperties = {
   marginBottom: 10,
   marginTop: 16,
 };
+const iconWrapPadding = 10;
 const iconWrapStyle: React.CSSProperties = {
   flexShrink: 0,
-  width: iconSize,
-  height: iconSize,
+  width: iconSize + iconWrapPadding * 2,
+  height: iconSize + iconWrapPadding * 2,
+  padding: iconWrapPadding,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
+  backgroundColor: "#ece5d4",
+  border: "1px solid rgba(0, 0, 0, 0.08)",
+  borderRadius: "50%",
   color: "var(--tree-text-muted)",
 };
 const titleStyle: React.CSSProperties = {
@@ -99,10 +105,10 @@ export function TutorialModal({
     >
       <div
         style={{
-          background: "var(--tree-surface-dim)",
+          background: "linear-gradient(to bottom, #f0ebe0, #f4efe2, #f0ebe0)",
           border: "1px solid var(--tree-border)",
           borderRadius: 14,
-          padding: "24px 28px",
+          padding: isMobile ? "24px 28px 28px 28px" : "24px 28px",
           maxWidth: 400,
           width: "92%",
           maxHeight: "85vh",
@@ -113,47 +119,45 @@ export function TutorialModal({
       >
         <div
           style={{
-            background: "#ece5d4",
-            borderRadius: 10,
-            padding: "14px 16px",
-            marginBottom: 4,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: isMobile ? 10 : 16,
+            paddingTop: isMobile ? 8 : 12,
+            paddingBottom: 16,
+            borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+            marginBottom: 16,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 12,
-            }}
-          >
-            <Crest size="lg" alt="Gonsalves family crest" />
+            <div
+              style={{
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Crest size={isMobile ? "md" : "lg"} alt="Gonsalves family crest" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={titleStyle}>
+                <span style={{ borderBottom: "2px solid #8b2e2e" }}>Welcome</span>
+              </h2>
+              <p
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: isMobile ? 13 : 14,
+                  lineHeight: 1.45,
+                  color: "var(--tree-text)",
+                  fontFamily: "system-ui, sans-serif",
+                }}
+              >
+                Welcome to the Tree Viewer for the Gonsalves Family Genealogy Pages.
+              </p>
+            </div>
           </div>
-          <h2 style={titleStyle}>
-            <span style={{ borderBottom: "2px solid #8b2e2e" }}>Welcome</span>
-          </h2>
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontSize: 14,
-              lineHeight: 1.45,
-              color: "var(--tree-text)",
-              fontFamily: "system-ui, sans-serif",
-            }}
-          >
-            Welcome to the Tree Viewer for the Gonsalves Family Genealogy Pages.
-          </p>
-        </div>
 
-        <div
-          style={{
-            background: "rgba(236, 229, 212, 0.6)",
-            borderRadius: 10,
-            padding: "14px 16px",
-            marginTop: 16,
-            marginBottom: 4,
-          }}
-        >
-          <h2 style={titleStyle}>
+          <h2 style={{ ...titleStyle, marginTop: 20 }}>
             Getting{" "}
             <span
               style={{
@@ -176,22 +180,22 @@ export function TutorialModal({
               Person card buttons
             </div>
             <TutorialRow icon={<Heart size={iconSize} strokeWidth={2} />}>
-          <strong>Show partners</strong> — open the list of partners; choose one to show on the tree.
+          <strong style={strongLabelStyle}>Show partners</strong> — open the list of partners; choose one to show on the tree.
         </TutorialRow>
         <TutorialRow icon={<ArrowUp size={iconSize} strokeWidth={2} />}>
-          <strong>Show parents</strong> — go to this person’s parents.
+          <strong style={strongLabelStyle}>Show parents</strong> — go to this person’s parents.
         </TutorialRow>
         <TutorialRow icon={<Users size={iconSize} strokeWidth={2} />}>
-          <strong>Show siblings</strong> — view siblings for this person.
+          <strong style={strongLabelStyle}>Show siblings</strong> — view siblings for this person.
         </TutorialRow>
         <TutorialRow icon={<ArrowDown size={iconSize} strokeWidth={2} />}>
-          <strong>Display next generation</strong> — reveal the next generation of children.
+          <strong style={strongLabelStyle}>Display next generation</strong> — reveal the next generation of children.
         </TutorialRow>
         <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
-          <strong>Make root of tree</strong> — set this person as the new root of the tree.
+          <strong style={strongLabelStyle}>Make root of tree</strong> — set this person as the new root of the tree.
         </TutorialRow>
         <TutorialRow icon={<ChevronsUpDown size={iconSize} strokeWidth={2} />}>
-          <strong>Collapse / Expand subtree</strong> — hide or show this person’s descendants (only on people who have children in the tree).
+          <strong style={strongLabelStyle}>Collapse / Expand subtree</strong> — hide or show this person’s descendants (only on people who have children in the tree).
         </TutorialRow>
           </div>
 
@@ -205,33 +209,32 @@ export function TutorialModal({
           >
             <div style={sectionTitleStyle}>Menu icons</div>
             <TutorialRow icon={<Search size={iconSize} strokeWidth={2} />}>
-              <strong>Search database</strong> — find a person to make the new root of the tree.
+              <strong style={strongLabelStyle}>Search database</strong> — find a person to make the new root of the tree.
             </TutorialRow>
             <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
-              <strong>Center on root</strong> — pan and zoom so the root person is centered.
+              <strong style={strongLabelStyle}>Center on root</strong> — pan and zoom so the root person is centered.
             </TutorialRow>
             <TutorialRow icon={<History size={iconSize} strokeWidth={2} />}>
-              <strong>History panel</strong> — open navigation history (undo, redo, clear).
+              <strong style={strongLabelStyle}>History panel</strong> — open navigation history (undo, redo, clear).
             </TutorialRow>
             <TutorialRow icon={<Settings size={iconSize} strokeWidth={2} />}>
-              <strong>Settings panel</strong> — tree depth, display options, and more.
+              <strong style={strongLabelStyle}>Settings panel</strong> — tree depth, display options, and more.
             </TutorialRow>
             <TutorialRow icon={<Info size={iconSize} strokeWidth={2} />}>
-              <strong>Info panel</strong> — dataset information.
+              <strong style={strongLabelStyle}>Info panel</strong> — dataset information.
             </TutorialRow>
             <TutorialRow icon={<UserCircle size={iconSize} strokeWidth={2} />}>
-              <strong>Go to person</strong> — jump to a person in the current graph.
+              <strong style={strongLabelStyle}>Go to person</strong> — jump to a person in the current graph.
             </TutorialRow>
             <TutorialRow icon={<Heart size={iconSize} strokeWidth={2} />}>
-              <strong>Toggle all partners</strong> — expand or collapse all partner sets at once.
+              <strong style={strongLabelStyle}>Toggle all partners</strong> — expand or collapse all partner sets at once.
             </TutorialRow>
           </div>
         )}
         <div style={sectionTitleStyle}>Get help later</div>
         <TutorialRow icon={<HelpCircle size={iconSize} strokeWidth={2} />}>
-          You can open this tutorial again anytime by clicking the <strong>Help</strong> icon in the right menu.
+          You can open this tutorial again anytime by clicking the <strong style={strongLabelStyle}>Help</strong> icon in the right menu.
         </TutorialRow>
-        </div>
 
         <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>
           <button

@@ -9,6 +9,7 @@ export interface ChartMenuButtonProps {
   label?: string;
   active?: boolean;
   showLabel?: boolean;
+  disabled?: boolean;
 }
 
 const baseStyle: React.CSSProperties = {
@@ -29,21 +30,25 @@ export function ChartMenuButton({
   label,
   active = false,
   showLabel = true,
+  disabled = false,
 }: ChartMenuButtonProps) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       title={title}
       aria-label={title}
+      disabled={disabled}
       style={{
         ...baseStyle,
         background: active ? "var(--hover-overlay)" : "rgba(229, 220, 200, 0.55)",
         borderColor: "#e5dcc8",
         color: active ? "var(--tree-root)" : "var(--tree-text-muted)",
+        opacity: disabled ? 0.5 : undefined,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
       onMouseEnter={(e) => {
-        if (!active) {
+        if (!active && !disabled) {
           e.currentTarget.style.color = "var(--tree-text)";
           e.currentTarget.style.borderColor = "#e5dcc8";
         }

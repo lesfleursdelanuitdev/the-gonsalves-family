@@ -10,13 +10,14 @@ import {
   usePanZoom,
   usePanToPerson,
   useTreeBuild,
-} from "@/descendancy-chart";
+} from "@/genealogy-visualization-engine";
 import type { ChartMenuRootActionDeps } from "./ChartHeader";
 import { TreeNodeViewProvider } from "@/providers/TreeNodeViewContext";
 import { dispatchRefreshViewport } from "./utils/viewportRefresh";
 import { FamilyTreeLoading } from "./FamilyTreeLoading";
 import { FamilyTreeHeader } from "./FamilyTreeHeader";
 import { FamilyTreeOverlays } from "./FamilyTreeOverlays";
+import { PersonDetailOverlay, type PersonDetailOverlayPerson } from "./PersonDetailOverlay";
 import { ChartViewport } from "./ChartViewport/ChartViewport";
 import { useFamilyTreeState } from "./hooks/useFamilyTreeState";
 import { useFamilyTreeActions } from "./hooks/useFamilyTreeActions";
@@ -41,6 +42,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
   const { initialRootId = null, loadSavedHistory = false, rootName = null } = props;
   const svgRef = useRef<SVGSVGElement>(null);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [personDetailOverlay, setPersonDetailOverlay] = useState<PersonDetailOverlayPerson | null>(null);
 
   useEffect(() => {
     try {
@@ -286,6 +288,9 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
           mobileSearchHref="/tree/viewer/searchDatabase"
           showHistoryPanel={panels.showHistoryPanel}
           onHistoryClick={panels.toggleHistoryPanel}
+          history={state.history}
+          historyIndex={state.historyIndex}
+          onNavigateHistory={historyHandlers.onNavigateHistory}
           showInfo={panels.showInfo}
           onInfoClick={panels.toggleInfoPanel}
           showSettings={panels.showSettings}
@@ -321,6 +326,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
               root={root}
               rootId={effectiveRootId}
               onAction={actions.onAction}
+              onNameClick={(person: PersonDetailOverlayPerson) => setPersonDetailOverlay(person)}
               settings={settings}
               viewState={viewState}
               connectors={
@@ -413,6 +419,13 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
           onCloseTutorial={handleCloseTutorial}
           strategyName={builder?.currentStrategyName ?? "descendancy"}
         />
+        {personDetailOverlay && (
+          <PersonDetailOverlay
+            person={personDetailOverlay}
+            onClose={() => setPersonDetailOverlay(null)}
+            isMobile={isMobile}
+          />
+        )}
       </div>
     </TreeNodeViewProvider>
   );

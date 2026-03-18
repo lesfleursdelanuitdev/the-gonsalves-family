@@ -1,5 +1,9 @@
+export { ChartMenuBackButton } from "./ChartMenuBackButton";
+export type { ChartMenuBackButtonProps } from "./ChartMenuBackButton";
 export { ChartMenuButton } from "./ChartMenuButton";
 export type { ChartMenuButtonProps } from "./ChartMenuButton";
+export { ChartMenuForwardButton } from "./ChartMenuForwardButton";
+export type { ChartMenuForwardButtonProps } from "./ChartMenuForwardButton";
 export { ChartMenuDepthButton } from "./ChartMenuDepthButton";
 export type { ChartMenuDepthButtonProps } from "./ChartMenuDepthButton";
 export { ChartMenuGoToPersonButton } from "./ChartMenuGoToPersonButton";

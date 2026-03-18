@@ -10,8 +10,8 @@ import {
   NormalUnionNode,
   getUnionById,
   DIAMOND_SIZE,
-} from "@/descendancy-chart";
-import type { ChartNode, ConnectorHelpers } from "@/descendancy-chart";
+} from "@/genealogy-visualization-engine";
+import type { ChartNode, ConnectorHelpers } from "@/genealogy-visualization-engine";
 
 function getUnionConnectorColor(node: UnionNode): string | undefined {
   if (node instanceof CatchAllNode) return node.connectorColor;
@@ -165,7 +165,14 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
         : strokeConnector;
     const fromY = conn.outgoingY(node);
     const toY = conn.incomingY(node.children[0]);
-    const midY = fromY + (toY - fromY) / 2;
+    // For union nodes, midY (where the horizontal runs) is computed from the card
+    // bottom rather than the diamond tip so the gap below the cards matches the
+    // single-person (spouse-closed) case.  For all other nodes the existing
+    // behaviour (halfway between fromY and toY) is preserved.
+    const cardBottomY = node instanceof UnionNode
+      ? 2 * node.y - conn.incomingY(node)
+      : fromY;
+    const midY = cardBottomY + (toY - cardBottomY) / 2;
     const visibleChildren = node.children.filter(conn.hasIncomingConnector);
     const leftX = conn.incomingX(node.children[0]);
     const rightX = conn.incomingX(node.children[node.children.length - 1]);

@@ -2,15 +2,23 @@
 
 interface ChartHeaderTitleProps {
   displayName?: string | null;
+  isMobile?: boolean;
 }
 
-export function ChartHeaderTitle({ displayName }: ChartHeaderTitleProps) {
+export function ChartHeaderTitle({ displayName, isMobile }: ChartHeaderTitleProps) {
+  const subtitleSize = "0.6rem";
+  const titleSize = isMobile ? 12 : 13;
   return (
     <div>
-      <p className="section-subtitle mb-0.5" style={{ fontSize: "0.6rem" }}>
-        Descendancy Chart
-      </p>
-      <h2 className="font-heading text-base font-semibold tracking-tight text-heading">
+      {!isMobile && (
+        <p className="section-subtitle mb-0.5" style={{ fontSize: subtitleSize }}>
+          Descendancy Chart
+        </p>
+      )}
+      <h2
+        className="font-heading font-semibold tracking-tight text-heading"
+        style={{ fontSize: titleSize }}
+      >
         {displayName ? (
           <>
             {displayName} — <span className="italic">Descendants</span>

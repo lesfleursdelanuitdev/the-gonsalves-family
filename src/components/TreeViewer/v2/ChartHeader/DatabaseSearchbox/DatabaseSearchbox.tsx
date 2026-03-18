@@ -1,6 +1,6 @@
 "use client";
 
-import type { DescendancyPerson } from "@/descendancy-chart";
+import type { DescendancyPerson } from "@/genealogy-visualization-engine";
 import { Search } from "lucide-react";
 import { DesktopDatabaseSearchboxInputs } from "./DesktopDatabaseSearchboxInputs";
 import { DesktopDatabaseSearchboxResults } from "./DesktopDatabaseSearchboxResults";

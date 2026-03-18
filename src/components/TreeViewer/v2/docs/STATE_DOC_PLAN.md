@@ -15,19 +15,19 @@ Outline for a doc that explains where and how state lives in the v2 family tree.
 
 ### 2.1 Overview
 
-- One-sentence summary: v2 state is split into (1) reducer state (tree navigation, view) in `useFamilyTreeState`, (2) local UI state in the same hook, and (3) panel/drawer state from `@/descendancy-chart` hooks.
+- One-sentence summary: v2 state is split into (1) reducer state (tree navigation, view) in `useFamilyTreeState`, (2) local UI state in the same hook, and (3) panel/drawer state from `@/genealogy-visualization-engine` hooks.
 - Point to `useFamilyTreeState` as the single state hook consumed by FamilyTree; mention that pan/zoom and fetch/build state live in other hooks (usePanZoom, useDescendancyFetch, useTreeBuild) and are not part of “TreeViewer state” in this doc.
 
 ### 2.2 Reducer state (TreeState)
 
-- **Source:** `treeReducer` + `createInitialState("descendancy", initialRootId)` from `@/descendancy-chart`. Owned inside `useFamilyTreeState`.
+- **Source:** `treeReducer` + `createInitialState("descendancy", initialRootId)` from `@/genealogy-visualization-engine`. Owned inside `useFamilyTreeState`.
 - **Shape:** `TreeState`: `strategyName`, `rootId`, `viewState`, `history`, `historyIndex`. Reference `reducer/types.ts` (or doc the shape inline).
-- **Updates:** Only via `dispatch(action)`. Core actions (ROOT, BACK, FORWARD, NAVIGATE_TO_INDEX) and strategy actions (e.g. SHOW_CHILDREN, REVEAL_SPOUSE, SET_SIBLING_VIEW_FROM_API) — list main ones or point to descendancy-chart reducer.
+- **Updates:** Only via `dispatch(action)`. Core actions (ROOT, BACK, FORWARD, NAVIGATE_TO_INDEX) and strategy actions (e.g. SHOW_CHILDREN, REVEAL_SPOUSE, SET_SIBLING_VIEW_FROM_API) — list main ones or point to genealogy-visualization-engine reducer.
 - **Initialization:** `initialRootId` from FamilyTree props → `createInitialState("descendancy", initialRootId)`; changing `initialRootId` only affects mount (no reset on prop change unless FamilyTree remounts).
 
 ### 2.3 ViewState (inside reducer state)
 
-- **What it is:** `state.viewState` cast to `ViewState` (from `@/descendancy-chart` types). Strategy-specific view data for the descendancy chart.
+- **What it is:** `state.viewState` cast to `ViewState` (from `@/genealogy-visualization-engine` types). Strategy-specific view data for the descendancy chart.
 - **Fields to document briefly:** `revealedUnions`, `linkedUnions`, `siblingView`, `displayDepth`, `currentDepth`, `expandDownTopRow`. One line each on purpose (e.g. “which spouse sets are expanded”, “depth used for build/display”, “sibling view metadata from API”).
 - **Who reads it:** useTreeBuild, useDepth, usePanToPerson, panels (legend), handlePersonCardAction context. No need to list every consumer—just “used by build, depth, and action handlers”.
 
@@ -45,9 +45,9 @@ Outline for a doc that explains where and how state lives in the v2 family tree.
 
 ### 2.5 Panel and drawer state (external hooks)
 
-- **usePanelVisibility** (from `@/descendancy-chart`): booleans and setters for showHistoryPanel, showInfo, showSearchPanel, showDepthPanel, showSettings, showLegendModal, showLegendPanel, showDebugPanel; plus toggle/closeAll helpers. Returned as `panels` from useFamilyTreeState.
+- **usePanelVisibility** (from `@/genealogy-visualization-engine`): booleans and setters for showHistoryPanel, showInfo, showSearchPanel, showDepthPanel, showSettings, showLegendModal, showLegendPanel, showDebugPanel; plus toggle/closeAll helpers. Returned as `panels` from useFamilyTreeState.
 - **useSpouseDrawer**: drawerPersonId, openDrawer, closeDrawer, setDrawerPersonId. Returned as `spouseDrawer` from useFamilyTreeState.
-- **Why here:** TreeViewer doesn’t own the implementation (lives in descendancy-chart) but owns the single instance by calling these hooks inside useFamilyTreeState and passing `panels` and `spouseDrawer` down.
+- **Why here:** TreeViewer doesn’t own the implementation (lives in genealogy-visualization-engine) but owns the single instance by calling these hooks inside useFamilyTreeState and passing `panels` and `spouseDrawer` down.
 
 ### 2.6 State that is not in useFamilyTreeState
 
@@ -68,9 +68,9 @@ Outline for a doc that explains where and how state lives in the v2 family tree.
 
 ### 2.9 Where to find types and implementations
 
-- **TreeState, ViewState, HistoryEntry, TreeAction:** `@/descendancy-chart` (reducer/types.ts, types.ts).
+- **TreeState, ViewState, HistoryEntry, TreeAction:** `@/genealogy-visualization-engine` (reducer/types.ts, types.ts).
 - **useFamilyTreeState, ToastState:** `TreeViewer/v2/hooks/useFamilyTreeState.ts`.
-- **usePanelVisibility, useSpouseDrawer:** `@/descendancy-chart` hooks.
+- **usePanelVisibility, useSpouseDrawer:** `@/genealogy-visualization-engine` hooks.
 - **ChartSettingsV2:** `TreeViewer/v2/ChartPanels/SettingsPanel.tsx`.
 
 ---
@@ -92,7 +92,7 @@ Outline for a doc that explains where and how state lives in the v2 family tree.
 
 ## 5. What to skip (keep the doc focused)
 
-- Full list of every TreeAction type (point to descendancy-chart).
+- Full list of every TreeAction type (point to genealogy-visualization-engine).
 - Step-by-step useFamilyTreeActions internals (that’s “actions”, not “state”; a separate doc could cover that).
 - Deep dive into usePanZoom / useTreeBuild / useDescendancyFetch (only state ownership and “lives outside useFamilyTreeState”).
 - v1 vs v2 state comparison (already in TREEVIEWER_V1_V2_ANALYSIS.md).

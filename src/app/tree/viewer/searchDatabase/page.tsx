@@ -3,8 +3,8 @@
 import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { DescendancyPerson } from "@/descendancy-chart";
-import { useChartSearch } from "@/descendancy-chart";
+import type { DescendancyPerson } from "@/genealogy-visualization-engine";
+import { useChartSearch } from "@/genealogy-visualization-engine";
 import { ArrowLeft } from "lucide-react";
 
 const TREE_VIEWER_PATH = "/tree/viewer";

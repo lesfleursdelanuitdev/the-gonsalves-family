@@ -1,12 +1,11 @@
 "use client";
 
-import type { DescendancyPerson } from "@/descendancy-chart";
-import type { TreeAction } from "@/descendancy-chart";
+import type { DescendancyPerson } from "@/genealogy-visualization-engine";
+import type { TreeAction } from "@/genealogy-visualization-engine";
 import { useCallback } from "react";
 import { DatabaseSearchbox } from "../DatabaseSearchbox/DatabaseSearchbox";
 import { getChartMenuItems } from "./ChartMenuItems";
 import { MenuDivider } from "../MenuDivider";
-import { RootDisplayName } from "../RootDisplayName";
 
 export interface ChartMenuRootActionDeps {
   dispatch: (action: TreeAction) => void;
@@ -121,7 +120,7 @@ export function ChartMenu({
         gap: 4,
         background: "#f4efe2",
         flexShrink: 0,
-        fontSize: 12,
+        fontSize: isMobile ? 10 : 12,
         position: "sticky",
         top: 0,
         zIndex: overlayOpen ? 50 : 100,
@@ -151,7 +150,6 @@ export function ChartMenu({
           </span>
         ))}
 
-      {isMobile && <RootDisplayName rootDisplayName={rootDisplayName} />}
     </div>
   );
 }

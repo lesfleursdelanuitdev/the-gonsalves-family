@@ -1,9 +1,9 @@
 "use client";
 
 import type { ComponentType } from "react";
-import type { ChartNode } from "@/descendancy-chart";
-import { getUnionsByPerson, getParentUnionsByChild, getAllChildrenOf, UnionNode } from "@/descendancy-chart";
-import type { PersonCardAction, ViewState } from "@/descendancy-chart";
+import type { ChartNode } from "@/genealogy-visualization-engine";
+import { getUnionsByPerson, getParentUnionsByChild, getAllChildrenOf, UnionNode } from "@/genealogy-visualization-engine";
+import type { PersonCardAction, ViewState } from "@/genealogy-visualization-engine";
 import { PersonCard } from "./PersonNodeView";
 import { UnionRow } from "./UnionNodeView";
 import type { PersonCardProps } from "./PersonNodeView";
@@ -15,10 +15,14 @@ export interface ChartSettings {
   showUnknown?: boolean;
 }
 
+export type OnNameClick = (person: { name: string; xref: string; uuid: string | null }) => void;
+
 interface TreeNodesProps {
   root: ChartNode;
   rootId: string;
   onAction?: (action: PersonCardAction, personId: string) => void;
+  /** When provided, person names are clickable and this is called with name, xref, uuid. */
+  onNameClick?: OnNameClick;
   settings?: ChartSettings;
   /** For collapse/expand subtree: which person IDs have collapsed subtrees. */
   viewState?: ViewState;
@@ -32,6 +36,7 @@ export function TreeNodes({
   root,
   rootId,
   onAction,
+  onNameClick,
   settings,
   viewState,
   personNodeView: PersonNodeView = PersonCard,
@@ -48,6 +53,7 @@ export function TreeNodes({
           node={node}
           rootId={rootId}
           onAction={onAction}
+          onNameClick={onNameClick}
           settings={settings}
         />
       );
@@ -74,6 +80,7 @@ export function TreeNodes({
             hasDescendantsInData={(getAllChildrenOf(node.content.id) ?? []).length > 0}
             isSubtreeCollapsed={collapsedSet.has(node.content.id)}
             onAction={onAction}
+            onNameClick={onNameClick}
             settings={settings}
           />
         );

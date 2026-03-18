@@ -10,17 +10,18 @@ import {
   CatchAllNode,
   LinkedParentNode,
   SiblingAdoptiveUnionNode,
-} from "@/descendancy-chart";
-import type { UnionNode } from "@/descendancy-chart";
+} from "@/genealogy-visualization-engine";
+import type { UnionNode } from "@/genealogy-visualization-engine";
 import { PersonCard } from "./PersonNodeView";
-import type { PersonCardAction } from "@/descendancy-chart";
+import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { PersonCardSettings } from "./PersonNodeView";
-import type { ChartSettings } from "./TreeNodes";
+import type { ChartSettings, OnNameClick } from "./TreeNodes";
 
 export interface UnionRowProps {
   node: UnionNode;
   rootId: string;
   onAction?: (action: PersonCardAction, personId: string) => void;
+  onNameClick?: OnNameClick;
   settings?: ChartSettings;
 }
 
@@ -74,7 +75,7 @@ function isDashedLine(node: UnionNode): boolean {
  * Union row: left card, line, diamond, line, right card.
  * left.x = node.x - CONNECTOR_WIDTH/2 - PERSON_WIDTH/2, right.x = node.x + CONNECTOR_WIDTH/2 + PERSON_WIDTH/2.
  */
-export function UnionRow({ node, rootId, onAction, settings }: UnionRowProps) {
+export function UnionRow({ node, rootId, onAction, onNameClick, settings }: UnionRowProps) {
   const { x, y } = node;
   const leftCX = x - CONNECTOR_WIDTH / 2 - PERSON_WIDTH / 2;
   const rightCX = x + CONNECTOR_WIDTH / 2 + PERSON_WIDTH / 2;
@@ -98,6 +99,7 @@ export function UnionRow({ node, rootId, onAction, settings }: UnionRowProps) {
             onlyRoot={!!node.left.content._onlyRoot}
             isLeaf={node.children.length === 0}
             onAction={onAction}
+            onNameClick={onNameClick}
             settings={settings as PersonCardSettings | undefined}
           />
           <line
@@ -141,6 +143,7 @@ export function UnionRow({ node, rootId, onAction, settings }: UnionRowProps) {
             onlyRoot={!!node.right.content._onlyRoot}
             isLeaf={node.children.length === 0}
             onAction={onAction}
+            onNameClick={onNameClick}
             settings={settings as PersonCardSettings | undefined}
           />
         </>

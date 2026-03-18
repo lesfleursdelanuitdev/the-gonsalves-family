@@ -1,7 +1,7 @@
 "use client";
 
-import { getPeople, getBirthUnionByChild, PERSON_WIDTH } from "@/descendancy-chart";
-import type { DescendancyPerson, PersonCardAction } from "@/descendancy-chart";
+import { getPeople, getBirthUnionByChild, PERSON_WIDTH } from "@/genealogy-visualization-engine";
+import type { DescendancyPerson, PersonCardAction } from "@/genealogy-visualization-engine";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
 import { IconCrown, IconHeart, IconArrowUp, IconArrowDown, IconHome, IconUsers, IconX, IconPerson, IconPersonMale, IconPersonFemale, IconChevronUp, IconChevronDown } from "../../TreeViewer/Misc/SvgIcons";
 
@@ -17,6 +17,20 @@ const FALLBACK_TREE_TEXT = "#2C2A26";
 const FALLBACK_TREE_TEXT_MUTED = "#6F675A";
 const FALLBACK_TREE_BUTTON_BORDER = "#D9CCB3";
 const FALLBACK_SUCCESS = "#2e7a52";
+
+/** Extra vertical space for name area (top + bottom padding). */
+const NAME_ROW_EXTRA_HEIGHT = 12;
+
+/** Soft background colors for name area (by gender). */
+const NAME_BG_MALE = "#AAD7ED";
+const NAME_BG_FEMALE = "#F8BBD0";
+const NAME_BG_OTHER = "#C8E6C9";
+
+function getNameBackgroundColor(gender: string | null | undefined): string {
+  if (gender === "Male") return NAME_BG_MALE;
+  if (gender === "Female") return NAME_BG_FEMALE;
+  return NAME_BG_OTHER;
+}
 
 export interface PersonCardSettings {
   showDates?: boolean;
@@ -41,11 +55,22 @@ export interface PersonCardProps {
   /** When true, this person's subtree is collapsed (show "Expand subtree" instead of "Collapse subtree"). */
   isSubtreeCollapsed?: boolean;
   onAction?: (action: PersonCardAction, personId: string) => void;
+  /** When provided, name is clickable and opens a detail overlay with name, xref, uuid. */
+  onNameClick?: (person: { name: string; xref: string; uuid: string | null }) => void;
   settings?: PersonCardSettings;
 }
 
-export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, isLinkedSpouse = false, hasSpouses = false, hasParents = false, onlyRoot = false, isLeaf = false, hasDescendantsInData = false, isSubtreeCollapsed = false, onAction, settings = {} }: PersonCardProps) {
+export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, isLinkedSpouse = false, hasSpouses = false, hasParents = false, onlyRoot = false, isLeaf = false, hasDescendantsInData = false, isSubtreeCollapsed = false, onAction, onNameClick, settings = {} }: PersonCardProps) {
   const { id, firstName, lastName, birthYear, deathYear, _hiddenCount, _isShadow } = person;
+  const overlayPerson = {
+    name: `${firstName} ${lastName}`.trim() || "Unknown",
+    xref: person.xref ?? id,
+    uuid: person.uuid ?? null,
+  };
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onNameClick?.(overlayPerson);
+  };
   const isUnknown = firstName === "Unknown";
   const effectiveHeight = getEffectivePersonHeight(settings);
   const x = cx - PERSON_WIDTH / 2;
@@ -80,29 +105,43 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           strokeDasharray="5 3"
           style={{ filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.08))" }}
         />
-        <text
-          x={cx}
-          y={top + 28}
-          textAnchor="middle"
-          fill="var(--heading)"
-          fontFamily="var(--font-heading-raw), serif"
-          style={{ fontSize: "0.875rem", fontWeight: 600 }}
+        <foreignObject
+          x={x + 12}
+          y={top + 10}
+          width={PERSON_WIDTH - 24}
+          height={30 + NAME_ROW_EXTRA_HEIGHT}
+          style={{ overflow: "visible" }}
         >
-          {firstName}
-        </text>
+          <div
+            className="font-heading"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              fontFamily: "var(--font-heading-raw), serif",
+              color: "var(--heading)",
+              textAlign: "center",
+              lineHeight: 1.3,
+            }}
+          >
+            <span
+              role={onNameClick ? "button" : undefined}
+              tabIndex={onNameClick ? 0 : undefined}
+              onClick={onNameClick ? handleNameClick : undefined}
+              onKeyDown={onNameClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNameClick(e as unknown as React.MouseEvent); } } : undefined}
+              style={{
+                borderBottom: `4px solid ${getNameBackgroundColor(person.gender)}`,
+                ...(onNameClick ? { cursor: "pointer" } : {}),
+              }}
+            >
+              {firstName}
+              <br />
+              {lastName}
+            </span>
+          </div>
+        </foreignObject>
         <text
           x={cx}
-          y={top + 41}
-          textAnchor="middle"
-          fill="var(--heading)"
-          fontFamily="var(--font-heading-raw), serif"
-          style={{ fontSize: "0.875rem", fontWeight: 600 }}
-        >
-          {lastName}
-        </text>
-        <text
-          x={cx}
-          y={top + 56}
+          y={top + 56 + NAME_ROW_EXTRA_HEIGHT}
           textAnchor="middle"
           fill="var(--crimson)"
           fontFamily="inherit"
@@ -153,16 +192,38 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           strokeDasharray="4 3"
           style={{ filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.08))" }}
         />
-        <text
-          x={cx}
-          y={y - 8}
-          textAnchor="middle"
-          fill="var(--heading)"
-          fontFamily="var(--font-heading-raw), serif"
-          style={{ fontSize: "0.875rem", fontWeight: 600, fontStyle: "italic" }}
+        <foreignObject
+          x={x + 12}
+          y={y - 22}
+          width={PERSON_WIDTH - 24}
+          height={28}
+          style={{ overflow: "visible" }}
         >
-          Unknown
-        </text>
+          <div
+            className="font-heading"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              fontStyle: "italic",
+              fontFamily: "var(--font-heading-raw), serif",
+              color: "var(--heading)",
+              textAlign: "center",
+            }}
+          >
+            <span
+              role={onNameClick ? "button" : undefined}
+              tabIndex={onNameClick ? 0 : undefined}
+              onClick={onNameClick ? handleNameClick : undefined}
+              onKeyDown={onNameClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNameClick(e as unknown as React.MouseEvent); } } : undefined}
+              style={{
+                borderBottom: `4px solid ${NAME_BG_OTHER}`,
+                ...(onNameClick ? { cursor: "pointer" } : {}),
+              }}
+            >
+              Unknown
+            </span>
+          </div>
+        </foreignObject>
         <text
           x={cx}
           y={y + 8}
@@ -230,7 +291,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         x={x + 12}
         y={settings.showPhotos !== false ? top + 14 + CONTENT_TOP_OFFSET + 44 + 10 : top + 18 + CONTENT_TOP_OFFSET}
         width={PERSON_WIDTH - 24}
-        height={settings.showPhotos !== false ? 36 : 40}
+        height={settings.showPhotos !== false ? 36 + NAME_ROW_EXTRA_HEIGHT : 40 + NAME_ROW_EXTRA_HEIGHT}
         style={{ overflow: "hidden" }}
       >
         <div
@@ -241,16 +302,28 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             textAlign: "center",
+            padding: "6px 6px",
           }}
           title={`${firstName} ${lastName}`}
         >
-          {firstName} {lastName}
+          <span
+            role={onNameClick ? "button" : undefined}
+            tabIndex={onNameClick ? 0 : undefined}
+            onClick={onNameClick ? handleNameClick : undefined}
+            onKeyDown={onNameClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNameClick(e as unknown as React.MouseEvent); } } : undefined}
+            style={{
+              borderBottom: `4px solid ${getNameBackgroundColor(person.gender)}`,
+              ...(onNameClick ? { cursor: "pointer" } : {}),
+            }}
+          >
+            {firstName} {lastName}
+          </span>
         </div>
       </foreignObject>
       {settings.showDates !== false && (
       <text
         x={cx}
-        y={settings.showPhotos !== false ? top + 14 + CONTENT_TOP_OFFSET + 44 + 10 + 36 + 4 : top + 18 + CONTENT_TOP_OFFSET + 40 + 6}
+        y={settings.showPhotos !== false ? top + 14 + CONTENT_TOP_OFFSET + 44 + 10 + 36 + NAME_ROW_EXTRA_HEIGHT + 4 : top + 18 + CONTENT_TOP_OFFSET + 40 + NAME_ROW_EXTRA_HEIGHT + 6}
         textAnchor="middle"
         fill="var(--crimson)"
         fontFamily="inherit"

@@ -1,11 +1,11 @@
 "use client";
 
 import { memo } from "react";
-import type { ChartNode, ConnectorHelpers, ViewState } from "@/descendancy-chart";
-import type { PersonCardAction } from "@/descendancy-chart";
+import type { ChartNode, ConnectorHelpers, ViewState } from "@/genealogy-visualization-engine";
+import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import { useTreeNodeViewSet } from "@/providers/TreeNodeViewContext";
 import { getTreeNodeViewSet } from "../TreeNodeViewFactory";
-import { TreeNodes } from "../../DescendancyChart/FamilyTreeNodes";
+import { TreeNodes, type OnNameClick } from "../../DescendancyChart/FamilyTreeNodes";
 
 /** Minimal settings shape used by chart content (compatible with v1 ChartSettings and v2 ChartSettingsV2). */
 export type ChartContentSettings = {
@@ -19,6 +19,7 @@ export interface ChartContentProps {
   root: ChartNode;
   rootId: string;
   onAction?: (action: PersonCardAction, personId: string) => void;
+  onNameClick?: OnNameClick;
   settings?: ChartContentSettings;
   connectors?: ConnectorHelpers;
   viewState?: ViewState;
@@ -32,6 +33,7 @@ export const ChartContent = memo(function ChartContent({
   root,
   rootId,
   onAction,
+  onNameClick,
   settings,
   connectors,
   viewState,
@@ -49,6 +51,7 @@ export const ChartContent = memo(function ChartContent({
         root={root}
         rootId={rootId}
         onAction={onAction}
+        onNameClick={onNameClick}
         settings={settings}
         viewState={viewState}
         personNodeView={PersonNodeView}

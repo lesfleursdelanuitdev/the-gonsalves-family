@@ -21,8 +21,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/lib/*": ["./lib/*"],
-      "@/descendancy-chart": ["./src/lib/descendancy-chart"],
-      "@/descendancy-chart/*": ["./src/lib/descendancy-chart/*"]
+      "@/genealogy-visualization-engine": ["./src/lib/genealogy-visualization-engine"],
+      "@/genealogy-visualization-engine/*": ["./src/lib/genealogy-visualization-engine/*"]
     }
   },
   "include": [

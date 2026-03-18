@@ -6,7 +6,7 @@ Where and how state lives in the v2 family tree: reducer state, local UI state, 
 
 ## 1. Overview
 
-v2 state is split into (1) **reducer state** (tree navigation and view) inside `useFamilyTreeState`, (2) **local UI state** in the same hook (settings, toast, header open, etc.), and (3) **panel and drawer state** from `@/descendancy-chart` hooks (`usePanelVisibility`, `useSpouseDrawer`), which the state hook calls and returns as `panels` and `spouseDrawer`.
+v2 state is split into (1) **reducer state** (tree navigation and view) inside `useFamilyTreeState`, (2) **local UI state** in the same hook (settings, toast, header open, etc.), and (3) **panel and drawer state** from `@/genealogy-visualization-engine` hooks (`usePanelVisibility`, `useSpouseDrawer`), which the state hook calls and returns as `panels` and `spouseDrawer`.
 
 `useFamilyTreeState` is the single state hook consumed by FamilyTree. Pan/zoom, fetch, and build state live in other hooks (`usePanZoom`, `useDescendancyFetch`, `useTreeBuild`, `useDepth`, `useChartSearch`) and are **not** part of the state discussed here; they are called in FamilyTree and passed down as needed.
 
@@ -41,7 +41,7 @@ FamilyTree calls `useFamilyTreeState(initialRootId)`, then `useFamilyTreeActions
 
 ## 3. Reducer state (TreeState)
 
-**Source:** `treeReducer` and `createInitialState("descendancy", initialRootId)` from `@/descendancy-chart`. Owned inside `useFamilyTreeState`; the hook returns `state` and `dispatch`.
+**Source:** `treeReducer` and `createInitialState("descendancy", initialRootId)` from `@/genealogy-visualization-engine`. Owned inside `useFamilyTreeState`; the hook returns `state` and `dispatch`.
 
 **Shape (TreeState):**
 
@@ -61,7 +61,7 @@ FamilyTree calls `useFamilyTreeState(initialRootId)`, then `useFamilyTreeActions
 
 ## 4. ViewState (inside reducer state)
 
-**What it is:** `state.viewState` cast to `ViewState` (from `@/descendancy-chart` types). Strategy-specific view data for the descendancy chart.
+**What it is:** `state.viewState` cast to `ViewState` (from `@/genealogy-visualization-engine` types). Strategy-specific view data for the descendancy chart.
 
 **Fields:**
 
@@ -96,7 +96,7 @@ All of the following are React `useState` (or setters from sub-hooks) inside the
 
 ## 6. Panel and drawer state (external hooks)
 
-TreeViewer does not own the implementation of these; they live in `@/descendancy-chart`. The **single instance** is created by calling the hooks inside `useFamilyTreeState`, which returns them as `panels` and `spouseDrawer`.
+TreeViewer does not own the implementation of these; they live in `@/genealogy-visualization-engine`. The **single instance** is created by calling the hooks inside `useFamilyTreeState`, which returns them as `panels` and `spouseDrawer`.
 
 **usePanelVisibility** (returned as `panels`):
 
@@ -146,7 +146,7 @@ FamilyTree calls `useFamilyTreeState({ initialRootId })` and gets state, dispatc
 | Open spouse drawer | `spouseDrawer.setDrawerPersonId(personId)` (or openDrawer(personId)). |
 | Close spouse drawer | `spouseDrawer.closeDrawer()`. |
 | Reveal a spouse / toggle all spouses | `dispatch({ type: "REVEAL_SPOUSE", personId, spouseId })` or REVEAL_ALL_SPOUSES / CLOSE_ALL_SPOUSES. |
-| Show children / parents / siblings | Corresponding action: SHOW_CHILDREN, PARENTS, SHOW_SIBLINGS (see descendancy-chart reducer). |
+| Show children / parents / siblings | Corresponding action: SHOW_CHILDREN, PARENTS, SHOW_SIBLINGS (see genealogy-visualization-engine reducer). |
 | Set tree depth | `dispatch({ type: "SET_CURRENT_DEPTH", depth })`; depth UI usually goes through handleMaxDepthChange from useDepth. |
 | Open Go To Person drawer | `setGoToPersonDrawerOpen(true)`. |
 | Show a toast | `setToast({ title, parts })`; clear with `setToast(null)`. |
@@ -165,9 +165,9 @@ v2 does **not** persist TreeViewer state from this hook. Root and view are not w
 
 | What | Where |
 |------|--------|
-| TreeState, HistoryEntry, TreeAction, CoreAction | `@/descendancy-chart` (reducer/types.ts). |
-| ViewState | `@/descendancy-chart` (types.ts). |
-| DescendancyAction | `@/descendancy-chart` reducer/strategies/descendancy/types.ts. |
+| TreeState, HistoryEntry, TreeAction, CoreAction | `@/genealogy-visualization-engine` (reducer/types.ts). |
+| ViewState | `@/genealogy-visualization-engine` (types.ts). |
+| DescendancyAction | `@/genealogy-visualization-engine` reducer/strategies/descendancy/types.ts. |
 | useFamilyTreeState, ToastState | TreeViewer/v2/hooks/useFamilyTreeState.ts. |
-| usePanelVisibility, useSpouseDrawer | `@/descendancy-chart` hooks. |
+| usePanelVisibility, useSpouseDrawer | `@/genealogy-visualization-engine` hooks. |
 | ChartSettingsV2 | TreeViewer/v2/ChartPanels/SettingsPanel.tsx. |

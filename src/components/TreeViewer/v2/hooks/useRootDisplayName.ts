@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useEffect } from "react";
-import { getPeople } from "@/descendancy-chart";
+import { getPeople } from "@/genealogy-visualization-engine";
 
 export function useRootDisplayName(
   rootId: string,

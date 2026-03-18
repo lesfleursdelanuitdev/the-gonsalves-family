@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { getPeople, getUnions, buildLegendItems, countVisibleNodes } from "@/descendancy-chart";
-import type { ViewState } from "@/descendancy-chart";
-import type { HistoryEntry } from "@/descendancy-chart";
-import type { ChartNode } from "@/descendancy-chart";
-import type { TreeState } from "@/descendancy-chart";
+import { getPeople, getUnions, buildLegendItems, countVisibleNodes } from "@/genealogy-visualization-engine";
+import type { ViewState } from "@/genealogy-visualization-engine";
+import type { HistoryEntry } from "@/genealogy-visualization-engine";
+import type { ChartNode } from "@/genealogy-visualization-engine";
+import type { TreeState } from "@/genealogy-visualization-engine";
 import { ToastMessage } from "./ToastMessage";
 import { DebugPanel } from "./ChartPanels/DebugPanel";
 import { HistoryPanel } from "./ChartPanels/HistoryPanel";

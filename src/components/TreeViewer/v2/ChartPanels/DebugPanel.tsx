@@ -1,6 +1,6 @@
 "use client";
 
-import type { TreeState } from "@/descendancy-chart";
+import type { TreeState } from "@/genealogy-visualization-engine";
 import { ChartPanel } from "./ChartPanel";
 
 interface DebugPanelProps {

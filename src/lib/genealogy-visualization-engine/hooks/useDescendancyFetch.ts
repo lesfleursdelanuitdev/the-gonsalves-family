@@ -9,6 +9,7 @@ import type { SiblingView } from "../types";
 
 interface ApiPerson {
   id: string;
+  uuid?: string | null;
   firstName?: string;
   lastName?: string;
   birthYear?: number | null;
@@ -91,6 +92,8 @@ export function useDescendancyFetch(
         for (const p of data.people) {
           people.set(p.id, {
             id: p.id,
+            xref: p.id,
+            uuid: p.uuid ?? null,
             firstName: p.firstName ?? "",
             lastName: p.lastName ?? "",
             birthYear: p.birthYear ?? null,

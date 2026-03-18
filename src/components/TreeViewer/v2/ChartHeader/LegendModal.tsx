@@ -1,7 +1,7 @@
 "use client";
 
-import type { ViewState } from "@/descendancy-chart";
-import { buildLegendItems } from "@/descendancy-chart";
+import type { ViewState } from "@/genealogy-visualization-engine";
+import { buildLegendItems } from "@/genealogy-visualization-engine";
 import { LegendLineDiamond } from "../SvgIcons/LegendLineDiamond";
 
 export interface LegendModalProps {

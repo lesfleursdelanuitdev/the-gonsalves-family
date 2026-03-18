@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { collectAllPersonNodes } from "@/descendancy-chart";
-import type { ChartNode } from "@/descendancy-chart";
+import { collectAllPersonNodes } from "@/genealogy-visualization-engine";
+import type { ChartNode } from "@/genealogy-visualization-engine";
 
 export interface GoToPersonItem {
   id: string;

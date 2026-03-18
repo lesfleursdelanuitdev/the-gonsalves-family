@@ -1,7 +1,7 @@
 "use client";
 
-import type { ViewState } from "@/descendancy-chart";
-import type { DescendancyPerson } from "@/descendancy-chart";
+import type { ViewState, HistoryEntry } from "@/genealogy-visualization-engine";
+import type { DescendancyPerson } from "@/genealogy-visualization-engine";
 import { ChartHeader } from "./ChartHeader";
 import { ChartMenu } from "./ChartHeader";
 import type { ChartMenuRootActionDeps } from "./ChartHeader";
@@ -29,6 +29,9 @@ export interface FamilyTreeHeaderProps {
   mobileSearchHref?: string;
   showHistoryPanel: boolean;
   onHistoryClick: () => void;
+  history: HistoryEntry[];
+  historyIndex: number;
+  onNavigateHistory: (index: number) => void;
   showInfo: boolean;
   onInfoClick: () => void;
   showSettings: boolean;
@@ -59,6 +62,9 @@ export function FamilyTreeHeader({
   mobileSearchHref,
   showHistoryPanel,
   onHistoryClick,
+  history,
+  historyIndex,
+  onNavigateHistory,
   showInfo,
   onInfoClick,
   showSettings,
@@ -71,16 +77,20 @@ export function FamilyTreeHeader({
       <div
         style={{
           overflow: "hidden",
-          maxHeight: !isMobile && headerOpen ? 120 : 0,
+          maxHeight: headerOpen ? 120 : 0,
           transition: "max-height 0.25s ease-out",
         }}
       >
         <ChartHeader
+          isMobile={isMobile}
           rootId={rootId}
           rootDisplayName={rootDisplayName}
           viewState={viewState}
           showLegendPanel={showLegendPanel}
           onToggleLegendPanel={onToggleLegendPanel}
+          history={history}
+          historyIndex={historyIndex}
+          onNavigateHistory={onNavigateHistory}
         />
       </div>
       <ChartMenu

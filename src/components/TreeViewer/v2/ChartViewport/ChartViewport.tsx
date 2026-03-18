@@ -7,8 +7,9 @@ import { ChartViewportLoading } from "./ChartViewportLoading";
 import { ChartViewportBottomBar } from "./ChartViewportBottomBar";
 import { ChartViewportGridBackground } from "./ChartViewportGridBackground";
 import { ChartViewportRightVerticalMenu } from "./ChartViewportRightVerticalMenu";
-import type { ChartNode, ConnectorHelpers, ViewState } from "@/descendancy-chart";
-import type { PersonCardAction } from "@/descendancy-chart";
+import type { ChartNode, ConnectorHelpers, ViewState } from "@/genealogy-visualization-engine";
+import type { PersonCardAction } from "@/genealogy-visualization-engine";
+import type { OnNameClick } from "../../../DescendancyChart/FamilyTreeNodes/TreeNodes";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
 
 export interface ChartViewportProps {
@@ -21,6 +22,7 @@ export interface ChartViewportProps {
   root: ChartNode;
   rootId: string;
   onAction: (action: PersonCardAction, personId: string) => void;
+  onNameClick?: OnNameClick;
   settings: ChartSettingsV2;
   /** Connectors from builder.getCurrentStrategy()?.connectors. */
   connectors?: ConnectorHelpers;
@@ -63,6 +65,7 @@ export function ChartViewport({
   root,
   rootId,
   onAction,
+  onNameClick,
   settings,
   connectors,
   dragging,
@@ -135,6 +138,7 @@ export function ChartViewport({
             root={root}
             rootId={rootId}
             onAction={onAction}
+            onNameClick={onNameClick}
             settings={settings}
             connectors={connectors}
             viewState={viewState}

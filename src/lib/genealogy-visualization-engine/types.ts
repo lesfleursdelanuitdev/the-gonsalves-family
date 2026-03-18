@@ -6,6 +6,10 @@
 
 export interface DescendancyPerson {
   id: string;
+  /** GEDCOM xref (e.g. @I123@); often same as id in builder. */
+  xref?: string | null;
+  /** Database UUID for the individual record. */
+  uuid?: string | null;
   firstName: string;
   lastName: string;
   birthYear?: number | null;

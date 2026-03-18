@@ -1,7 +1,7 @@
 "use client";
 
-import { getPeople } from "@/descendancy-chart";
-import type { HistoryEntry } from "@/descendancy-chart";
+import { getPeople } from "@/genealogy-visualization-engine";
+import type { HistoryEntry } from "@/genealogy-visualization-engine";
 import { ChartPanel } from "./ChartPanel";
 import { HistoryPanelItem } from "./HistoryPanelItem";
 
