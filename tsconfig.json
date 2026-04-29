@@ -21,8 +21,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/lib/*": ["./lib/*"],
-      "@/genealogy-visualization-engine": ["./src/lib/genealogy-visualization-engine"],
-      "@/genealogy-visualization-engine/*": ["./src/lib/genealogy-visualization-engine/*"]
+      "@/genealogy-visualization-engine": ["../packages/genealogy-visualization-engine/src"],
+      "@/genealogy-visualization-engine/*": ["../packages/genealogy-visualization-engine/src/*"]
     }
   },
   "include": [

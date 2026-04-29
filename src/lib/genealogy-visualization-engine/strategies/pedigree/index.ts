@@ -1,1 +1,0 @@
-export { PedigreeViewStrategy } from "./PedigreeViewStrategy";

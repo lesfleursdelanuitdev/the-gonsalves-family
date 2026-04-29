@@ -29,12 +29,12 @@ The nginx config is correct and does not need changes for deployment. If you add
 - **Cache headers** — `next.config.ts` sets immutable cache headers for `/_next/static/*` so browsers cache hashed assets correctly.
 - **Document no-cache** — `src/proxy.ts` sets `Cache-Control: no-store` on HTML/document responses (not on `/_next/static/*`) so after each deploy clients get fresh HTML with current chunk URLs; old cached HTML would otherwise point at previous build’s assets (404).
 - **Don't run `next dev` on the production server** — Use `next dev` only in a development environment. On the server, run only `npm run build` and `next start` (via PM2).
-- **PM2 cwd** — Start PM2 from the app root (e.g. `cd /apps/the-gonsalves-family && pm2 start npm --name temp-gonsalvesfamily -- start`) so the process uses that directory’s `.next` after deploy.
+- **PM2 cwd** — Start PM2 from the app root (e.g. `cd /apps/gonsalves-genealogy/the-gonsalves-family && pm2 start npm --name temp-gonsalvesfamily -- start`) so the process uses that directory’s `.next` after deploy.
 
 ### Recommended deploy command
 
 ```bash
-cd /apps/the-gonsalves-family
+cd /apps/gonsalves-genealogy/the-gonsalves-family
 npm run deploy
 ```
 

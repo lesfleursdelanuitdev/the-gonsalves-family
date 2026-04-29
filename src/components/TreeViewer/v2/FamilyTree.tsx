@@ -11,6 +11,7 @@ import {
   usePanToPerson,
   useTreeBuild,
 } from "@/genealogy-visualization-engine";
+import { useTreeIndividuals } from "@/hooks/useTreeData";
 import type { ChartMenuRootActionDeps } from "./ChartHeader";
 import { TreeNodeViewProvider } from "@/providers/TreeNodeViewContext";
 import { dispatchRefreshViewport } from "./utils/viewportRefresh";
@@ -109,7 +110,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     onSiblingViewMeta
   );
 
-  const search = useChartSearch();
+  const search = useChartSearch({ useTreeIndividuals });
   const effectiveBuildDepth =
     viewState.currentDepth ?? viewState.displayDepth ?? DEFAULT_MAX_DEPTH;
   const effectivePersonHeight = getEffectivePersonHeight(settings);

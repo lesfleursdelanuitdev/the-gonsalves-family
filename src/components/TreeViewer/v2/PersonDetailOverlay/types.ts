@@ -16,6 +16,8 @@ export interface DetailEvent {
   value: string | null;
   cause: string | null;
   dateOriginal: string | null;
+  /** From `gedcom_dates_v2.date_type` when present. */
+  dateType: string | null;
   year: number | null;
   month: number | null;
   day: number | null;

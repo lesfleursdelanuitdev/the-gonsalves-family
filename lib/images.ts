@@ -28,6 +28,23 @@ export function ligneousImage(path: string): string | undefined {
 }
 
 /**
+ * Absolute URL for `gedcom_media_v2.file_ref` values that are site-relative under `/uploads/…`
+ * (served by **the-gonsalves-family-admin**, not this app). Uses `NEXT_PUBLIC_LIGNOUS_FRONTEND_URL`
+ * as the origin (name is historical; set it to e.g. `https://admin.gonsalvesfamily.com` in production).
+ */
+export function resolveGedcomMediaFileRef(fileRef: string | null | undefined): string {
+  const ref = (fileRef ?? "").trim();
+  if (!ref) return "";
+  if (/^https?:\/\//i.test(ref)) return ref;
+  const path = ref.startsWith("/") ? ref : `/${ref}`;
+  const base = LIGNOUS_BASE.replace(/\/$/, "");
+  if (base && path.startsWith("/uploads/")) {
+    return `${base}${path}`;
+  }
+  return path;
+}
+
+/**
  * Resolve image URL. Use "ligneous:" prefix for images from ligneous-frontend.
  * Examples:
  *   resolveImageUrl("crest.png")              -> /images/crest.png (local)

@@ -36,6 +36,9 @@ export type IndividualRowForMapping = {
   birthPlaceDisplay: string | null;
   deathDateDisplay: string | null;
   deathPlaceDisplay: string | null;
+  /** Denormalized from primary birth date; prefer over parsing birthDateDisplay for chart years */
+  birthYear?: number | null;
+  deathYear?: number | null;
   isLiving: boolean;
   sex: string | null;
   gender: string | null;
@@ -44,6 +47,28 @@ export type IndividualRowForMapping = {
     surnames: Array<{ surname: { surname: string } }>;
   }>;
 };
+
+/**
+ * Extract a 4-digit year from a display date (handles "15 Jan 1990", "1990", ISO-ish fragments).
+ */
+export function yearFromDisplayDateString(dateString: string | null | undefined): number | null {
+  if (dateString == null || dateString.trim() === "") return null;
+  const match = dateString.trim().match(/\b(1[0-9]{3}|20[0-2][0-9])\b/);
+  return match ? parseInt(match[1]!, 10) : null;
+}
+
+/** Chart node years: prefer DB columns, else parse display strings. */
+export function individualLifeYearsFromRow(
+  row: Pick<
+    IndividualRowForMapping,
+    "birthYear" | "deathYear" | "birthDateDisplay" | "deathDateDisplay"
+  >,
+): { birthYear: number | null; deathYear: number | null } {
+  return {
+    birthYear: row.birthYear ?? yearFromDisplayDateString(row.birthDateDisplay),
+    deathYear: row.deathYear ?? yearFromDisplayDateString(row.deathDateDisplay),
+  };
+}
 
 export interface MappedIndividual {
   id: string;

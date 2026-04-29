@@ -36,3 +36,17 @@ DATABASE_URL="postgresql://gonsalves_readonly:your_secure_password@localhost:543
 ```
 
 Replace `localhost:5432` and add `sslmode=require` if your database uses SSL.
+
+## After new migrations (albums, junction tables, etc.)
+
+`ALTER DEFAULT PRIVILEGES` only applies to objects created by the **same database role** that ran it. If migrations create tables as another role (for example `postgres`), the read-only user may not get `SELECT` on new tables.
+
+Symptoms: public `/api/album-view?kind=curated&…` returns **500** (sometimes with an empty body in front of nginx), while `kind=generated` still works, because curated queries hit `albums` / `album_gedcom_media`.
+
+**Fix** (run on `ligneous_frontend` as a superuser):
+
+```sql
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO gonsalves_readonly;
+```
+
+Re-run this whenever you add tables the public site must read. Optionally fix default privileges for your migration role so future tables inherit `SELECT` for `gonsalves_readonly`.

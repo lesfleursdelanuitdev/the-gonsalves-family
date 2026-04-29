@@ -24,7 +24,14 @@ if (ligneousUrl) {
 }
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@ligneous/prisma", "konva", "react-konva"],
+  transpilePackages: [
+    "@ligneous/prisma",
+    "@ligneous/album-view",
+    "@ligneous/album-generated-queries",
+    "@ligneous/visualization-engine",
+    "konva",
+    "react-konva",
+  ],
   turbopack: {
     root: path.resolve(__dirname, ".."),
   },

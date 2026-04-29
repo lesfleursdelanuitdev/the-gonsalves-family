@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { DescendancyPerson } from "@/genealogy-visualization-engine";
 import { useChartSearch } from "@/genealogy-visualization-engine";
+import { useTreeIndividuals } from "@/hooks/useTreeData";
 import { ArrowLeft } from "lucide-react";
 
 const TREE_VIEWER_PATH = "/tree/viewer";
@@ -18,7 +19,7 @@ function SearchDatabaseContent() {
     setSearchLastName,
     searchResults,
     searchLoading,
-  } = useChartSearch();
+  } = useChartSearch({ useTreeIndividuals });
 
   const hasQuery = searchGivenName.trim() || searchLastName.trim();
 

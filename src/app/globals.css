@@ -18,6 +18,22 @@
   }
 }
 
+/* Public album filter — mobile bottom sheet enter */
+@keyframes album-filter-sheet-enter {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.92;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.album-filter-sheet-enter {
+  animation: album-filter-sheet-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Light theme — aged parchment, archival, museum
    Matches hero: old map + modern UI. Ink, not black. Gold, not bright.

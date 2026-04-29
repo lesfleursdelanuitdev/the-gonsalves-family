@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
-import { mapIndividualRow } from "@/lib/individual-mapper";
+import { individualLifeYearsFromRow, mapIndividualRow } from "@/lib/individual-mapper";
 import {
   loadParentChildMaps,
   loadSpouseMap,
@@ -14,8 +14,10 @@ const INDIVIDUAL_SELECT = {
   fullName: true,
   birthDateDisplay: true,
   birthPlaceDisplay: true,
+  birthYear: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  deathYear: true,
   isLiving: true,
   sex: true,
   gender: true,
@@ -32,19 +34,6 @@ const INDIVIDUAL_SELECT = {
 function normalizeXref(xref: string): string {
   const s = xref.trim();
   return s.startsWith("@") ? s : `@${s}@`;
-}
-
-/**
- * Extract 4-digit year from a date string in "dd Mon yyyy" (or "Mon yyyy" or "yyyy") format.
- * Splits by spaces, takes the last segment; returns the year only if that segment has length 4.
- */
-function getYearFromDateString(dateString: string | null): number | null {
-  if (!dateString || !dateString.trim()) return null;
-  const parts = dateString.trim().split(/\s+/);
-  const lastPart = parts[parts.length - 1];
-  if (lastPart.length !== 4) return null;
-  const year = parseInt(lastPart, 10);
-  return Number.isNaN(year) ? null : year;
 }
 
 /**
@@ -148,14 +137,15 @@ export async function GET(req: NextRequest) {
 
     const people = individualRows.map((row) => {
       const mapped = mapIndividualRow(row);
+      const { birthYear, deathYear } = individualLifeYearsFromRow(row);
       return {
         ...mapped,
         id: row.xref,
         uuid: row.id,
         firstName: mapped.firstName ?? "",
         lastName: mapped.lastName ?? "",
-        birthYear: getYearFromDateString(mapped.birthDate),
-        deathYear: getYearFromDateString(mapped.deathDate),
+        birthYear,
+        deathYear,
       };
     });
 

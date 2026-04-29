@@ -4,7 +4,7 @@ import { GET } from "@/app/api/tree/individuals/[xref]/descendants/route";
 
 async function getFirstXref(): Promise<string | null> {
   const { GET: getIndividuals } = await import("@/app/api/tree/individuals/route");
-  const res = await getIndividuals();
+  const res = await getIndividuals(new NextRequest("http://localhost/api/tree/individuals"));
   if (res.status !== 200) return null;
   const json = await res.json();
   const first = json.individuals?.[0];

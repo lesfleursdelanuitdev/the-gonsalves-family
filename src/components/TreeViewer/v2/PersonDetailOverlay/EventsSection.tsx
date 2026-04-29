@@ -1,6 +1,17 @@
 "use client";
 
-import { Baby, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Heart, HeartCrack, Skull, X } from "lucide-react";
+import {
+  Baby,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Heart,
+  HeartCrack,
+  Skull,
+  X,
+} from "lucide-react";
 import { Fragment, useState, useMemo, useEffect } from "react";
 import { PersonNameLink } from "./PersonNameLink";
 import { Section } from "./Section";
@@ -20,13 +31,23 @@ import {
   iconColor,
   iconSize,
 } from "./styles";
+import { gedcomEventTypeDisplayLabel, getGedcomEventLucideIcon } from "@/lib/gedcom-event-display";
+import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
 import type { DetailEvent } from "./types";
-import { EVENT_TYPE_LABELS } from "./utils";
 
 const EVENTS_PAGE_SIZE = 5;
 
-type BroadType = "all" | "birth" | "death" | "marriage" | "divorce";
+type BroadType = "all" | "birth" | "death" | "marriage" | "divorce" | "graduation" | "other";
 type SpecificType = "all" | "self" | "spouse" | "child" | "parent" | "sibling" | "grandchild" | "grandparent";
+
+function normalizedEventTag(e: DetailEvent): string {
+  return (e.eventType ?? "").toUpperCase().trim();
+}
+
+function isGraduationOrEducation(e: DetailEvent): boolean {
+  const t = normalizedEventTag(e);
+  return t === "GRAD" || t === "EDUC";
+}
 
 function getEventBroad(e: DetailEvent): BroadType {
   if (e.eventType === "BIRT" || e.source === "childBirth" || e.source === "grandchildBirth") return "birth";
@@ -41,7 +62,8 @@ function getEventBroad(e: DetailEvent): BroadType {
     return "death";
   if ((e.source === "family" && e.eventType === "MARR") || e.source === "childMarriage") return "marriage";
   if (e.source === "family" && e.eventType === "DIV") return "divorce";
-  return "birth"; // fallback for other individual events
+  if (isGraduationOrEducation(e)) return "graduation";
+  return "other";
 }
 
 function getEventSpecific(e: DetailEvent): SpecificType {
@@ -84,6 +106,8 @@ const BROAD_OPTIONS: { value: BroadType; label: string }[] = [
   { value: "death", label: "Death" },
   { value: "marriage", label: "Marriage" },
   { value: "divorce", label: "Divorce" },
+  { value: "graduation", label: "Graduation / education" },
+  { value: "other", label: "Other" },
 ];
 
 const SPECIFIC_OPTIONS: { value: SpecificType; label: string }[] = [
@@ -176,7 +200,7 @@ function eventTypeLabel(e: DetailEvent): React.ReactNode {
   if (e.source === "family" && e.eventType === "DIV") {
     return `Divorce from ${e.spouseName ?? "Unknown"}`;
   }
-  return EVENT_TYPE_LABELS[e.eventType] ?? e.eventType;
+  return gedcomEventTypeDisplayLabel(e.eventType);
 }
 
 export function EventsSection({ events, isMobile }: EventsSectionProps) {
@@ -387,7 +411,18 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
       >
         {pageEvents.map((e, i) => {
           const eventTypeLabelNode = eventTypeLabel(e);
-          const date = e.dateOriginal?.trim() || null;
+          const o = e.dateOriginal?.trim() ?? "";
+          const hasYmd = e.year != null || e.month != null || e.day != null;
+          const date =
+            !o && !hasYmd
+              ? null
+              : formatGedcomDateDisplayLabel({
+                  original: o || null,
+                  dateType: e.dateType ?? "EXACT",
+                  year: e.year,
+                  month: e.month,
+                  day: e.day,
+                }).trim() || null;
           const description = e.value?.trim() || null;
           const location = (e.placeOriginal ?? e.placeName)?.trim() || null;
           const sourceSuffix =
@@ -423,6 +458,12 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
             e.source === "parentDeath" ||
             e.source === "siblingDeath" ||
             e.source === "grandparentDeath";
+          const EventGlyph =
+            isBirth ? Baby
+            : isDeath ? Skull
+            : isMarriage ? Heart
+            : isDivorce ? HeartCrack
+            : getGedcomEventLucideIcon(normalizedEventTag(e));
           const eventIconWrapStyle: React.CSSProperties = {
             display: "inline-flex",
             alignItems: "center",
@@ -433,23 +474,11 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
             flexShrink: 0,
             marginRight: 8,
           };
-          const eventIcon = isBirth ? (
+          const eventIcon = (
             <span style={eventIconWrapStyle} aria-hidden>
-              <Baby size={iconSize} color={iconColor} />
+              <EventGlyph size={iconSize} color={iconColor} />
             </span>
-          ) : isDeath ? (
-            <span style={eventIconWrapStyle} aria-hidden>
-              <Skull size={iconSize} color={iconColor} />
-            </span>
-          ) : isMarriage ? (
-            <span style={eventIconWrapStyle} aria-hidden>
-              <Heart size={iconSize} color={iconColor} />
-            </span>
-          ) : isDivorce ? (
-            <span style={eventIconWrapStyle} aria-hidden>
-              <HeartCrack size={iconSize} color={iconColor} />
-            </span>
-          ) : null;
+          );
           return (
             <Fragment key={key}>
               <div style={{ ...eventsDateCellStyle, ...rowBorder, fontWeight: 600 }}>

@@ -1,10 +1,3 @@
-export const EVENT_TYPE_LABELS: Record<string, string> = {
-  BIRT: "Birth",
-  DEAT: "Death",
-  MARR: "Marriage",
-  DIV: "Divorce",
-};
-
 export function stripSlashesFromName(s: string | null | undefined): string {
   if (s == null || s === "") return "Unknown";
   const t = s.replace(/\//g, "").trim();

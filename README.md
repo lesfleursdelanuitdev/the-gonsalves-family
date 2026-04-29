@@ -31,7 +31,7 @@ This app uses the shared `@ligneous/prisma` package to read from the `ligneous_f
 ## Images
 
 - **Local images** stay in `public/images/` (crest, hero, journey photos, etc.).
-- **Ligneous images**: set `NEXT_PUBLIC_LIGNOUS_FRONTEND_URL` (e.g. `http://localhost:4000`) to access images from ligneous-frontend. Use `ligneousImage(path)` or `resolveImageUrl("ligneous:/images/...")` from `lib/images.ts`.
+- **`NEXT_PUBLIC_LIGNOUS_FRONTEND_URL`**: base URL for assets not served by this app. Use **`https://admin.gonsalvesfamily.com`** in production so OBJE paths under `/uploads/gedcom-admin/…` resolve correctly (see `resolveGedcomMediaFileRef` in `lib/images.ts`). For ligneous-frontend-only paths, `ligneousImage` / `resolveImageUrl("ligneous:…")` still apply.
 
 ## Scripts
 

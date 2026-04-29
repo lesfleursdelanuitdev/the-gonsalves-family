@@ -7,6 +7,10 @@ import {
   type Row,
 } from "../lib";
 import { formatGender } from "@/lib/individual-mapper";
+import {
+  dateDisplayFromJoinedEventRow,
+  placeDisplayFromJoinedEventRow,
+} from "@/lib/individual-key-fact-display";
 
 export async function GET(
   req: NextRequest,
@@ -29,7 +33,7 @@ export async function GET(
       prisma.$queryRaw<Row[]>(
         Prisma.sql`
           SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
-                 d.original AS date_original, d.year, d.month, d.day,
+                 d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                  p.original AS place_original, p.name AS place_name
           FROM gedcom_individual_events_v2 ie
           JOIN gedcom_events_v2 e ON e.id = ie.event_id AND e.file_uuid = ie.file_uuid
@@ -37,13 +41,14 @@ export async function GET(
           LEFT JOIN gedcom_places_v2 p ON p.id = e.place_id
           WHERE ie.file_uuid = ${fileUuid}::uuid AND ie.individual_id = ${personId}::uuid
             AND e.event_type = 'BIRT'
+          ORDER BY e.sort_order ASC, e.id ASC
           LIMIT 1
         `
       ),
       prisma.$queryRaw<Row[]>(
         Prisma.sql`
           SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
-                 d.original AS date_original, d.year, d.month, d.day,
+                 d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                  p.original AS place_original, p.name AS place_name
           FROM gedcom_individual_events_v2 ie
           JOIN gedcom_events_v2 e ON e.id = ie.event_id AND e.file_uuid = ie.file_uuid
@@ -51,45 +56,58 @@ export async function GET(
           LEFT JOIN gedcom_places_v2 p ON p.id = e.place_id
           WHERE ie.file_uuid = ${fileUuid}::uuid AND ie.individual_id = ${personId}::uuid
             AND e.event_type = 'DEAT'
+          ORDER BY e.sort_order ASC, e.id ASC
           LIMIT 1
         `
       ),
     ]);
 
+    const birthRow = birtRows[0];
+    const deathRow = deatRows[0];
     const birth = {
-      date: person.birth_date_display ?? null,
-      place: person.birth_place_display ?? null,
-      event: birtRows[0]
+      date:
+        dateDisplayFromJoinedEventRow(birthRow) ??
+        ((person.birth_date_display as string | null) ?? null),
+      place:
+        placeDisplayFromJoinedEventRow(birthRow) ??
+        ((person.birth_place_display as string | null) ?? null),
+      event: birthRow
         ? {
-            eventType: birtRows[0].event_type,
-            customType: birtRows[0].custom_type ?? null,
-            value: birtRows[0].value ?? null,
-            cause: birtRows[0].cause ?? null,
-            dateOriginal: birtRows[0].date_original ?? null,
-            year: birtRows[0].year ?? null,
-            month: birtRows[0].month ?? null,
-            day: birtRows[0].day ?? null,
-            placeOriginal: birtRows[0].place_original ?? null,
-            placeName: birtRows[0].place_name ?? null,
+            eventType: birthRow.event_type,
+            customType: birthRow.custom_type ?? null,
+            value: birthRow.value ?? null,
+            cause: birthRow.cause ?? null,
+            dateOriginal: birthRow.date_original ?? null,
+            dateType: (birthRow.date_type as string | null | undefined) ?? null,
+            year: birthRow.year ?? null,
+            month: birthRow.month ?? null,
+            day: birthRow.day ?? null,
+            placeOriginal: birthRow.place_original ?? null,
+            placeName: birthRow.place_name ?? null,
           }
         : null,
     };
 
     const death = {
-      date: person.death_date_display ?? null,
-      place: person.death_place_display ?? null,
-      event: deatRows[0]
+      date:
+        dateDisplayFromJoinedEventRow(deathRow) ??
+        ((person.death_date_display as string | null) ?? null),
+      place:
+        placeDisplayFromJoinedEventRow(deathRow) ??
+        ((person.death_place_display as string | null) ?? null),
+      event: deathRow
         ? {
-            eventType: deatRows[0].event_type,
-            customType: deatRows[0].custom_type ?? null,
-            value: deatRows[0].value ?? null,
-            cause: deatRows[0].cause ?? null,
-            dateOriginal: deatRows[0].date_original ?? null,
-            year: deatRows[0].year ?? null,
-            month: deatRows[0].month ?? null,
-            day: deatRows[0].day ?? null,
-            placeOriginal: deatRows[0].place_original ?? null,
-            placeName: deatRows[0].place_name ?? null,
+            eventType: deathRow.event_type,
+            customType: deathRow.custom_type ?? null,
+            value: deathRow.value ?? null,
+            cause: deathRow.cause ?? null,
+            dateOriginal: deathRow.date_original ?? null,
+            dateType: (deathRow.date_type as string | null | undefined) ?? null,
+            year: deathRow.year ?? null,
+            month: deathRow.month ?? null,
+            day: deathRow.day ?? null,
+            placeOriginal: deathRow.place_original ?? null,
+            placeName: deathRow.place_name ?? null,
           }
         : null,
     };
