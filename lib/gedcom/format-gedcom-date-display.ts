@@ -1,6 +1,7 @@
 /**
  * Human-readable labels for GEDCOM date rows (original + structured parts).
  * ABOUT (GEDCOM ABT) uses a leading tilde instead of "ABOUT: …".
+ * EXACT dates omit a leading "EXACT:" — only the calendar parts (or `original`) are shown.
  */
 
 export type GedcomDateDisplayInput = {
@@ -17,6 +18,12 @@ export type GedcomDateDisplayInput = {
 export function isAboutDateType(dateType: string | null | undefined): boolean {
   const u = String(dateType ?? "").trim().toUpperCase();
   return u === "ABOUT" || u === "ABT";
+}
+
+/** Default / explicit exact calendar date — no "EXACT:" prefix in UI labels. */
+export function isExactDateType(dateType: string | null | undefined): boolean {
+  const u = String(dateType ?? "").trim().toUpperCase();
+  return u === "" || u === "EXACT";
 }
 
 function ymdParts(
@@ -36,7 +43,13 @@ function ymdParts(
  */
 export function formatGedcomDateDisplayLabel(row: GedcomDateDisplayInput): string {
   const orig = row.original?.trim();
-  if (orig) return orig;
+  if (orig) {
+    if (/^EXACT\s*:/i.test(orig)) {
+      const rest = orig.replace(/^EXACT\s*:/i, "").trim();
+      if (rest) return rest;
+    }
+    return orig;
+  }
 
   const ymd = ymdParts(row.year, row.month, row.day);
   const tail = ymdParts(row.endYear, row.endMonth, row.endDay);
@@ -47,10 +60,16 @@ export function formatGedcomDateDisplayLabel(row: GedcomDateDisplayInput): strin
     if (isAboutDateType(dt)) {
       return `~${base} … ${tail}`;
     }
+    if (isExactDateType(dt)) {
+      return `${base} … ${tail}`;
+    }
     return `${dt}: ${base} … ${tail}`;
   }
   if (isAboutDateType(dt)) {
     return `~${base}`;
+  }
+  if (isExactDateType(dt)) {
+    return base;
   }
   return `${dt}: ${base}`;
 }
