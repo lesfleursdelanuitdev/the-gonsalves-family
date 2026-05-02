@@ -271,41 +271,41 @@ export function LightboxZoomableImage({
       </div>
       {showDesktopZoomUi ? (
         <div
-          className="pointer-events-none absolute right-2 top-2 z-50 hidden gap-1 sm:flex"
+          className="pointer-events-none absolute right-1.5 top-1.5 z-50 hidden gap-0.5 sm:flex"
           aria-label="Zoom controls"
         >
           <button
             type="button"
-            className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-lg border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="pointer-events-auto inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
             onClick={(ev) => {
               ev.stopPropagation();
               zoomInCenter();
             }}
             aria-label="Zoom in"
           >
-            <Plus className="size-4" aria-hidden />
+            <Plus className="size-3.5" aria-hidden />
           </button>
           <button
             type="button"
-            className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-lg border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="pointer-events-auto inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
             onClick={(ev) => {
               ev.stopPropagation();
               zoomOutCenter();
             }}
             aria-label="Zoom out"
           >
-            <Minus className="size-4" aria-hidden />
+            <Minus className="size-3.5" aria-hidden />
           </button>
           <button
             type="button"
-            className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-lg border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="pointer-events-auto inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
             onClick={(ev) => {
               ev.stopPropagation();
               dispatch({ type: "reset" });
             }}
             aria-label="Reset zoom"
           >
-            <RotateCcw className="size-4" aria-hidden />
+            <RotateCcw className="size-3.5" aria-hidden />
           </button>
         </div>
       ) : null}
