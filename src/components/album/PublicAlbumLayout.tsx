@@ -38,6 +38,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlbumMediaFilterPanel, type AlbumMediaTypeFilter } from "./AlbumMediaFilterPanel";
+import { LightboxZoomableImage } from "./LightboxZoomableImage";
 import { buildPublicMediaPath } from "@/lib/album/public-album-links";
 import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
 
@@ -238,6 +239,8 @@ function PublicAlbumLightbox({
   const swipeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [slideshowPlaying, setSlideshowPlaying] = useState(false);
   const [contentTab, setContentTab] = useState<"image" | "details">("image");
+  /** While the image tab is zoomed/panned, disable horizontal swipe-to-advance. */
+  const [lightboxZoomPanActive, setLightboxZoomPanActive] = useState(false);
   const m = items[index];
   const src = m ? rasterSrc(m) : null;
   const total = items.length;
@@ -259,15 +262,27 @@ function PublicAlbumLightbox({
   const onSwipePanelTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (!canNav) return;
+      if (e.touches.length > 1) {
+        swipeTouchStartRef.current = null;
+        return;
+      }
+      if (lightboxZoomPanActive && contentTab === "image") {
+        swipeTouchStartRef.current = null;
+        return;
+      }
       const t = e.touches[0];
       swipeTouchStartRef.current = { x: t.clientX, y: t.clientY };
     },
-    [canNav],
+    [canNav, contentTab, lightboxZoomPanActive],
   );
 
   const onSwipePanelTouchEnd = useCallback(
     (e: React.TouchEvent) => {
       if (!canNav) {
+        swipeTouchStartRef.current = null;
+        return;
+      }
+      if (lightboxZoomPanActive && contentTab === "image") {
         swipeTouchStartRef.current = null;
         return;
       }
@@ -286,11 +301,15 @@ function PublicAlbumLightbox({
       if (dx > 0) handleNext();
       else handlePrev();
     },
-    [canNav, contentTab, handleNext, handlePrev],
+    [canNav, contentTab, handleNext, handlePrev, lightboxZoomPanActive],
   );
 
   const onSwipePanelTouchCancel = useCallback(() => {
     swipeTouchStartRef.current = null;
+  }, []);
+
+  const onSwipePanelTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length >= 2) swipeTouchStartRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -393,21 +412,24 @@ function PublicAlbumLightbox({
             aria-label={contentTab === "image" ? "Image preview" : "Media details"}
             className="flex h-[min(64dvh,64svh,640px)] min-h-[14rem] w-full shrink-0 flex-col overflow-hidden rounded-xl bg-surface-inset/50 sm:h-[min(66dvh,640px)] sm:min-h-[18rem]"
             onTouchStart={onSwipePanelTouchStart}
+            onTouchMove={onSwipePanelTouchMove}
             onTouchEnd={onSwipePanelTouchEnd}
             onTouchCancel={onSwipePanelTouchCancel}
           >
             {contentTab === "image" ? (
-              <div className="flex min-h-0 flex-1 items-center justify-center p-2 sm:p-3">
+              <div className="flex min-h-0 flex-1 flex-col p-2 sm:p-3">
                 {src ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <LightboxZoomableImage
                     src={src}
                     alt=""
-                    className="max-h-full max-w-full object-contain"
-                    decoding="async"
+                    resetKey={index}
+                    onZoomPanActiveChange={setLightboxZoomPanActive}
+                    className="min-h-0 flex-1 rounded-lg"
                   />
                 ) : (
-                  <p className="font-body px-4 text-center text-sm text-muted">No preview for this file.</p>
+                  <p className="font-body flex flex-1 items-center justify-center px-4 text-center text-sm text-muted">
+                    No preview for this file.
+                  </p>
                 )}
               </div>
             ) : (
