@@ -8,8 +8,14 @@ import type {
   AlbumViewSource,
   MediaSummary,
 } from "@ligneous/album-view";
-import { gedcomNameToDisplayName, inferMediaBucketKind, pickCoverMediaFromSummaries, resolveAlbumCoverMedia } from "@ligneous/album-view";
+import {
+  gedcomNameToDisplayName,
+  inferMediaBucketKind,
+  pickCoverMediaFromSummaries,
+  resolveAlbumCoverMedia,
+} from "@ligneous/album-view";
 import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
+import { resolveGedcomMediaFileRef } from "@/lib/images";
 
 const MEDIA_SELECT = {
   id: true,
@@ -254,6 +260,67 @@ function attachMediaCountsToPeople(
   }));
 }
 
+function collectIndividualIdsFromPerMedia(
+  perMedia: Map<string, AlbumMediaLinkedIndividual[]>,
+): string[] {
+  const s = new Set<string>();
+  for (const list of perMedia.values()) {
+    for (const p of list) s.add(p.id);
+  }
+  return [...s];
+}
+
+/** Public URL for profile OBJE when it is usable as a raster image in `<img src>`. */
+function profileThumbnailUrlFromMediaRow(fileRef: string | null, form: string | null): string | null {
+  const ref = (fileRef ?? "").trim();
+  if (!ref) return null;
+  if (inferMediaBucketKind({ id: "_", title: null, fileRef: ref, form }) !== "image") return null;
+  const url = resolveGedcomMediaFileRef(ref).trim();
+  return url || null;
+}
+
+async function loadIndividualProfileThumbnailUrlMap(
+  prisma: PrismaClient,
+  fileUuid: string,
+  individualIds: readonly string[],
+): Promise<Map<string, string>> {
+  const unique = [...new Set(individualIds.filter(Boolean))];
+  if (unique.length === 0) return new Map();
+  const rows = await prisma.gedcomIndividualProfileMedia.findMany({
+    where: { fileUuid, individualId: { in: unique } },
+    select: { individualId: true, media: { select: { fileRef: true, form: true } } },
+  });
+  const out = new Map<string, string>();
+  for (const r of rows) {
+    const url = profileThumbnailUrlFromMediaRow(r.media?.fileRef ?? null, r.media?.form ?? null);
+    if (url) out.set(r.individualId, url);
+  }
+  return out;
+}
+
+function applyProfileThumbnailsToLinkedPeople(
+  people: AlbumMediaLinkedIndividual[],
+  thumbById: Map<string, string>,
+): AlbumMediaLinkedIndividual[] {
+  if (thumbById.size === 0) return people;
+  return people.map((p) => {
+    const u = thumbById.get(p.id);
+    if (!u) return p;
+    return { ...p, thumbnailUrl: u };
+  });
+}
+
+function applyProfileThumbnailsToMediaList(
+  media: MediaSummary[],
+  thumbById: Map<string, string>,
+): MediaSummary[] {
+  if (thumbById.size === 0) return media;
+  return media.map((m) => {
+    if (!m.linkedIndividuals?.length) return m;
+    return { ...m, linkedIndividuals: applyProfileThumbnailsToLinkedPeople(m.linkedIndividuals, thumbById) };
+  });
+}
+
 function dedupePlaces(places: AlbumMediaLinkedPlace[]): AlbumMediaLinkedPlace[] {
   const map = new Map<string, AlbumMediaLinkedPlace>();
   for (const p of places) map.set(p.id, p);
@@ -452,8 +519,17 @@ export async function resolveCuratedAlbumViewModelPublic(
     await collectLinkedPlacesAndDatesForMediaIds(prisma, fileUuid, mediaIds);
   const mediaWithLinks = attachPerMediaPlacesAndDates(attachPerMediaLinks(media, perMedia), perMediaPlacesDates);
   const mediaEnriched = await enrichMediaWithDescriptionAndTags(prisma, fileUuid, mediaWithLinks);
-  const linkedIndividuals = attachMediaCountsToPeople(unionLinkedIndividualsSorted(perMedia), perMedia);
-  const availableMediaTypes = computeAvailableMediaTypes(mediaEnriched);
+  const thumbById = await loadIndividualProfileThumbnailUrlMap(
+    prisma,
+    fileUuid,
+    collectIndividualIdsFromPerMedia(perMedia),
+  );
+  const mediaWithPersonThumbs = applyProfileThumbnailsToMediaList(mediaEnriched, thumbById);
+  const linkedIndividuals = applyProfileThumbnailsToLinkedPeople(
+    attachMediaCountsToPeople(unionLinkedIndividualsSorted(perMedia), perMedia),
+    thumbById,
+  );
+  const availableMediaTypes = computeAvailableMediaTypes(mediaWithPersonThumbs);
 
   let coverMedia: MediaSummary | null = null;
   if (album.coverMediaId) {
@@ -466,25 +542,26 @@ export async function resolveCuratedAlbumViewModelPublic(
       const pd = perMediaPlacesDates.get(s.id);
       coverMedia = {
         ...s,
-        linkedIndividuals: perMedia.get(s.id) ?? [],
+        linkedIndividuals: applyProfileThumbnailsToLinkedPeople(perMedia.get(s.id) ?? [], thumbById),
         linkedPlaces: pd?.linkedPlaces ?? [],
         linkedDates: pd?.linkedDates ?? [],
       };
     }
   }
-  if (!coverMedia && mediaEnriched.length > 0) {
+  if (!coverMedia && mediaWithPersonThumbs.length > 0) {
     coverMedia = pickCoverMediaFromSummaries(
-      mediaEnriched,
+      mediaWithPersonThumbs,
       JSON.stringify({ type: "album", albumId }),
     );
   }
   if (coverMedia) {
-    const fromList = mediaEnriched.find((x) => x.id === coverMedia!.id);
+    const fromList = mediaWithPersonThumbs.find((x) => x.id === coverMedia!.id);
     if (fromList) {
       coverMedia = fromList;
     } else {
       const [one] = await enrichMediaWithDescriptionAndTags(prisma, fileUuid, [coverMedia]);
-      coverMedia = one ?? coverMedia;
+      const withLinks = applyProfileThumbnailsToMediaList(one ? [one] : [], thumbById);
+      coverMedia = withLinks[0] ?? one ?? coverMedia;
     }
   }
 
@@ -495,10 +572,10 @@ export async function resolveCuratedAlbumViewModelPublic(
     description: album.description ?? null,
     albumCreatedAt: album.createdAt.toISOString(),
     coverMedia,
-    media: mediaEnriched,
+    media: mediaWithPersonThumbs,
     linkedIndividuals,
     availableMediaTypes,
-    totalCount: mediaEnriched.length,
+    totalCount: mediaWithPersonThumbs.length,
     linkedPlaces,
     linkedDates,
     visibility: "public",
@@ -533,9 +610,18 @@ export async function resolveGeneratedAlbumViewModelPublic(
     await collectLinkedPlacesAndDatesForMediaIds(prisma, fileUuid, mediaIdsGen);
   const mediaWithLinks = attachPerMediaPlacesAndDates(attachPerMediaLinks(deduped, perMedia), perMediaPlacesDates);
   const mediaEnriched = await enrichMediaWithDescriptionAndTags(prisma, fileUuid, mediaWithLinks);
-  const linkedIndividuals = attachMediaCountsToPeople(unionLinkedIndividualsSorted(perMedia), perMedia);
-  const coverMedia = resolveAlbumCoverMedia(preferredCoverMediaId, mediaEnriched, stableKey);
-  const availableMediaTypes = computeAvailableMediaTypes(mediaEnriched);
+  const thumbById = await loadIndividualProfileThumbnailUrlMap(
+    prisma,
+    fileUuid,
+    collectIndividualIdsFromPerMedia(perMedia),
+  );
+  const mediaWithPersonThumbs = applyProfileThumbnailsToMediaList(mediaEnriched, thumbById);
+  const linkedIndividuals = applyProfileThumbnailsToLinkedPeople(
+    attachMediaCountsToPeople(unionLinkedIndividualsSorted(perMedia), perMedia),
+    thumbById,
+  );
+  const coverMedia = resolveAlbumCoverMedia(preferredCoverMediaId, mediaWithPersonThumbs, stableKey);
+  const availableMediaTypes = computeAvailableMediaTypes(mediaWithPersonThumbs);
 
   return {
     kind: "generated",
@@ -543,10 +629,10 @@ export async function resolveGeneratedAlbumViewModelPublic(
     title,
     description: null,
     coverMedia,
-    media: mediaEnriched,
+    media: mediaWithPersonThumbs,
     linkedIndividuals,
     availableMediaTypes,
-    totalCount: mediaEnriched.length,
+    totalCount: mediaWithPersonThumbs.length,
     linkedPlaces,
     linkedDates,
     visibility: "public",
