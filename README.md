@@ -33,6 +33,10 @@ This app uses the shared `@ligneous/prisma` package to read from the `ligneous_f
 - **Local images** stay in `public/images/` (crest, hero, journey photos, etc.).
 - **`NEXT_PUBLIC_LIGNOUS_FRONTEND_URL`**: base URL for assets not served by this app. Use **`https://admin.gonsalvesfamily.com`** in production so OBJE paths under `/uploads/gedcom-admin/…` resolve correctly (see `resolveGedcomMediaFileRef` in `lib/images.ts`). For ligneous-frontend-only paths, `ligneousImage` / `resolveImageUrl("ligneous:…")` still apply.
 
+## Public stories (`/stories/...`)
+
+Roadmap, gaps vs full spec, and phased work: **`docs/STORY_PUBLIC_READING_PLAN.md`**. Authoring / editor behavior lives in the admin repo (`the-gonsalves-family-admin/docs/STORY_CREATOR_DESCRIPTION.md`).
+
 ## Scripts
 
 - `npm run dev` – Start development server
