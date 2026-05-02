@@ -1,13 +1,12 @@
 "use client";
 
-import { Minus, Plus, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const WHEEL_SENS = 0.0012;
-const ZOOM_BTN_FACTOR = 1.25;
+const KEYBOARD_ZOOM_FACTOR = 1.25;
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
@@ -67,7 +66,6 @@ export type LightboxZoomableImageProps = {
   alt?: string;
   resetKey: string | number;
   onZoomPanActiveChange?: (active: boolean) => void;
-  showDesktopZoomUi?: boolean;
   className?: string;
 };
 
@@ -76,7 +74,6 @@ export function LightboxZoomableImage({
   alt = "",
   resetKey,
   onZoomPanActiveChange,
-  showDesktopZoomUi = true,
   className,
 }: LightboxZoomableImageProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -133,7 +130,7 @@ export function LightboxZoomableImage({
       type: "zoom_anchor",
       cx: r.width / 2,
       cy: r.height / 2,
-      nextScale: tRef.current.scale * ZOOM_BTN_FACTOR,
+      nextScale: tRef.current.scale * KEYBOARD_ZOOM_FACTOR,
     });
   }, []);
 
@@ -145,7 +142,7 @@ export function LightboxZoomableImage({
       type: "zoom_anchor",
       cx: r.width / 2,
       cy: r.height / 2,
-      nextScale: tRef.current.scale / ZOOM_BTN_FACTOR,
+      nextScale: tRef.current.scale / KEYBOARD_ZOOM_FACTOR,
     });
   }, []);
 
@@ -251,7 +248,6 @@ export function LightboxZoomableImage({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Image layer first; full-bleed flex sibling was painting above the toolbar and ate clicks. */}
       <div className="pointer-events-none flex size-full items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -269,46 +265,6 @@ export function LightboxZoomableImage({
           }}
         />
       </div>
-      {showDesktopZoomUi ? (
-        <div
-          className="pointer-events-none absolute right-1.5 top-1.5 z-50 hidden gap-0.5 sm:flex"
-          aria-label="Zoom controls"
-        >
-          <button
-            type="button"
-            className="pointer-events-auto inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
-            onClick={(ev) => {
-              ev.stopPropagation();
-              zoomInCenter();
-            }}
-            aria-label="Zoom in"
-          >
-            <Plus className="size-3.5" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="pointer-events-auto inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
-            onClick={(ev) => {
-              ev.stopPropagation();
-              zoomOutCenter();
-            }}
-            aria-label="Zoom out"
-          >
-            <Minus className="size-3.5" aria-hidden />
-          </button>
-          <button
-            type="button"
-            className="pointer-events-auto inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface/95 text-text shadow-sm outline-none ring-1 ring-black/[0.04] hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring"
-            onClick={(ev) => {
-              ev.stopPropagation();
-              dispatch({ type: "reset" });
-            }}
-            aria-label="Reset zoom"
-          >
-            <RotateCcw className="size-3.5" aria-hidden />
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
