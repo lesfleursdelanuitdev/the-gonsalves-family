@@ -8,7 +8,7 @@ import type {
   AlbumViewSource,
   MediaSummary,
 } from "@ligneous/album-view";
-import { gedcomNameToDisplayName, inferMediaBucketKind, pickCoverMediaFromSummaries } from "@ligneous/album-view";
+import { gedcomNameToDisplayName, inferMediaBucketKind, pickCoverMediaFromSummaries, resolveAlbumCoverMedia } from "@ligneous/album-view";
 import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
 
 const MEDIA_SELECT = {
@@ -515,7 +515,7 @@ export async function resolveGeneratedAlbumViewModelPublic(
   fileUuid: string,
   source: Exclude<AlbumViewSource, { type: "album" }>,
 ): Promise<AlbumViewModel> {
-  const { title, mediaIds } = await collectMediaIdsForGenerated(prisma, fileUuid, source);
+  const { title, mediaIds, preferredCoverMediaId } = await collectMediaIdsForGenerated(prisma, fileUuid, source);
   const uniqueIds = [...new Set(mediaIds)];
   const inTreeIds = uniqueIds.length
     ? (await prisma.gedcomMedia.findMany({
@@ -534,7 +534,7 @@ export async function resolveGeneratedAlbumViewModelPublic(
   const mediaWithLinks = attachPerMediaPlacesAndDates(attachPerMediaLinks(deduped, perMedia), perMediaPlacesDates);
   const mediaEnriched = await enrichMediaWithDescriptionAndTags(prisma, fileUuid, mediaWithLinks);
   const linkedIndividuals = attachMediaCountsToPeople(unionLinkedIndividualsSorted(perMedia), perMedia);
-  const coverMedia = pickCoverMediaFromSummaries(mediaEnriched, stableKey);
+  const coverMedia = resolveAlbumCoverMedia(preferredCoverMediaId, mediaEnriched, stableKey);
   const availableMediaTypes = computeAvailableMediaTypes(mediaEnriched);
 
   return {
