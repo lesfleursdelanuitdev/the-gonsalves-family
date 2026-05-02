@@ -251,9 +251,27 @@ export function LightboxZoomableImage({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
+      {/* Image layer first; full-bleed flex sibling was painting above the toolbar and ate clicks. */}
+      <div className="pointer-events-none flex size-full items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          decoding="async"
+          draggable={false}
+          className={cn(
+            "pointer-events-auto max-h-full max-w-full select-none object-contain",
+            t.scale > 1.01 && "will-change-transform",
+          )}
+          style={{
+            transform: `translate3d(${t.tx}px, ${t.ty}px, 0) scale(${t.scale})`,
+            transformOrigin: "center center",
+          }}
+        />
+      </div>
       {showDesktopZoomUi ? (
         <div
-          className="pointer-events-none absolute right-2 top-2 z-10 hidden gap-1 sm:flex"
+          className="pointer-events-none absolute right-2 top-2 z-50 hidden gap-1 sm:flex"
           aria-label="Zoom controls"
         >
           <button
@@ -291,20 +309,6 @@ export function LightboxZoomableImage({
           </button>
         </div>
       ) : null}
-      <div className="flex size-full items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt={alt}
-          decoding="async"
-          draggable={false}
-          className="max-h-full max-w-full select-none object-contain will-change-transform"
-          style={{
-            transform: `translate3d(${t.tx}px, ${t.ty}px, 0) scale(${t.scale})`,
-            transformOrigin: "center center",
-          }}
-        />
-      </div>
     </div>
   );
 }
