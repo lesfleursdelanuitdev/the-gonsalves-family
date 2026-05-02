@@ -10,6 +10,15 @@ import type {
   MediaSummary,
 } from "@ligneous/album-view";
 import { inferMediaBucketKind, matchesAlbumIndividualSearch } from "@ligneous/album-view";
+import type { AlbumMediaDateRangeFilter } from "@/lib/album/album-media-filter-utils";
+import {
+  buildPlacesWithCounts,
+  buildTagsWithCounts,
+  dateRangeFilterIsActive,
+  formatAlbumLinkedPlaceLabel,
+  mediaMatchesDateRangeFilter,
+  summarizeDateRangeFilter,
+} from "@/lib/album/album-media-filter-utils";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -127,10 +136,17 @@ function mediaTypeFilterLabel(
   }
 }
 
+const EMPTY_DATE_RANGE: AlbumMediaDateRangeFilter = { from: "", to: "", includeUnknown: false };
+
 function buildFilterButtonLabel(
   mediaTypeFilter: PublicAlbumMediaTypeFilter,
   personFilterIds: string[],
+  placeFilterIds: string[],
+  tagFilterIds: string[],
+  dateRange: AlbumMediaDateRangeFilter,
   linked: AlbumMediaLinkedIndividual[],
+  linkedPlacesCatalog: AlbumMediaLinkedPlace[],
+  linkedTagsCatalog: { id: string; name: string }[],
   totalAll: number,
   mediaKindCounts: Record<PublicAlbumMediaKind, number>,
 ): string {
@@ -150,9 +166,28 @@ function buildFilterButtonLabel(
             : mediaTypeFilter === "document"
               ? "Documents"
               : "Other";
-  if (n === 1 && typeWord) return `${typeWord} · ${names[0]}`;
+  const placeLabels = placeFilterIds
+    .map((id) => linkedPlacesCatalog.find((p) => p.id === id))
+    .filter((p): p is AlbumMediaLinkedPlace => Boolean(p))
+    .map((p) => formatAlbumLinkedPlaceLabel(p));
+  const tagLabels = tagFilterIds
+    .map((id) => linkedTagsCatalog.find((t) => t.id === id)?.name)
+    .filter((x): x is string => Boolean(x));
+  const dateActive = dateRangeFilterIsActive(dateRange);
+  const dateShort = dateActive ? summarizeDateRangeFilter(dateRange) : null;
+
+  const parts: string[] = [];
+  if (typeWord) parts.push(typeWord);
+  if (n === 1) parts.push(names[0]!);
+  else if (n > 1) parts.push(`${n} people`);
+  if (placeLabels.length === 1) parts.push(placeLabels[0]!);
+  else if (placeLabels.length > 1) parts.push(`${placeLabels.length} places`);
+  if (tagLabels.length === 1) parts.push(tagLabels[0]!);
+  else if (tagLabels.length > 1) parts.push(`${tagLabels.length} tags`);
+  if (dateShort) parts.push(dateShort);
+
+  if (parts.length > 0) return parts.join(" · ");
   if (n === 1) return `People: ${names[0]}`;
-  if (n > 1 && typeWord) return `${typeWord} · ${n} people`;
   if (n > 1) return `${n} people selected`;
   return mediaTypeFilterLabel(mediaTypeFilter, mediaKindCounts, totalAll);
 }
@@ -709,12 +744,21 @@ export function PublicAlbumLayout({
   const [mediaLayout, setMediaLayout] = useState<"grid" | "list">("grid");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<PublicAlbumMediaTypeFilter>("all");
   const [personFilterIds, setPersonFilterIds] = useState<string[]>([]);
+  const [placeFilterIds, setPlaceFilterIds] = useState<string[]>([]);
+  const [tagFilterIds, setTagFilterIds] = useState<string[]>([]);
+  const [dateRangeFilter, setDateRangeFilter] = useState<AlbumMediaDateRangeFilter>(EMPTY_DATE_RANGE);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
+  const [placeSearchQuery, setPlaceSearchQuery] = useState("");
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
   const [draftMediaType, setDraftMediaType] = useState<PublicAlbumMediaTypeFilter>("all");
   const [draftPersonIds, setDraftPersonIds] = useState<string[]>([]);
+  const [draftPlaceIds, setDraftPlaceIds] = useState<string[]>([]);
+  const [draftTagIds, setDraftTagIds] = useState<string[]>([]);
+  const [draftDateRange, setDraftDateRange] = useState<AlbumMediaDateRangeFilter>(EMPTY_DATE_RANGE);
   const [isNarrow, setIsNarrow] = useState(false);
   const filterWrapRef = useRef<HTMLDivElement>(null);
+  const filterOpenPrevRef = useRef(false);
   const mediaSectionRef = useRef<HTMLElement>(null);
   const prevMediaPageRef = useRef<number | null>(null);
 
@@ -734,15 +778,30 @@ export function PublicAlbumLayout({
     setActiveTab("media");
     setMediaTypeFilter("all");
     setPersonFilterIds([]);
+    setPlaceFilterIds([]);
+    setTagFilterIds([]);
+    setDateRangeFilter(EMPTY_DATE_RANGE);
     setFilterMenuOpen(false);
     setPeopleSearchQuery("");
+    setPlaceSearchQuery("");
+    setTagSearchQuery("");
     setDraftMediaType("all");
     setDraftPersonIds([]);
+    setDraftPlaceIds([]);
+    setDraftTagIds([]);
+    setDraftDateRange(EMPTY_DATE_RANGE);
   }, [viewKey]);
 
   const items = model.media;
   const totalAll = items.length;
   const linked = model.linkedIndividuals ?? [];
+  const linkedPlacesCatalog = model.linkedPlaces ?? [];
+
+  const linkedPlacesWithCounts = useMemo(
+    () => buildPlacesWithCounts(items, linkedPlacesCatalog),
+    [items, linkedPlacesCatalog],
+  );
+  const linkedTagsWithCounts = useMemo(() => buildTagsWithCounts(items), [items]);
 
   const mediaKindCounts = useMemo(() => {
     const counts: Record<PublicAlbumMediaKind, number> = {
@@ -764,6 +823,16 @@ export function PublicAlbumLayout({
   }, [linked]);
 
   useEffect(() => {
+    const valid = new Set(linkedPlacesCatalog.map((p) => p.id));
+    setPlaceFilterIds((ids) => ids.filter((id) => valid.has(id)));
+  }, [linkedPlacesCatalog]);
+
+  useEffect(() => {
+    const valid = new Set(linkedTagsWithCounts.map((t) => t.id));
+    setTagFilterIds((ids) => ids.filter((id) => valid.has(id)));
+  }, [linkedTagsWithCounts]);
+
+  useEffect(() => {
     if (mediaTypeFilter !== "all" && mediaKindCounts[mediaTypeFilter] === 0) {
       setMediaTypeFilter("all");
     }
@@ -777,6 +846,24 @@ export function PublicAlbumLayout({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [filterMenuOpen]);
+
+  useEffect(() => {
+    if (filterMenuOpen && !filterOpenPrevRef.current) {
+      setDraftMediaType(mediaTypeFilter);
+      setDraftPersonIds([...personFilterIds]);
+      setDraftPlaceIds([...placeFilterIds]);
+      setDraftTagIds([...tagFilterIds]);
+      setDraftDateRange({ ...dateRangeFilter });
+    }
+    filterOpenPrevRef.current = filterMenuOpen;
+  }, [
+    filterMenuOpen,
+    mediaTypeFilter,
+    personFilterIds,
+    placeFilterIds,
+    tagFilterIds,
+    dateRangeFilter,
+  ]);
 
   useEffect(() => {
     if (!filterMenuOpen || isNarrow) return;
@@ -797,8 +884,19 @@ export function PublicAlbumLayout({
       const want = new Set(personFilterIds);
       list = list.filter((m) => (m.linkedIndividuals ?? []).some((p) => want.has(p.id)));
     }
+    if (placeFilterIds.length > 0) {
+      const want = new Set(placeFilterIds);
+      list = list.filter((m) => (m.linkedPlaces ?? []).some((p) => want.has(p.id)));
+    }
+    if (tagFilterIds.length > 0) {
+      const want = new Set(tagFilterIds);
+      list = list.filter((m) => (m.linkedTags ?? []).some((t) => want.has(t.id)));
+    }
+    if (dateRangeFilterIsActive(dateRangeFilter)) {
+      list = list.filter((m) => mediaMatchesDateRangeFilter(m, dateRangeFilter));
+    }
     return list;
-  }, [items, mediaTypeFilter, personFilterIds]);
+  }, [items, mediaTypeFilter, personFilterIds, placeFilterIds, tagFilterIds, dateRangeFilter]);
 
   const total = filteredItems.length;
 
@@ -811,13 +909,54 @@ export function PublicAlbumLayout({
     return base.filter((p) => matchesAlbumIndividualSearch(q, p));
   }, [linked, peopleSearchQuery]);
 
+  const filteredPlacesForPicker = useMemo(() => {
+    const base = [...linkedPlacesWithCounts];
+    const q = placeSearchQuery.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((p) => formatAlbumLinkedPlaceLabel(p).toLowerCase().includes(q));
+  }, [linkedPlacesWithCounts, placeSearchQuery]);
+
+  const filteredTagsForPicker = useMemo(() => {
+    const base = [...linkedTagsWithCounts];
+    const q = tagSearchQuery.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((t) => t.name.toLowerCase().includes(q));
+  }, [linkedTagsWithCounts, tagSearchQuery]);
+
   const filterButtonLabel = useMemo(
-    () => buildFilterButtonLabel(mediaTypeFilter, personFilterIds, linked, totalAll, mediaKindCounts),
-    [mediaTypeFilter, personFilterIds, linked, totalAll, mediaKindCounts],
+    () =>
+      buildFilterButtonLabel(
+        mediaTypeFilter,
+        personFilterIds,
+        placeFilterIds,
+        tagFilterIds,
+        dateRangeFilter,
+        linked,
+        linkedPlacesCatalog,
+        linkedTagsWithCounts,
+        totalAll,
+        mediaKindCounts,
+      ),
+    [
+      mediaTypeFilter,
+      personFilterIds,
+      placeFilterIds,
+      tagFilterIds,
+      dateRangeFilter,
+      linked,
+      linkedPlacesCatalog,
+      linkedTagsWithCounts,
+      totalAll,
+      mediaKindCounts,
+    ],
   );
 
-  const panelMediaType = isNarrow && filterMenuOpen ? draftMediaType : mediaTypeFilter;
-  const panelSelectedPersonIds = isNarrow && filterMenuOpen ? draftPersonIds : personFilterIds;
+  const editingFilters = filterMenuOpen;
+  const panelMediaType = editingFilters ? draftMediaType : mediaTypeFilter;
+  const panelSelectedPersonIds = editingFilters ? draftPersonIds : personFilterIds;
+  const panelSelectedPlaceIds = editingFilters ? draftPlaceIds : placeFilterIds;
+  const panelSelectedTagIds = editingFilters ? draftTagIds : tagFilterIds;
+  const panelDateRange = editingFilters ? draftDateRange : dateRangeFilter;
 
   const toggleCommittedPerson = useCallback((id: string) => {
     setPersonFilterIds((prev) => {
@@ -830,6 +969,42 @@ export function PublicAlbumLayout({
 
   const toggleDraftPerson = useCallback((id: string) => {
     setDraftPersonIds((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return [...s];
+    });
+  }, []);
+
+  const toggleCommittedPlace = useCallback((id: string) => {
+    setPlaceFilterIds((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return [...s];
+    });
+  }, []);
+
+  const toggleDraftPlace = useCallback((id: string) => {
+    setDraftPlaceIds((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return [...s];
+    });
+  }, []);
+
+  const toggleCommittedTag = useCallback((id: string) => {
+    setTagFilterIds((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return [...s];
+    });
+  }, []);
+
+  const toggleDraftTag = useCallback((id: string) => {
+    setDraftTagIds((prev) => {
       const s = new Set(prev);
       if (s.has(id)) s.delete(id);
       else s.add(id);
@@ -853,7 +1028,7 @@ export function PublicAlbumLayout({
 
   useEffect(() => {
     setPageIndex(0);
-  }, [mediaTypeFilter, personFilterIds]);
+  }, [mediaTypeFilter, personFilterIds, placeFilterIds, tagFilterIds, dateRangeFilter]);
 
   const pageSlice = useMemo(() => {
     const start = safePage * pageSize;
@@ -1196,16 +1371,7 @@ export function PublicAlbumLayout({
                     variant="outline"
                     aria-haspopup="dialog"
                     aria-expanded={filterMenuOpen}
-                    onClick={() => {
-                      setFilterMenuOpen((prev) => {
-                        const next = !prev;
-                        if (next && typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
-                          setDraftMediaType(mediaTypeFilter);
-                          setDraftPersonIds([...personFilterIds]);
-                        }
-                        return next;
-                      });
-                    }}
+                    onClick={() => setFilterMenuOpen((prev) => !prev)}
                     className="h-auto min-h-9 max-w-[min(100%,18rem)] flex-none flex-nowrap gap-2 border-border/60 bg-surface/70 px-2.5 py-1.5 text-left font-body text-sm font-normal text-text shadow-none hover:bg-surface-2/90"
                   >
                     <Filter size={16} className="shrink-0 text-muted" aria-hidden />
@@ -1220,20 +1386,51 @@ export function PublicAlbumLayout({
                       <AlbumMediaFilterPanel
                         panelMediaType={panelMediaType}
                         panelSelectedPersonIds={panelSelectedPersonIds}
+                        panelSelectedPlaceIds={panelSelectedPlaceIds}
+                        panelSelectedTagIds={panelSelectedTagIds}
+                        panelDateRange={panelDateRange}
                         mediaKindCounts={mediaKindCounts}
                         totalAll={totalAll}
                         linked={linked}
                         filteredPeople={filteredPeopleForPicker}
+                        linkedPlaces={linkedPlacesWithCounts}
+                        filteredPlaces={filteredPlacesForPicker}
+                        linkedTags={linkedTagsWithCounts}
+                        filteredTags={filteredTagsForPicker}
                         peopleSearchQuery={peopleSearchQuery}
                         onPeopleSearchQueryChange={setPeopleSearchQuery}
-                        onPickType={(t) => setMediaTypeFilter(t)}
-                        onTogglePerson={toggleCommittedPerson}
+                        placeSearchQuery={placeSearchQuery}
+                        onPlaceSearchQueryChange={setPlaceSearchQuery}
+                        tagSearchQuery={tagSearchQuery}
+                        onTagSearchQueryChange={setTagSearchQuery}
+                        onPickType={(t) => setDraftMediaType(t)}
+                        onTogglePerson={toggleDraftPerson}
+                        onTogglePlace={toggleDraftPlace}
+                        onToggleTag={toggleDraftTag}
+                        onDateRangeChange={setDraftDateRange}
                         onClearFilters={() => {
                           setMediaTypeFilter("all");
                           setPersonFilterIds([]);
+                          setPlaceFilterIds([]);
+                          setTagFilterIds([]);
+                          setDateRangeFilter(EMPTY_DATE_RANGE);
+                          setDraftMediaType("all");
+                          setDraftPersonIds([]);
+                          setDraftPlaceIds([]);
+                          setDraftTagIds([]);
+                          setDraftDateRange(EMPTY_DATE_RANGE);
                           setPeopleSearchQuery("");
+                          setPlaceSearchQuery("");
+                          setTagSearchQuery("");
                         }}
-                        onApplyFilter={() => setFilterMenuOpen(false)}
+                        onApplyFilter={() => {
+                          setMediaTypeFilter(draftMediaType);
+                          setPersonFilterIds([...draftPersonIds]);
+                          setPlaceFilterIds([...draftPlaceIds]);
+                          setTagFilterIds([...draftTagIds]);
+                          setDateRangeFilter({ ...draftDateRange });
+                          setFilterMenuOpen(false);
+                        }}
                         onClose={() => setFilterMenuOpen(false)}
                       />
                     </div>
@@ -1274,14 +1471,17 @@ export function PublicAlbumLayout({
               </div>
             </div>
 
-            {personFilterIds.length > 0 ? (
+            {personFilterIds.length > 0 ||
+            placeFilterIds.length > 0 ||
+            tagFilterIds.length > 0 ||
+            dateRangeFilterIsActive(dateRangeFilter) ? (
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {personFilterIds.map((id) => {
                   const p = linked.find((x) => x.id === id);
                   if (!p) return null;
                   return (
                     <span
-                      key={id}
+                      key={`p-${id}`}
                       className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#ddd5c8] bg-[#f7f3eb] px-3 py-1.5 font-body text-xs text-heading shadow-sm"
                     >
                       <span className="min-w-0 truncate font-medium">{p.displayName}</span>
@@ -1296,6 +1496,60 @@ export function PublicAlbumLayout({
                     </span>
                   );
                 })}
+                {placeFilterIds.map((id) => {
+                  const p = linkedPlacesCatalog.find((x) => x.id === id);
+                  if (!p) return null;
+                  const lab = formatAlbumLinkedPlaceLabel(p);
+                  return (
+                    <span
+                      key={`pl-${id}`}
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#ddd5c8] bg-[#f7f3eb] px-3 py-1.5 font-body text-xs text-heading shadow-sm"
+                    >
+                      <span className="min-w-0 truncate font-medium">{lab}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-full p-0.5 text-muted transition-colors hover:bg-black/[0.06] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        onClick={() => toggleCommittedPlace(id)}
+                        aria-label={`Remove ${lab} from filter`}
+                      >
+                        <X size={14} className="shrink-0" aria-hidden />
+                      </button>
+                    </span>
+                  );
+                })}
+                {tagFilterIds.map((id) => {
+                  const t = linkedTagsWithCounts.find((x) => x.id === id);
+                  if (!t) return null;
+                  return (
+                    <span
+                      key={`t-${id}`}
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#ddd5c8] bg-[#f7f3eb] px-3 py-1.5 font-body text-xs text-heading/90 shadow-sm"
+                    >
+                      <span className="min-w-0 truncate font-medium">{t.name}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-full p-0.5 text-muted transition-colors hover:bg-black/[0.06] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        onClick={() => toggleCommittedTag(id)}
+                        aria-label={`Remove tag ${t.name}`}
+                      >
+                        <X size={14} className="shrink-0" aria-hidden />
+                      </button>
+                    </span>
+                  );
+                })}
+                {dateRangeFilterIsActive(dateRangeFilter) ? (
+                  <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#ddd5c8] bg-[#f7f3eb] px-3 py-1.5 font-body text-xs text-heading shadow-sm">
+                    <span className="min-w-0 truncate font-medium">{summarizeDateRangeFilter(dateRangeFilter)}</span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-full p-0.5 text-muted transition-colors hover:bg-black/[0.06] hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      onClick={() => setDateRangeFilter(EMPTY_DATE_RANGE)}
+                      aria-label="Remove date filter"
+                    >
+                      <X size={14} className="shrink-0" aria-hidden />
+                    </button>
+                  </span>
+                ) : null}
               </div>
             ) : null}
 
@@ -1303,7 +1557,11 @@ export function PublicAlbumLayout({
               <p className="font-body text-sm text-muted">
                 {totalAll === 0
                   ? "No media in this view."
-                  : mediaTypeFilter !== "all" || personFilterIds.length > 0
+                  : mediaTypeFilter !== "all" ||
+                      personFilterIds.length > 0 ||
+                      placeFilterIds.length > 0 ||
+                      tagFilterIds.length > 0 ||
+                      dateRangeFilterIsActive(dateRangeFilter)
                     ? "No media matches this filter."
                     : "No items match this filter. Choose another type or All types."}
               </p>
@@ -1564,22 +1822,44 @@ export function PublicAlbumLayout({
                     variant="mobile-sheet"
                     panelMediaType={panelMediaType}
                     panelSelectedPersonIds={panelSelectedPersonIds}
+                    panelSelectedPlaceIds={panelSelectedPlaceIds}
+                    panelSelectedTagIds={panelSelectedTagIds}
+                    panelDateRange={panelDateRange}
                     mediaKindCounts={mediaKindCounts}
                     totalAll={totalAll}
                     linked={linked}
                     filteredPeople={filteredPeopleForPicker}
+                    linkedPlaces={linkedPlacesWithCounts}
+                    filteredPlaces={filteredPlacesForPicker}
+                    linkedTags={linkedTagsWithCounts}
+                    filteredTags={filteredTagsForPicker}
                     peopleSearchQuery={peopleSearchQuery}
                     onPeopleSearchQueryChange={setPeopleSearchQuery}
+                    placeSearchQuery={placeSearchQuery}
+                    onPlaceSearchQueryChange={setPlaceSearchQuery}
+                    tagSearchQuery={tagSearchQuery}
+                    onTagSearchQueryChange={setTagSearchQuery}
                     onPickType={(t) => setDraftMediaType(t)}
                     onTogglePerson={toggleDraftPerson}
+                    onTogglePlace={toggleDraftPlace}
+                    onToggleTag={toggleDraftTag}
+                    onDateRangeChange={setDraftDateRange}
                     onClearFilters={() => {
                       setDraftMediaType("all");
                       setDraftPersonIds([]);
+                      setDraftPlaceIds([]);
+                      setDraftTagIds([]);
+                      setDraftDateRange(EMPTY_DATE_RANGE);
                       setPeopleSearchQuery("");
+                      setPlaceSearchQuery("");
+                      setTagSearchQuery("");
                     }}
                     onApplyFilter={() => {
                       setMediaTypeFilter(draftMediaType);
                       setPersonFilterIds([...draftPersonIds]);
+                      setPlaceFilterIds([...draftPlaceIds]);
+                      setTagFilterIds([...draftTagIds]);
+                      setDateRangeFilter({ ...draftDateRange });
                       setFilterMenuOpen(false);
                     }}
                     onClose={() => setFilterMenuOpen(false)}
@@ -1594,7 +1874,12 @@ export function PublicAlbumLayout({
                       onClick={() => {
                         setDraftMediaType("all");
                         setDraftPersonIds([]);
+                        setDraftPlaceIds([]);
+                        setDraftTagIds([]);
+                        setDraftDateRange(EMPTY_DATE_RANGE);
                         setPeopleSearchQuery("");
+                        setPlaceSearchQuery("");
+                        setTagSearchQuery("");
                       }}
                     >
                       Clear
@@ -1605,6 +1890,9 @@ export function PublicAlbumLayout({
                       onClick={() => {
                         setMediaTypeFilter(draftMediaType);
                         setPersonFilterIds([...draftPersonIds]);
+                        setPlaceFilterIds([...draftPlaceIds]);
+                        setTagFilterIds([...draftTagIds]);
+                        setDateRangeFilter({ ...draftDateRange });
                         setFilterMenuOpen(false);
                       }}
                     >
