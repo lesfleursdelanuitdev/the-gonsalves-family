@@ -4,6 +4,12 @@ import { Share2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
+function canUseWebShareAPI(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const share = (navigator as Navigator & { share?: unknown }).share;
+  return typeof share === "function";
+}
+
 export function StoryCover({
   coverSrc,
   profileSrc,
@@ -25,7 +31,7 @@ export function StoryCover({
 
   const share = useCallback(async () => {
     try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      if (canUseWebShareAPI()) {
         await navigator.share({ title, text: excerpt ?? undefined, url: canonicalUrl });
       } else if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(canonicalUrl);
@@ -102,7 +108,7 @@ export function StoryCover({
               )}
               aria-expanded={menuOpen}
               onClick={() => {
-                if (typeof navigator !== "undefined" && navigator.share) void share();
+                if (canUseWebShareAPI()) void share();
                 else setMenuOpen((o) => !o);
               }}
             >
