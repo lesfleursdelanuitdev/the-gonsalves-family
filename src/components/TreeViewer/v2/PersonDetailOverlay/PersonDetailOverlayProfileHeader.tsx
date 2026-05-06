@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { User } from "lucide-react";
 import { computedAge, displayXref, type DateYMD } from "./utils";
 import {
@@ -26,6 +27,8 @@ interface PersonDetailOverlayProfileHeaderProps {
   isMobile?: boolean;
   birthYMD?: DateYMD | null;
   deathYMD?: DateYMD | null;
+  /** Resolved absolute URL for profile OBJE (raster image), when set in DB. */
+  profilePhotoSrc?: string | null;
 }
 
 export function PersonDetailOverlayProfileHeader({
@@ -39,6 +42,7 @@ export function PersonDetailOverlayProfileHeader({
   isMobile = false,
   birthYMD = null,
   deathYMD = null,
+  profilePhotoSrc = null,
 }: PersonDetailOverlayProfileHeaderProps) {
   const birthStr = (birthDate ?? "").trim();
   const deathStr = (deathDate ?? "").trim();
@@ -59,11 +63,25 @@ export function PersonDetailOverlayProfileHeader({
     ? { ...profileHeaderAvatarPlaceholderStyle, ...profileHeaderAvatarPlaceholderStyleMobile }
     : profileHeaderAvatarPlaceholderStyle;
 
+  const photo = (profilePhotoSrc ?? "").trim();
+  const avatarCircleStyle: CSSProperties = photo
+    ? { ...avatarStyle, display: "block", padding: 0, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.6)" }
+    : avatarStyle;
+
   return (
     <header style={profileHeaderStyle}>
       <div style={profileHeaderAvatarColumnStyle}>
-        <div style={avatarStyle} aria-hidden>
-          <User size={isMobile ? 28 : 36} color={iconColor} style={{ flexShrink: 0 }} strokeWidth={1.5} />
+        <div style={avatarCircleStyle} aria-hidden={photo ? undefined : true}>
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element -- dynamic OBJE URLs
+            <img
+              src={photo}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          ) : (
+            <User size={isMobile ? 28 : 36} color={iconColor} style={{ flexShrink: 0 }} strokeWidth={1.5} />
+          )}
         </div>
       </div>
       <div style={profileHeaderNameColumnStyle}>

@@ -1,57 +1,63 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { PersonNameLink } from "./PersonNameLink";
 import { GenderIcon } from "./GenderIcon";
-import { Section } from "./Section";
 import {
   familyGridStyle,
+  familyGridHeaderRowStyle,
+  familyGridSubHeaderRowStyle,
   familyGridLabelCellStyle,
   familyGridDataCellStyle,
-  familyGridSubHeaderRowStyle,
   familyGridChildrenStyle,
   familyNumberTabBarStyle,
   familyNumberTabStyle,
   familyNumberTabSelectedStyle,
   eventsPaginationBarStyle,
   eventsPaginationButtonStyle,
-  SECTION_BORDER_RADIUS,
   rowBorderBottom,
   noRowBorder,
   iconColor,
-  iconSize,
+  iconWrapStyle,
 } from "./styles";
-import type { FamiliesAsSpouseResponse } from "./types";
+import type { FamiliesAsChildResponse, PersonDetailOverlayPerson } from "./types";
+import { normalizeGedcomXref } from "./utils";
 
-const CHILDREN_PAGE_SIZE = 5;
+type FamilyOfOrigin = FamiliesAsChildResponse["familiesOfOrigin"][number];
 
-type FamilyAsSpouse = FamiliesAsSpouseResponse["familiesAsSpouse"][number];
-
-interface FamiliesAsSpouseSectionProps {
-  familiesAsSpouse: FamilyAsSpouse[];
+export interface FamiliesAsChildContentProps {
+  familiesOfOrigin: FamilyOfOrigin[];
   selectedIndex: number;
   onSelectIndex: (index: number) => void;
+  subjectXref: string;
+  onSelectLinkedPerson?: (person: PersonDetailOverlayPerson) => void;
   isMobile?: boolean;
 }
 
-export function FamiliesAsSpouseSection({
-  familiesAsSpouse,
+const CHILDREN_PAGE_SIZE = 5;
+
+/** Body of “families as child” (parents, siblings, pagination) — no outer `Section`. */
+export function FamiliesAsChildContent({
+  familiesOfOrigin,
   selectedIndex,
   onSelectIndex,
+  subjectXref,
+  onSelectLinkedPerson,
   isMobile,
-}: FamiliesAsSpouseSectionProps) {
+}: FamiliesAsChildContentProps) {
   const [childrenPage, setChildrenPage] = useState(0);
 
   useEffect(() => {
     setChildrenPage(0);
   }, [selectedIndex]);
 
-  if (familiesAsSpouse.length === 0) return null;
+  if (familiesOfOrigin.length === 0) return null;
 
-  const fam = familiesAsSpouse[selectedIndex] ?? familiesAsSpouse[0]!;
-  const hasTabs = familiesAsSpouse.length > 1;
-  const topRowBorder = { borderTop: rowBorderBottom };
+  const fam = familiesOfOrigin[selectedIndex] ?? familiesOfOrigin[0]!;
+  const wife = fam.parents.find((p) => p.role === "wife");
+  const husband = fam.parents.find((p) => p.role === "husband");
+  const hasTabs = familiesOfOrigin.length > 1;
   const gridFontSize = isMobile ? 13 : 14;
 
   const totalChildren = fam.children.length;
@@ -63,29 +69,12 @@ export function FamiliesAsSpouseSection({
   );
 
   return (
-    <Section
-      icon={<Heart size={iconSize} color={iconColor} aria-hidden />}
-      title="Families as partner"
-      description="This person's adult partnerships and the children from those unions."
-      descriptionStyle={{ paddingTop: 12, paddingBottom: 9 }}
-      isMobile={isMobile}
-      titleStyle={hasTabs ? { paddingBottom: 12 } : undefined}
-      contentStyle={{
-        padding: 0,
-        ...(hasTabs ? { paddingTop: 12 } : {}),
-        borderBottomLeftRadius: SECTION_BORDER_RADIUS,
-        borderBottomRightRadius: SECTION_BORDER_RADIUS,
-      }}
-    >
+    <>
       {hasTabs && (
-        <div
-          role="tablist"
-          aria-label="Family"
-          style={{ ...familyNumberTabBarStyle, marginTop: 0, marginBottom: 0, marginLeft: 16, paddingBottom: 12 }}
-        >
-          {familiesAsSpouse.map((_, idx) => (
+        <div role="tablist" aria-label="Family" style={{ ...familyNumberTabBarStyle, marginLeft: 16 }}>
+          {familiesOfOrigin.map((_, idx) => (
             <button
-              key={familiesAsSpouse[idx]!.family.id}
+              key={familiesOfOrigin[idx]!.family.id}
               type="button"
               role="tab"
               aria-selected={selectedIndex === idx}
@@ -99,18 +88,49 @@ export function FamiliesAsSpouseSection({
         </div>
       )}
       <div key={fam.family.id} style={{ ...familyGridStyle, fontSize: gridFontSize }}>
-        <div style={{ ...familyGridLabelCellStyle, ...topRowBorder }}>Partner</div>
+        <div
+          style={{
+            ...familyGridHeaderRowStyle,
+            borderTop: rowBorderBottom,
+          }}
+        >
+          {fam.parentsLabel ?? "Parents"}
+        </div>
+        <div style={familyGridLabelCellStyle}>Partner</div>
         <div
           style={{
             ...familyGridDataCellStyle,
-            ...topRowBorder,
             display: "flex",
             alignItems: "center",
             gap: 8,
           }}
         >
-          <GenderIcon gender={fam.spouse.gender} />
-          <PersonNameLink xref={fam.spouse.xref} name={fam.spouse.name} />
+          {wife ? (
+            <>
+              <GenderIcon gender={wife.gender} />
+              <PersonNameLink xref={wife.xref} name={wife.name} onNavigateToPerson={onSelectLinkedPerson} />
+            </>
+          ) : (
+            "Unknown"
+          )}
+        </div>
+        <div style={familyGridLabelCellStyle}>Partner</div>
+        <div
+          style={{
+            ...familyGridDataCellStyle,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          {husband ? (
+            <>
+              <GenderIcon gender={husband.gender} />
+              <PersonNameLink xref={husband.xref} name={husband.name} onNavigateToPerson={onSelectLinkedPerson} />
+            </>
+          ) : (
+            "Unknown"
+          )}
         </div>
         <div style={familyGridSubHeaderRowStyle}>
           Children ({totalChildren})
@@ -119,6 +139,11 @@ export function FamiliesAsSpouseSection({
           {pageChildren.length > 0
             ? pageChildren.map((c, idx) => {
                 const isLast = idx === pageChildren.length - 1;
+                const birthOrder = pageIndex * CHILDREN_PAGE_SIZE + idx + 1;
+                const isSubject =
+                  c.xref != null &&
+                  subjectXref != null &&
+                  normalizeGedcomXref(c.xref) === normalizeGedcomXref(subjectXref);
                 return (
                   <div
                     key={c.xref}
@@ -130,11 +155,25 @@ export function FamiliesAsSpouseSection({
                       gap: 8,
                     }}
                   >
+                    {isSubject && (
+                      <span style={iconWrapStyle} aria-hidden>
+                        <Star size={16} color={iconColor} />
+                      </span>
+                    )}
                     <GenderIcon gender={c.gender} />
-                    <span>
-                      <PersonNameLink xref={c.xref} name={c.name} />
-                      {c.birth?.date ? ` (b. ${c.birth.date})` : ""}
+                    <span
+                      style={{
+                        fontVariantNumeric: "tabular-nums",
+                        minWidth: "2em",
+                        flexShrink: 0,
+                        textAlign: "left",
+                        fontWeight: 600,
+                        color: "rgba(20, 83, 45, 0.72)",
+                      }}
+                    >
+                      {birthOrder}.
                     </span>
+                    <PersonNameLink xref={c.xref} name={c.name} onNavigateToPerson={onSelectLinkedPerson} />
                   </div>
                 );
               })
@@ -174,6 +213,6 @@ export function FamiliesAsSpouseSection({
           </div>
         )}
       </div>
-    </Section>
+    </>
   );
 }

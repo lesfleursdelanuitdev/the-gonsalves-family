@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ChartContent } from "../ChartContent";
 import { ChartMinimap } from "./ChartMinimap";
 import { ChartViewportLoading } from "./ChartViewportLoading";
 import { ChartViewportBottomBar } from "./ChartViewportBottomBar";
 import { ChartViewportGridBackground } from "./ChartViewportGridBackground";
 import { ChartViewportRightVerticalMenu } from "./ChartViewportRightVerticalMenu";
-import type { ChartNode, ConnectorHelpers, ViewState } from "@/genealogy-visualization-engine";
+import { ChartViewportOverlayContext } from "./ChartViewportOverlayContext";
+import type {
+  ChartNode,
+  ChartViewStrategyName,
+  ConnectorHelpers,
+  ViewState,
+} from "@/genealogy-visualization-engine";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { OnNameClick } from "../../../DescendancyChart/FamilyTreeNodes/TreeNodes";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
@@ -34,9 +40,9 @@ export interface ChartViewportProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToScreen: () => void;
-  onPan: (dx: number, dy: number) => void;
   onGoToPerson: () => void;
-  onToggleAllSpouses: () => void;
+  /** Descendancy only; omit for pedigree. */
+  onToggleAllSpouses?: () => void;
   /** For minimap: full graph bounds and setPan to move viewport when dragging minimap rect */
   bounds?: { minX: number; maxX: number; maxY: number } | null;
   setPan?: (pan: { x: number; y: number }) => void;
@@ -44,6 +50,7 @@ export interface ChartViewportProps {
   isMobile?: boolean;
   /** For collapse/expand subtree. */
   viewState?: ViewState;
+  chartStrategy?: ChartViewStrategyName;
   /** When true, sibling view is active; on mobile show a legend button below the right controls. */
   hasSiblingView?: boolean;
   showLegendPanel?: boolean;
@@ -51,8 +58,6 @@ export interface ChartViewportProps {
   /** Debug panel: toggle shown at top of right controls. */
   showDebugPanel?: boolean;
   onToggleDebugPanel?: () => void;
-  /** Open the getting-started tutorial modal (e.g. from Help button). */
-  onOpenTutorial?: () => void;
 }
 
 export function ChartViewport({
@@ -76,25 +81,33 @@ export function ChartViewport({
   onZoomIn,
   onZoomOut,
   onFitToScreen,
-  onPan,
   onGoToPerson,
   onToggleAllSpouses,
   bounds = null,
   setPan,
   viewState,
+  chartStrategy = "descendancy",
   isMobile = false,
   hasSiblingView = false,
   showLegendPanel = false,
   onToggleLegendPanel,
   showDebugPanel = false,
   onToggleDebugPanel,
-  onOpenTutorial,
 }: ChartViewportProps) {
   const [minimapOpen, setMinimapOpen] = useState(true);
-  const showMinimapToggle = bounds != null && setPan != null && !isMobile;
+  const minimapCapable = bounds != null && setPan != null && !isMobile;
+  const minimapAllowedBySettings = settings.showMinimap !== false;
+  const showMinimapToggle = minimapCapable && minimapAllowedBySettings;
+  const chartViewportRef = useRef<HTMLDivElement>(null);
+  const viewportOverlayValue = useMemo(
+    () => ({ containerRef: chartViewportRef, chromeRightInsetPx: 92 }),
+    []
+  );
 
   return (
+    <ChartViewportOverlayContext.Provider value={viewportOverlayValue}>
     <div
+      ref={chartViewportRef}
       style={{
         flex: 1,
         minHeight: 0,
@@ -118,6 +131,8 @@ export function ChartViewport({
         ref={svgRef}
         className="chart-viewport-svg"
         style={{
+          position: "relative",
+          zIndex: 0,
           width: "100%",
           height: "100svh",
           cursor: dragging ? "grabbing" : "grab",
@@ -142,6 +157,8 @@ export function ChartViewport({
             settings={settings}
             connectors={connectors}
             viewState={viewState}
+            chartStrategy={chartStrategy}
+            isMobile={isMobile}
           />
         </g>
       </svg>
@@ -163,7 +180,6 @@ export function ChartViewport({
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
         onFitToScreen={onFitToScreen}
-        onPan={onPan}
         showDebugPanel={showDebugPanel}
         onToggleDebugPanel={onToggleDebugPanel}
         showMinimapToggle={showMinimapToggle}
@@ -172,7 +188,6 @@ export function ChartViewport({
         hasSiblingView={hasSiblingView}
         showLegendPanel={showLegendPanel}
         onToggleLegendPanel={onToggleLegendPanel}
-        onOpenTutorial={onOpenTutorial}
       />
       <ChartViewportBottomBar
         isMobile={isMobile}
@@ -180,5 +195,6 @@ export function ChartViewport({
         onToggleAllSpouses={onToggleAllSpouses}
       />
     </div>
+    </ChartViewportOverlayContext.Provider>
   );
 }

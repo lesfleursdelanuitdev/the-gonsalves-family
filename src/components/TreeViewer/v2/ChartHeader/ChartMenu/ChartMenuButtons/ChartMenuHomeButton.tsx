@@ -13,8 +13,8 @@ export function ChartMenuHomeButton({ onClick, showLabel = true }: ChartMenuHome
     <ChartMenuButton
       icon={<Home size={13} />}
       onClick={onClick}
-      title="Go to current root"
-      label="Home"
+      title="Center on Current Person"
+      label="Center on Current Person"
       showLabel={showLabel}
     />
   );

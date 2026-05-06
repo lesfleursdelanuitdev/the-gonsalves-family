@@ -15,6 +15,20 @@ export default function PillarsTestPage() {
             ← Back to home
           </Link>
         </p>
+        <p className="px-6 pb-6 text-center text-xs text-muted">
+          Single pillar:&nbsp;
+          <Link href="/pillars/find-family-test" className="underline hover:text-text">
+            Find Family
+          </Link>
+          {" · "}
+          <Link href="/pillars/read-histories-test" className="underline hover:text-text">
+            Read Histories
+          </Link>
+          {" · "}
+          <Link href="/pillars/view-media-test" className="underline hover:text-text">
+            View Media
+          </Link>
+        </p>
         <Pillars />
       </main>
     </div>

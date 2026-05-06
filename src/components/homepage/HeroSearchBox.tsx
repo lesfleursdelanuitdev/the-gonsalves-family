@@ -111,7 +111,7 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
 
   return (
     <motion.div
-      className="flex w-full max-w-sm sm:max-w-xl rounded-lg sm:rounded-xl border border-white bg-surface/20 dark:bg-surface/15 backdrop-blur-sm overflow-hidden origin-center shadow-xl shadow-black/15 dark:shadow-2xl dark:shadow-black/25 focus-within:shadow-2xl focus-within:shadow-black/25 dark:focus-within:shadow-black/35 transition-shadow"
+      className="flex w-full max-w-sm sm:max-w-xl rounded-lg sm:rounded-xl border border-white overflow-hidden origin-center shadow-xl shadow-black/15 dark:shadow-2xl dark:shadow-black/25 focus-within:shadow-2xl focus-within:shadow-black/25 dark:focus-within:shadow-black/35 transition-shadow"
       animate={{ scale: focused ? 1.06 : 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
@@ -119,11 +119,11 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
         ref={formRef}
         action="/tree/viewer/searchDatabase"
         method="GET"
-        className="flex w-full"
+        className="flex w-full min-w-0"
         onFocus={() => setFocused(true)}
         onBlur={handleBlur}
       >
-        <div className="relative flex-1 min-w-0 flex items-center">
+        <div className="relative flex-1 min-w-0 flex items-center bg-surface/20 dark:bg-surface/15 backdrop-blur-sm">
           <input
             ref={inputRef}
             type="text"
@@ -162,7 +162,7 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
         </div>
         <button
           type="submit"
-          className="shrink-0 border-l border-accent/60 bg-primary/90 hover:bg-primary px-3 py-4 sm:px-5 sm:py-4 text-sm sm:text-base font-semibold text-primary-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring"
+          className="shrink-0 border-l border-accent/60 bg-[#435B35] hover:bg-[#3a5030] px-3 py-4 sm:px-5 sm:py-4 text-sm sm:text-base font-semibold text-primary-foreground focus:outline-none focus:ring-2 focus:ring-focus-ring"
         >
           Search
         </button>

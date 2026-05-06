@@ -7,6 +7,8 @@ export interface PersonDetailOverlayPerson {
 export interface PersonDetailOverlayProps {
   person: PersonDetailOverlayPerson;
   onClose: () => void;
+  /** When set, person name links inside the overlay open that profile in place of the current one. */
+  onSelectLinkedPerson?: (person: PersonDetailOverlayPerson) => void;
   isMobile?: boolean;
 }
 
@@ -42,10 +44,30 @@ export interface BasicPersonDetails {
   death: { date: string | null; place: string | null; event: DetailEvent | null };
 }
 
+/** GET `/api/tree/individuals/[xref]/detail/media` */
+export interface IndividualMediaPeekItem {
+  id: string;
+  title: string | null;
+  fileRef: string | null;
+  form: string | null;
+}
+
+export interface IndividualMediaPeek {
+  individualId: string;
+  albumTitle: string;
+  totalCount: number;
+  profile: IndividualMediaPeekItem | null;
+  /** Resolved display image (raster profile or stable linked fallback); use for overlay header/cover. */
+  displayPhoto?: IndividualMediaPeekItem | null;
+  samples: IndividualMediaPeekItem[];
+}
+
 export interface FamiliesAsChildResponse {
   familiesOfOrigin: {
     family: { id: string; xref: string };
     parents: { role: string; name: string | null; xref: string; gender?: string | null }[];
+    /** From `gedcom_parent_child_v2` when both parents agree (e.g. `Parents (birth)`). */
+    parentsLabel?: string;
     children: { name: string | null; xref: string; gender?: string | null }[];
   }[];
 }

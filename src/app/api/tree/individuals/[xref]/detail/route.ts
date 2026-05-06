@@ -6,6 +6,7 @@ import {
   dateDisplayFromJoinedEventRow,
   placeDisplayFromJoinedEventRow,
 } from "@/lib/individual-key-fact-display";
+import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
 
 function normalizeXref(xref: string): string {
   const s = xref.trim();
@@ -260,9 +261,32 @@ export async function GET(
       const dB = Number(b.birthDay ?? 32);
       return dA - dB;
     };
+
+    const pcPedigreeRows = await prisma.$queryRaw<Row[]>(
+      Prisma.sql`
+        SELECT family_id, relationship_type, pedigree
+        FROM gedcom_parent_child_v2
+        WHERE file_uuid = ${fileUuid}::uuid
+          AND child_id = ${personId}::uuid
+          AND family_id IS NOT NULL
+      `
+    );
+    const pedigreeByFamilyId = new Map<string, { relationshipType: string | null; pedigree: string | null }[]>();
+    for (const r of pcPedigreeRows) {
+      const fid = r.family_id as string | undefined;
+      if (!fid) continue;
+      const list = pedigreeByFamilyId.get(fid) ?? [];
+      list.push({
+        relationshipType: (r.relationship_type as string | null | undefined) ?? null,
+        pedigree: (r.pedigree as string | null | undefined) ?? null,
+      });
+      pedigreeByFamilyId.set(fid, list);
+    }
+
     const familiesOfOrigin = Array.from(familyOriginByKey.values()).map((fam) => ({
       family: fam.family,
       parents: fam.parents,
+      parentsLabel: parentsHeaderLabelFromPedigreeRows(pedigreeByFamilyId.get(fam.family.id) ?? []),
       children: fam.children.slice().sort(sortChildrenByBirth).map((c) => ({ name: c.name, xref: c.xref })),
     }));
 

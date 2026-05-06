@@ -1,19 +1,22 @@
 "use client";
 
 import { memo } from "react";
-import type { ChartNode, ConnectorHelpers, ViewState } from "@/genealogy-visualization-engine";
+import type { ChartNode, ChartViewStrategyName, ConnectorHelpers, ViewState } from "@/genealogy-visualization-engine";
+import type { PersonCardLayoutSettings } from "@/lib/person-card-layout";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import { useTreeNodeViewSet } from "@/providers/TreeNodeViewContext";
 import { getTreeNodeViewSet } from "../TreeNodeViewFactory";
 import { TreeNodes, type OnNameClick } from "../../DescendancyChart/FamilyTreeNodes";
+import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
 
 /** Minimal settings shape used by chart content (compatible with v1 ChartSettings and v2 ChartSettingsV2). */
 export type ChartContentSettings = {
   showDates?: boolean;
   showPhotos?: boolean;
   showUnknown?: boolean;
+  showCardActionIcons?: boolean;
   autoLegendModal?: boolean;
-};
+} & PersonCardLayoutSettings;
 
 export interface ChartContentProps {
   root: ChartNode;
@@ -23,6 +26,8 @@ export interface ChartContentProps {
   settings?: ChartContentSettings;
   connectors?: ConnectorHelpers;
   viewState?: ViewState;
+  chartStrategy?: ChartViewStrategyName;
+  isMobile?: boolean;
 }
 
 /**
@@ -37,15 +42,18 @@ export const ChartContent = memo(function ChartContent({
   settings,
   connectors,
   viewState,
+  chartStrategy = "descendancy",
+  isMobile = false,
 }: ChartContentProps) {
   const viewSet = useTreeNodeViewSet() ?? getTreeNodeViewSet("descendancy");
   if (!viewSet) {
     return null;
   }
   const { ConnectorLines, SpouseJoinLines, PersonNodeView, UnionNodeView } = viewSet;
+  const personHeight = getEffectivePersonHeight(settings, { chartStrategy, isMobile });
   return (
     <>
-      <ConnectorLines root={root} connectors={connectors} />
+      <ConnectorLines root={root} connectors={connectors} personHeight={personHeight} />
       <SpouseJoinLines root={root} />
       <TreeNodes
         root={root}
@@ -56,6 +64,8 @@ export const ChartContent = memo(function ChartContent({
         viewState={viewState}
         personNodeView={PersonNodeView}
         unionNodeView={UnionNodeView}
+        chartStrategy={chartStrategy}
+        isMobile={isMobile}
       />
     </>
   );

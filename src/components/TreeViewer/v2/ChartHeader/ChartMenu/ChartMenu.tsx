@@ -2,10 +2,14 @@
 
 import type { DescendancyPerson } from "@/genealogy-visualization-engine";
 import type { TreeAction } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { useCallback } from "react";
 import { DatabaseSearchbox } from "../DatabaseSearchbox/DatabaseSearchbox";
 import { getChartMenuItems } from "./ChartMenuItems";
 import { MenuDivider } from "../MenuDivider";
+import { ChartTypeModal } from "./ChartTypeModal";
+import { ChartMenuChartButton } from "./ChartMenuButtons/ChartMenuChartButton";
+import { ChartMenuMore } from "./ChartMenuMore";
 
 export interface ChartMenuRootActionDeps {
   dispatch: (action: TreeAction) => void;
@@ -26,6 +30,8 @@ export interface ChartMenuProps {
   overlayOpen?: boolean;
   isMobile: boolean;
   rootDisplayName?: string | null;
+  chartStrategy: ChartViewStrategyName;
+  onChartStrategyChange: (next: ChartViewStrategyName) => void;
   searchGivenName: string;
   searchLastName: string;
   onSearchGivenNameChange: (v: string) => void;
@@ -40,11 +46,14 @@ export interface ChartMenuProps {
   showHistoryPanel: boolean;
   onHistoryClick: () => void;
   showInfo: boolean;
-  onInfoClick: () => void;
+  onInfoClick?: () => void;
   showSettings: boolean;
-  onSettingsClick: () => void;
+  onSettingsClick?: () => void;
   onGoToPerson?: () => void;
   onToggleAllSpouses?: () => void;
+  chartTypeModalOpen: boolean;
+  onChartTypeModalOpenChange: (open: boolean) => void;
+  onOpenTutorial?: () => void;
 }
 
 export function ChartMenu({
@@ -53,6 +62,8 @@ export function ChartMenu({
   overlayOpen = false,
   isMobile,
   rootDisplayName,
+  chartStrategy,
+  onChartStrategyChange,
   searchGivenName,
   searchLastName,
   onSearchGivenNameChange,
@@ -71,6 +82,9 @@ export function ChartMenu({
   onSettingsClick,
   onGoToPerson,
   onToggleAllSpouses,
+  chartTypeModalOpen,
+  onChartTypeModalOpenChange,
+  onOpenTutorial,
 }: ChartMenuProps) {
   const selectSearchResult = useCallback(
     (person: DescendancyPerson) => {
@@ -92,28 +106,69 @@ export function ChartMenu({
     triggerBlinkBack();
   }, [rootActionDeps]);
 
-  const showLabel = !isMobile;
+  const showLabel = true;
   const menuItems = getChartMenuItems({
     isMobile,
     showLabel,
     onHistoryClick,
     showHistoryPanel,
     goHome,
-    onInfoClick,
-    showInfo,
-    onSettingsClick,
-    showSettings,
     onGoToPerson,
-    onToggleAllSpouses,
     headerOpen,
     onToggleHeader,
   });
 
+  const chartButton = (
+    <ChartMenuChartButton
+      onClick={() => onChartTypeModalOpenChange(true)}
+      active={chartTypeModalOpen}
+      showLabel={showLabel}
+    />
+  );
+
+  const chartTypeModal = (
+    <ChartTypeModal
+      open={chartTypeModalOpen}
+      value={chartStrategy}
+      onClose={() => onChartTypeModalOpenChange(false)}
+      onSelect={(next) => {
+        onChartStrategyChange(next);
+      }}
+    />
+  );
+
+  const menuItemNodes = menuItems
+    .filter((item) => item.show)
+    .map((item) => (
+      <span key={item.key} style={{ display: "contents" }}>
+        <MenuDivider />
+        {item.node}
+      </span>
+    ));
+
+  const moreBlock = (
+    <ChartMenuMore
+      isMobile={isMobile}
+      mobileSearchHref={isMobile ? mobileSearchHref : undefined}
+      mobileOnGoHome={isMobile ? goHome : undefined}
+      mobileOnToggleAllSpouses={isMobile ? onToggleAllSpouses : undefined}
+      showInfo={showInfo}
+      onInfoClick={onInfoClick}
+      showSettings={showSettings}
+      onSettingsClick={onSettingsClick}
+      onOpenTutorial={onOpenTutorial}
+    />
+  );
+
   return (
     <div
       style={{
-        padding: "0 12px",
-        height: 44,
+        paddingTop: isMobile ? 6 : 0,
+        paddingBottom: isMobile ? 6 : 0,
+        paddingLeft: 12,
+        paddingRight: 12,
+        minHeight: 44,
+        height: isMobile ? "auto" : 44,
         borderBottom: "1px solid var(--tree-border)",
         display: "flex",
         alignItems: "center",
@@ -127,29 +182,55 @@ export function ChartMenu({
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
       }}
     >
-      <DatabaseSearchbox
-        isMobile={isMobile}
-        searchGivenName={searchGivenName}
-        searchLastName={searchLastName}
-        onSearchGivenNameChange={onSearchGivenNameChange}
-        onSearchLastNameChange={onSearchLastNameChange}
-        searchResults={searchResults}
-        searchLoading={searchLoading}
-        selectedRootId={selectedRootId}
-        onSelectResult={selectSearchResult}
-        setShowSearchPanel={setShowSearchPanel}
-        mobileSearchHref={mobileSearchHref}
-      />
+      {!isMobile ? (
+        <>
+          <DatabaseSearchbox
+            searchGivenName={searchGivenName}
+            searchLastName={searchLastName}
+            onSearchGivenNameChange={onSearchGivenNameChange}
+            onSearchLastNameChange={onSearchLastNameChange}
+            searchResults={searchResults}
+            searchLoading={searchLoading}
+            selectedRootId={selectedRootId}
+            onSelectResult={selectSearchResult}
+            setShowSearchPanel={setShowSearchPanel}
+          />
+          <MenuDivider />
+        </>
+      ) : null}
 
-      {menuItems
-        .filter((item) => item.show)
-        .map((item) => (
-          <span key={item.key} style={{ display: "contents" }}>
-            <MenuDivider />
-            {item.node}
-          </span>
-        ))}
-
+      {isMobile ? (
+        <>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              flexWrap: "nowrap",
+              overflowX: "auto",
+              overflowY: "hidden",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "thin",
+            }}
+          >
+            {chartButton}
+            {chartTypeModal}
+            {menuItemNodes}
+          </div>
+          <MenuDivider />
+          <div style={{ flexShrink: 0 }}>{moreBlock}</div>
+        </>
+      ) : (
+        <>
+          {chartButton}
+          {chartTypeModal}
+          {menuItemNodes}
+          <MenuDivider />
+          {moreBlock}
+        </>
+      )}
     </div>
   );
 }

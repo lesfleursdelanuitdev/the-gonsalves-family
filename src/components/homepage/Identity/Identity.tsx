@@ -57,7 +57,7 @@ export function Identity() {
             <p className="mt-8">
               <Link
                 href="/culture"
-                className="font-body inline-block rounded-lg bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
+                className="font-body inline-block rounded-lg bg-[#435B35] px-8 py-4 text-base font-semibold text-primary-foreground shadow-sm hover:bg-[#3a5030] hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
               >
                 Explore culture
               </Link>

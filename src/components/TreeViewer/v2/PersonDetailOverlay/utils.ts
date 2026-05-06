@@ -10,6 +10,14 @@ export function displayXref(xref: string | null | undefined): string {
   return xref.replace(/^@+|@+$/g, "").trim() || xref;
 }
 
+/** Canonical GEDCOM xref `@I123@` for overlay state and API paths. */
+export function normalizeGedcomXref(xref: string | null | undefined): string {
+  if (xref == null || typeof xref !== "string") return "";
+  const inner = xref.replace(/^@+|@+$/g, "").trim();
+  if (inner === "") return "";
+  return `@${inner}@`;
+}
+
 export function splitDisplayName(displayName: string): { first: string; last: string } {
   const trimmed = displayName.trim();
   if (!trimmed) return { first: "", last: "Unknown" };
@@ -21,6 +29,10 @@ export function splitDisplayName(displayName: string): { first: string; last: st
 
 const TREE_VIEWER_PATH = "/tree/viewer";
 
+/**
+ * Deep link: `/tree/viewer?root=<xref>&chart=…&depth=…&card=<PersonCardLayout>&partners=open|closed`
+ * (`chart` optional; see `src/app/tree/viewer/page.tsx`). `root` is the GEDCOM xref (e.g. `@I12@`).
+ */
 export function personRootHref(xref: string, displayName: string | null): string {
   const params = new URLSearchParams({
     root: xref,
@@ -30,18 +42,25 @@ export function personRootHref(xref: string, displayName: string | null): string
   return `${TREE_VIEWER_PATH}?${params.toString()}`;
 }
 
-/** Href to open tree viewer with this person as root and optional chart type (pedigree, descendancy, fan). */
+/**
+ * Open the tree viewer with this person as root. By default uses a **clean** deep link
+ * (`root` + `chart` only) so the chart matches the URL without merging prior viewer history.
+ * Pass `mergeSessionHistory: true` to append to saved history (same behavior as {@link personRootHref}).
+ *
+ * Note: `chart=fan` is not a built-in viewer mode yet; the server falls back to descendancy until fan exists.
+ */
 export function personChartHref(
   xref: string,
   displayName: string | null,
-  chart?: "pedigree" | "descendancy" | "fan"
+  chart?: "pedigree" | "descendancy" | "fan",
+  mergeSessionHistory = false
 ): string {
-  const params = new URLSearchParams({
-    root: xref,
-    loadSavedHistory: "true",
-    rootName: (displayName ?? xref).trim() || xref,
-  });
+  const params = new URLSearchParams({ root: xref });
   if (chart) params.set("chart", chart);
+  if (mergeSessionHistory) {
+    params.set("loadSavedHistory", "true");
+    params.set("rootName", (displayName ?? xref).trim() || xref);
+  }
   return `${TREE_VIEWER_PATH}?${params.toString()}`;
 }
 

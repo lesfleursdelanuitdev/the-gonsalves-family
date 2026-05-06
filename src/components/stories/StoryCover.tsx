@@ -55,14 +55,16 @@ export function StoryCover({
 
   const authorEl = useMemo(() => {
     if (!authorLine) return null;
-    if (authorHref) {
+    const multiline = authorLine.includes("\n");
+    const linkSingleLine = Boolean(authorHref) && !multiline;
+    if (linkSingleLine) {
       return (
-        <a href={authorHref} className="text-link underline-offset-2 hover:text-link-hover">
+        <a href={authorHref!} className="text-link underline-offset-2 hover:text-link-hover">
           {authorLine}
         </a>
       );
     }
-    return <span>{authorLine}</span>;
+    return <span className="whitespace-pre-line">{authorLine}</span>;
   }, [authorHref, authorLine]);
 
   return (

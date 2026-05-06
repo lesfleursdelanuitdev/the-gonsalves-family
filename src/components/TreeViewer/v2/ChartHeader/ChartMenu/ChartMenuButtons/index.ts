@@ -1,3 +1,5 @@
+export { ChartMenuChartButton } from "./ChartMenuChartButton";
+export type { ChartMenuChartButtonProps } from "./ChartMenuChartButton";
 export { ChartMenuBackButton } from "./ChartMenuBackButton";
 export type { ChartMenuBackButtonProps } from "./ChartMenuBackButton";
 export { ChartMenuButton } from "./ChartMenuButton";

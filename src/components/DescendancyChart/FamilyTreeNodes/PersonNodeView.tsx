@@ -1,41 +1,451 @@
 "use client";
 
+import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { getPeople, getBirthUnionByChild, PERSON_WIDTH } from "@/genealogy-visualization-engine";
-import type { DescendancyPerson, PersonCardAction } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName, DescendancyPerson, PersonCardAction } from "@/genealogy-visualization-engine";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
-import { IconCrown, IconHeart, IconArrowUp, IconArrowDown, IconHome, IconUsers, IconX, IconPerson, IconPersonMale, IconPersonFemale, IconChevronUp, IconChevronDown } from "../../TreeViewer/Misc/SvgIcons";
+import {
+  CARD_CORNER_RX,
+  COLORS,
+  DEFAULT_PERSON_CARD_LAYOUT,
+  PERSON_CARD_HEIGHT_BY_LAYOUT,
+  resolvePersonCardLayout,
+  type PersonCardLayout,
+} from "@/lib/person-card-layout";
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconChevronDown,
+  IconChevronUp,
+  IconCrown,
+  IconHeart,
+  IconHome,
+  IconMoreHorizontal,
+  IconPerson,
+  IconPersonFemale,
+  IconPersonMale,
+  IconUsers,
+  IconX,
+} from "../../TreeViewer/Misc/SvgIcons";
+import {
+  CHART_PERSON_OVERFLOW_MENU_Z_INDEX,
+  useChartViewportOverlay,
+} from "../../TreeViewer/v2/ChartViewport/ChartViewportOverlayContext";
 
-const BTN_ROW_H = 52;
-const BTN_CIRCLE_R = 22;
-const BTN_GAP = 10;
-const BTN_ICON = 22;
-/** Vertical offset for profile picture, name, and dates (shifts content down from top of card) */
-const CONTENT_TOP_OFFSET = 14;
-
-/** Fallbacks so action buttons and icons stay visible when CSS variables don't cascade (e.g. tree-viewer-test). */
-const FALLBACK_TREE_TEXT = "#2C2A26";
-const FALLBACK_TREE_TEXT_MUTED = "#6F675A";
-const FALLBACK_TREE_BUTTON_BORDER = "#D9CCB3";
-const FALLBACK_SUCCESS = "#2e7a52";
+const CARD_W = PERSON_WIDTH;
 
 /** Extra vertical space for name area (top + bottom padding). */
 const NAME_ROW_EXTRA_HEIGHT = 12;
 
-/** Soft background colors for name area (by gender). */
+/** Soft underline colors for names (by sex / GEDCOM SEX). */
 const NAME_BG_MALE = "#AAD7ED";
 const NAME_BG_FEMALE = "#F8BBD0";
 const NAME_BG_OTHER = "#C8E6C9";
 
+const NAME_UNDERLINE_PX = 3;
+
+/** Resolve sex for name underline — supports API labels and GEDCOM letters (case-insensitive). */
 function getNameBackgroundColor(gender: string | null | undefined): string {
-  if (gender === "Male") return NAME_BG_MALE;
-  if (gender === "Female") return NAME_BG_FEMALE;
+  if (gender == null) return NAME_BG_OTHER;
+  const normalized = `${gender}`
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "");
+  if (normalized === "MALE" || normalized === "M") return NAME_BG_MALE;
+  if (normalized === "FEMALE" || normalized === "F") return NAME_BG_FEMALE;
   return NAME_BG_OTHER;
+}
+
+type ActionBtn = {
+  Icon: typeof IconUsers;
+  title: string;
+  action: PersonCardAction;
+};
+
+/** Shared styling for HTML overflow menus embedded via foreignObject */
+function overflowMenuChromeStyles(): {
+  panel: CSSProperties;
+  row: CSSProperties;
+  icon: CSSProperties;
+} {
+  return {
+    panel: {
+      background: COLORS.card,
+      borderRadius: 12,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+      border: `1px solid ${COLORS.cardStroke}`,
+      padding: 6,
+      fontFamily: "system-ui, sans-serif",
+      touchAction: "manipulation" as const,
+    },
+    row: {
+      display: "flex",
+      width: "100%",
+      alignItems: "center",
+      gap: 8,
+      textAlign: "left" as const,
+      padding: "10px 10px",
+      border: "none",
+      background: "transparent",
+      borderRadius: 8,
+      cursor: "pointer",
+      fontSize: 14,
+      color: COLORS.text,
+    },
+    icon: {
+      width: 24,
+      height: 24,
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  };
+}
+
+/** Same stroke icons as {@link ActionIconRow} / rail, for HTML overflow menus (foreignObject / portal). */
+function SvgActionIcon({ Icon, stroke = COLORS.iconStroke }: { Icon: ActionBtn["Icon"]; stroke?: string }) {
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" aria-hidden style={{ display: "block" }}>
+      <Icon x={12} y={12} size={18} stroke={stroke} fill="none" />
+    </svg>
+  );
+}
+
+function buildActionButtons(
+  person: DescendancyPerson,
+  opts: {
+    isRoot: boolean;
+    hasParents: boolean;
+    hasSpouses: boolean;
+    onlyRoot: boolean;
+    isSpouse: boolean;
+    isLinkedSpouse: boolean;
+    isLeaf: boolean;
+    hasDescendantsInData: boolean;
+    isSubtreeCollapsed: boolean;
+  }
+): ActionBtn[] {
+  const {
+    isRoot,
+    hasParents,
+    hasSpouses,
+    onlyRoot,
+    isSpouse,
+    isLinkedSpouse,
+    isLeaf,
+    hasDescendantsInData,
+    isSubtreeCollapsed,
+  } = opts;
+  const buttons: ActionBtn[] = [];
+  if (!isSpouse && !isLinkedSpouse && isRoot && hasParents) {
+    buttons.push({ Icon: IconUsers, title: "Show siblings", action: "showSiblings" });
+  }
+  if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasSpouses) {
+    buttons.push({ Icon: IconHeart, title: "Show spouses", action: "showSpouses" });
+  }
+  if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasParents) {
+    buttons.push({ Icon: IconArrowUp, title: "Go to parents", action: "parents" });
+  }
+  buttons.push({ Icon: IconHome, title: "Set as root", action: "root" });
+  if (hasDescendantsInData && !isSpouse && !isLinkedSpouse) {
+    if (isSubtreeCollapsed) {
+      buttons.push({ Icon: IconChevronDown, title: "Expand subtree", action: "expandSubtree" });
+    } else {
+      buttons.push({ Icon: IconChevronUp, title: "Collapse subtree", action: "collapseSubtree" });
+    }
+  }
+  if (isLeaf) {
+    buttons.push({ Icon: IconArrowDown, title: "More", action: "expandDown" });
+  }
+  return buttons;
+}
+
+function ActionIconRow({
+  buttons,
+  cy,
+  cardW,
+  compact,
+  onAction,
+  personId,
+}: {
+  buttons: ActionBtn[];
+  cy: number;
+  cardW: number;
+  compact?: boolean;
+  onAction: (action: PersonCardAction, personId: string) => void;
+  personId: string;
+}) {
+  const r = compact ? 15 : 18;
+  const iconSize = compact ? 15 : 16;
+  const gap = compact ? 8 : 10;
+  const count = buttons.length;
+  if (count === 0) return null;
+  const rowW = count * 2 * r + (count - 1) * gap;
+  let cx0 = (cardW - rowW) / 2 + r;
+  cx0 = Math.max(r + 4, Math.min(cx0, cardW - r - 4 - (count - 1) * (2 * r + gap)));
+  return (
+    <g>
+      {buttons.map((btn, i) => {
+        const cx = cx0 + i * (2 * r + gap);
+        return (
+          <g
+            key={btn.title}
+            style={{ cursor: "pointer" }}
+            className="person-card-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction(btn.action, personId);
+            }}
+            onMouseEnter={(e) => {
+              const g = e.currentTarget as SVGGElement;
+              const c = g.querySelector("circle");
+              if (c) {
+                c.setAttribute("fill", COLORS.iconBgHover);
+                c.setAttribute("stroke", COLORS.cardStroke);
+              }
+              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text));
+            }}
+            onMouseLeave={(e) => {
+              const g = e.currentTarget as SVGGElement;
+              const c = g.querySelector("circle");
+              if (c) {
+                c.setAttribute("fill", COLORS.iconBg);
+                c.setAttribute("stroke", COLORS.cardStroke);
+              }
+              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.iconStroke));
+            }}
+          >
+            <title>{btn.title}</title>
+            <circle cx={cx} cy={cy} r={r} fill={COLORS.iconBg} stroke={COLORS.cardStroke} strokeWidth={1} />
+            <btn.Icon x={cx} y={cy} size={iconSize} stroke={COLORS.iconStroke} fill="none" />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+/** Vertically distribute rail icon centers from upper to lower inset (even gaps between neighbors). */
+function verticalRailIconCentersY(cardH: number, slotCount: number, circleR: number): number[] {
+  const edgeMargin = 16;
+  const yMin = edgeMargin + circleR;
+  const yMax = cardH - edgeMargin - circleR;
+  const span = Math.max(yMax - yMin, 0);
+  if (slotCount <= 0) return [];
+  if (slotCount === 1) return [yMin + span / 2];
+  return Array.from({ length: slotCount }, (_, i) => yMin + (i / (slotCount - 1)) * span);
+}
+
+function ActionIconRail({
+  buttons,
+  cardH,
+  cx,
+  compact,
+  onAction,
+  personId,
+}: {
+  buttons: ActionBtn[];
+  cardH: number;
+  cx: number;
+  compact?: boolean;
+  onAction: (action: PersonCardAction, personId: string) => void;
+  personId: string;
+}) {
+  const r = compact ? 15 : 18;
+  const iconSize = compact ? 15 : 16;
+  const centersY = verticalRailIconCentersY(cardH, buttons.length, r);
+  return (
+    <g>
+      {buttons.map((btn, i) => {
+        const cy = centersY[i] ?? cardH / 2;
+        return (
+          <g
+            key={btn.title}
+            style={{ cursor: "pointer" }}
+            className="person-card-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction(btn.action, personId);
+            }}
+            onMouseEnter={(e) => {
+              const g = e.currentTarget as SVGGElement;
+              const c = g.querySelector("circle");
+              if (c) {
+                c.setAttribute("fill", COLORS.iconBgHover);
+                c.setAttribute("stroke", COLORS.cardStroke);
+              }
+              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text));
+            }}
+            onMouseLeave={(e) => {
+              const g = e.currentTarget as SVGGElement;
+              const c = g.querySelector("circle");
+              if (c) {
+                c.setAttribute("fill", COLORS.iconBg);
+                c.setAttribute("stroke", COLORS.cardStroke);
+              }
+              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.iconStroke));
+            }}
+          >
+            <title>{btn.title}</title>
+            <circle cx={cx} cy={cy} r={r} fill={COLORS.iconBg} stroke={COLORS.cardStroke} strokeWidth={1} />
+            <btn.Icon x={cx} y={cy} size={iconSize} stroke={COLORS.iconStroke} fill="none" />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function railSlotCys(cardH: number, slotCount: number, circleR: number): number[] {
+  return verticalRailIconCentersY(cardH, slotCount, circleR);
+}
+
+/** Avatar-left / actions-right: when there are many actions, show 2 on the rail + a "more" opener. */
+function ActionIconRailAvatarLeftWithOverflow({
+  buttons,
+  cardH,
+  cx,
+  compact,
+  onAction,
+  personId,
+  onMoreToggle,
+}: {
+  buttons: [ActionBtn, ActionBtn];
+  cardH: number;
+  cx: number;
+  compact?: boolean;
+  onAction: (action: PersonCardAction, personId: string) => void;
+  personId: string;
+  onMoreToggle: (e: React.MouseEvent) => void;
+}) {
+  const r = compact ? 15 : 18;
+  const iconSize = compact ? 15 : 16;
+  const [cy0, cy1, cyMore] = railSlotCys(cardH, 3, r);
+  function renderActionSlot(btn: ActionBtn, cy: number, key: string) {
+    return (
+      <g
+        key={key}
+        style={{ cursor: "pointer" }}
+        className="person-card-action"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAction(btn.action, personId);
+        }}
+        onMouseEnter={(e) => {
+          const g = e.currentTarget as SVGGElement;
+          const c = g.querySelector("circle");
+          if (c) {
+            c.setAttribute("fill", COLORS.iconBgHover);
+            c.setAttribute("stroke", COLORS.cardStroke);
+          }
+          g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text));
+        }}
+        onMouseLeave={(e) => {
+          const g = e.currentTarget as SVGGElement;
+          const c = g.querySelector("circle");
+          if (c) {
+            c.setAttribute("fill", COLORS.iconBg);
+            c.setAttribute("stroke", COLORS.cardStroke);
+          }
+          g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.iconStroke));
+        }}
+      >
+        <title>{btn.title}</title>
+        <circle cx={cx} cy={cy} r={r} fill={COLORS.iconBg} stroke={COLORS.cardStroke} strokeWidth={1} />
+        <btn.Icon x={cx} y={cy} size={iconSize} stroke={COLORS.iconStroke} fill="none" />
+      </g>
+    );
+  }
+  return (
+    <g>
+      {renderActionSlot(buttons[0], cy0, buttons[0].title)}
+      {renderActionSlot(buttons[1], cy1, buttons[1].title)}
+      <g
+        style={{ cursor: "pointer" }}
+        className="person-card-action person-card-action-more"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onMoreToggle(e as unknown as React.MouseEvent);
+        }}
+        onMouseEnter={(e) => {
+          const gEl = e.currentTarget as SVGGElement;
+          const c = gEl.querySelector(".rail-more-circle");
+          if (c) {
+            c.setAttribute("fill", COLORS.iconBgHover);
+            c.setAttribute("stroke", COLORS.cardStroke);
+          }
+          gEl.querySelectorAll("[data-more-dot]").forEach((dot) => {
+            (dot as SVGCircleElement).setAttribute("fill", COLORS.text);
+          });
+        }}
+        onMouseLeave={(e) => {
+          const gEl = e.currentTarget as SVGGElement;
+          const c = gEl.querySelector(".rail-more-circle");
+          if (c) {
+            c.setAttribute("fill", COLORS.iconBg);
+            c.setAttribute("stroke", COLORS.cardStroke);
+          }
+          gEl.querySelectorAll("[data-more-dot]").forEach((dot) => {
+            (dot as SVGCircleElement).setAttribute("fill", COLORS.iconStroke);
+          });
+        }}
+      >
+        <title>More actions</title>
+        <circle className="rail-more-circle" cx={cx} cy={cyMore} r={r} fill={COLORS.iconBg} stroke={COLORS.cardStroke} strokeWidth={1} />
+        {(() => {
+          const s = iconSize / 24;
+          return (
+            <g transform={`translate(${cx}, ${cyMore}) scale(${s}) translate(-12, -12)`}>
+              <circle data-more-dot cx={5} cy={12} r={1.6} fill={COLORS.iconStroke} />
+              <circle data-more-dot cx={12} cy={12} r={1.6} fill={COLORS.iconStroke} />
+              <circle data-more-dot cx={19} cy={12} r={1.6} fill={COLORS.iconStroke} />
+            </g>
+          );
+        })()}
+      </g>
+    </g>
+  );
 }
 
 export interface PersonCardSettings {
   showDates?: boolean;
   showPhotos?: boolean;
   showUnknown?: boolean;
+  showCardActionIcons?: boolean;
+  personCardLayout?: PersonCardLayout;
+}
+
+type LegacyDesktopVariant = "v1" | "v2" | "v3" | "v4";
+
+function toLegacyRenderVariant(layout: PersonCardLayout): {
+  mode: "mobile" | "desktop";
+  mobileVariant?: "portrait" | "avatarLeft";
+  desktopVariant?: LegacyDesktopVariant;
+} {
+  switch (layout) {
+    case "avatarTopActionsBottom":
+      return { mode: "desktop", desktopVariant: "v1" };
+    case "avatarTopActionsRight":
+      return { mode: "desktop", desktopVariant: "v2" };
+    case "avatarLeftActionsBottom":
+      return { mode: "desktop", desktopVariant: "v3" };
+    case "avatarLeftActionsRight":
+      return { mode: "desktop", desktopVariant: "v4" };
+    case "avatarTopMobileMenu":
+      return { mode: "mobile", mobileVariant: "portrait" };
+    case "avatarLeftMobileMenu":
+    default:
+      return { mode: "mobile", mobileVariant: "avatarLeft" };
+  }
 }
 
 export interface PersonCardProps {
@@ -48,34 +458,298 @@ export interface PersonCardProps {
   hasSpouses?: boolean;
   hasParents?: boolean;
   onlyRoot?: boolean;
-  /** When true, this person is a leaf in the tree (no children shown); show e.g. a down-arrow button. */
   isLeaf?: boolean;
-  /** When true, this person has descendants in the full data (for showing collapse/expand only when relevant). */
   hasDescendantsInData?: boolean;
-  /** When true, this person's subtree is collapsed (show "Expand subtree" instead of "Collapse subtree"). */
   isSubtreeCollapsed?: boolean;
   onAction?: (action: PersonCardAction, personId: string) => void;
-  /** When provided, name is clickable and opens a detail overlay with name, xref, uuid. */
   onNameClick?: (person: { name: string; xref: string; uuid: string | null }) => void;
   settings?: PersonCardSettings;
+  chartStrategy?: ChartViewStrategyName;
+  isMobile?: boolean;
 }
 
-export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, isLinkedSpouse = false, hasSpouses = false, hasParents = false, onlyRoot = false, isLeaf = false, hasDescendantsInData = false, isSubtreeCollapsed = false, onAction, onNameClick, settings = {} }: PersonCardProps) {
-  const { id, firstName, lastName, birthYear, deathYear, _hiddenCount, _isShadow } = person;
+export function PersonCard({
+  cx,
+  y,
+  person,
+  isRoot = false,
+  isSpouse = false,
+  isLinkedSpouse = false,
+  hasSpouses = false,
+  hasParents = false,
+  onlyRoot = false,
+  isLeaf = false,
+  hasDescendantsInData = false,
+  isSubtreeCollapsed = false,
+  onAction,
+  onNameClick,
+  settings = {},
+  chartStrategy = "descendancy",
+  isMobile = false,
+}: PersonCardProps) {
+  const photoClipId = useId().replace(/:/g, "");
+  const [menuOpen, setMenuOpen] = useState(false);
+  /** Desktop avatar-top / actions-right overflow menu */
+  const [railOverflowOpenTop, setRailOverflowOpenTop] = useState(false);
+  /** Desktop avatar-left / actions-right: overflow actions behind "more" rail slot */
+  const [railOverflowOpen, setRailOverflowOpen] = useState(false);
+  void chartStrategy;
+  const requestedLayout = settings.personCardLayout ?? DEFAULT_PERSON_CARD_LAYOUT;
+  const resolvedLayout = resolvePersonCardLayout(requestedLayout, isMobile);
+  const renderLayout = toLegacyRenderVariant(resolvedLayout);
+  const baseH = PERSON_CARD_HEIGHT_BY_LAYOUT[resolvedLayout];
+  const effectiveHeight = getEffectivePersonHeight(
+    { ...settings, personCardLayout: requestedLayout },
+    { isMobile }
+  );
+  const innerScaleY = baseH > 0 ? effectiveHeight / baseH : 1;
+  const x = cx - CARD_W / 2;
+  const top = y - effectiveHeight / 2;
+
+  const { id, firstName, lastName, birthYear, deathYear, _hiddenCount, _isShadow, _unknownPlaceholder } = person;
   const overlayPerson = {
     name: `${firstName} ${lastName}`.trim() || "Unknown",
     xref: person.xref ?? id,
     uuid: person.uuid ?? null,
   };
-  const handleNameClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onNameClick?.(overlayPerson);
+  const handleNameClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onNameClick?.(overlayPerson);
+    },
+    [onNameClick, overlayPerson]
+  );
+
+  const accentNameSpanStyle = useCallback(
+    (extra?: CSSProperties): CSSProperties => ({
+      borderBottom: `${NAME_UNDERLINE_PX}px solid ${getNameBackgroundColor(person.gender)}`,
+      display: "inline-block",
+      maxWidth: "100%",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      verticalAlign: "bottom",
+      boxSizing: "border-box",
+      ...(onNameClick ? { cursor: "pointer" } : {}),
+      ...extra,
+    }),
+    [onNameClick, person.gender]
+  );
+
+  const showPhotos = settings.showPhotos !== false;
+  const showDates = settings.showDates !== false;
+  const showCardActionIcons = settings.showCardActionIcons !== false;
+
+  const actionButtons = buildActionButtons(person, {
+    isRoot,
+    hasParents,
+    hasSpouses,
+    onlyRoot,
+    isSpouse,
+    isLinkedSpouse,
+    isLeaf,
+    hasDescendantsInData,
+    isSubtreeCollapsed,
+  });
+
+  const initials =
+    `${(firstName?.[0] ?? "").toUpperCase()}${(lastName?.[0] ?? "").toUpperCase()}`.trim() || "?";
+
+  const crownX = 22;
+  const crownY = 22;
+  const menuCx = CARD_W - 28;
+  const menuCy = 28;
+  /** Close spouse / linked union: always upper-left (card-local coords before translate), regardless of rail or ⋯ placement. */
+  const closeActionCx = 22;
+  const closeActionCy = 22;
+  const closeActionHitX = closeActionCx - 11;
+  const closeActionHitY = closeActionCy - 11;
+
+  const chartViewportOverlay = useChartViewportOverlay();
+  const mobileOverflowBtnRef = useRef<SVGGElement | null>(null);
+  const MOBILE_OVERFLOW_MENU_W = 186;
+  const useMobileMenuPortal = chartViewportOverlay != null;
+
+  const mobileMenuRowStyle: CSSProperties = {
+    display: "flex",
+    width: "100%",
+    alignItems: "center",
+    gap: 8,
+    textAlign: "left",
+    padding: "10px 10px",
+    border: "none",
+    background: "transparent",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 14,
+    color: COLORS.text,
   };
-  const isUnknown = firstName === "Unknown";
-  const effectiveHeight = getEffectivePersonHeight(settings);
-  const x = cx - PERSON_WIDTH / 2;
-  const top = y - effectiveHeight / 2;
-  const btnY = top + effectiveHeight - BTN_ROW_H - 16;
+
+  const mobileMenuIcon: CSSProperties = {
+    width: 24,
+    height: 24,
+    flexShrink: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  /** HTML body of mobile ⋯ menu (stacking context handled by portal). */
+  function renderMobileOverflowMenuMarkup(maxHeight: number) {
+    return (
+      <div
+        role="menu"
+        style={{
+          background: COLORS.card,
+          borderRadius: 12,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          border: `1px solid ${COLORS.cardStroke}`,
+          padding: 6,
+          fontFamily: "system-ui, sans-serif",
+          touchAction: "manipulation",
+          maxHeight,
+          overflowY: "auto",
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {onNameClick && (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
+              handleNameClick(e as unknown as React.MouseEvent);
+            }}
+            style={mobileMenuRowStyle}
+          >
+            <span style={mobileMenuIcon}>
+              <SvgActionIcon Icon={PersonIcon} />
+            </span>
+            View profile
+          </button>
+        )}
+        {onAction &&
+          actionButtons.map((b) => (
+            <button
+              type="button"
+              key={b.title}
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                onAction(b.action, id);
+              }}
+              style={mobileMenuRowStyle}
+            >
+              <span style={mobileMenuIcon}>
+                <SvgActionIcon Icon={b.Icon} />
+              </span>
+              {b.title}
+            </button>
+          ))}
+        <button
+          type="button"
+          role="menuitem"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(false);
+          }}
+          style={{
+            ...mobileMenuRowStyle,
+            borderTop: `1px solid ${COLORS.cardStroke}`,
+            marginTop: 4,
+            paddingTop: 12,
+          }}
+        >
+          <span style={mobileMenuIcon}>
+            <SvgActionIcon Icon={IconX} />
+          </span>
+          Close menu
+        </button>
+      </div>
+    );
+  }
+
+  const [mobileMenuPos, setMobileMenuPos] = useState<{ left: number; top: number } | null>(null);
+
+  const repositionMobileOverflowMenu = useCallback(() => {
+    const rootEl = chartViewportOverlay?.containerRef.current;
+    const btnEl = mobileOverflowBtnRef.current;
+    if (!menuOpen || !rootEl || !btnEl || !(onAction || onNameClick)) {
+      setMobileMenuPos(null);
+      return;
+    }
+    const cr = rootEl.getBoundingClientRect();
+    const br = btnEl.getBoundingClientRect();
+    const inset = chartViewportOverlay.chromeRightInsetPx;
+    let left = br.right - cr.left - MOBILE_OVERFLOW_MENU_W;
+    left = Math.max(8, Math.min(left, cr.width - inset - MOBILE_OVERFLOW_MENU_W - 8));
+    const top = Math.max(8, br.bottom - cr.top + 4);
+    setMobileMenuPos({ left, top });
+  }, [menuOpen, chartViewportOverlay, onAction, onNameClick]);
+
+  useLayoutEffect(() => {
+    repositionMobileOverflowMenu();
+  }, [repositionMobileOverflowMenu]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const t = window.setInterval(repositionMobileOverflowMenu, 48);
+    window.addEventListener("resize", repositionMobileOverflowMenu);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("resize", repositionMobileOverflowMenu);
+    };
+  }, [menuOpen, repositionMobileOverflowMenu]);
+
+  /** Wider tap target + stop pointer propagation so chart pan/zoom doesn’t steal the gesture. */
+  function renderMobileOverflowButton() {
+    if (!onAction && !onNameClick) return null;
+    const hit = 52;
+    const hx = menuCx - hit / 2;
+    const hy = menuCy - hit / 2;
+    const toggle = (e: React.SyntheticEvent) => {
+      e.stopPropagation();
+      setMenuOpen((o) => !o);
+    };
+    return (
+      <g
+        ref={mobileOverflowBtnRef}
+        role="button"
+        tabIndex={0}
+        aria-label="Open person actions"
+        style={{ cursor: "pointer" }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onPointerUp={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={toggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenuOpen((o) => !o);
+          }
+        }}
+      >
+        <rect
+          x={hx}
+          y={hy}
+          width={hit}
+          height={hit}
+          rx={hit / 2}
+          fill="rgba(0,0,0,0)"
+          pointerEvents="all"
+        />
+        <circle cx={menuCx} cy={menuCy} r={18} fill={COLORS.iconBg} stroke={COLORS.cardStroke} strokeWidth={1} />
+        <IconMoreHorizontal x={menuCx} y={menuCy} size={18} fill={COLORS.iconStroke} />
+      </g>
+    );
+  }
 
   if (_isShadow) {
     const people = getPeople();
@@ -96,11 +770,11 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         <rect
           x={x}
           y={top}
-          width={PERSON_WIDTH}
+          width={CARD_W}
           height={effectiveHeight}
-          rx={8}
-          fill="var(--surface-2)"
-          stroke="var(--border)"
+          rx={CARD_CORNER_RX}
+          fill={COLORS.card}
+          stroke={COLORS.cardStroke}
           strokeWidth={1}
           strokeDasharray="5 3"
           style={{ filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.08))" }}
@@ -108,7 +782,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         <foreignObject
           x={x + 12}
           y={top + 10}
-          width={PERSON_WIDTH - 24}
+          width={CARD_W - 24}
           height={30 + NAME_ROW_EXTRA_HEIGHT}
           style={{ overflow: "visible" }}
         >
@@ -117,8 +791,8 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
             style={{
               fontSize: "0.875rem",
               fontWeight: 600,
-              fontFamily: "var(--font-heading-raw), serif",
-              color: "var(--heading)",
+              fontFamily: "var(--font-heading-raw), Georgia, serif",
+              color: COLORS.text,
               textAlign: "center",
               lineHeight: 1.3,
             }}
@@ -127,11 +801,21 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
               role={onNameClick ? "button" : undefined}
               tabIndex={onNameClick ? 0 : undefined}
               onClick={onNameClick ? handleNameClick : undefined}
-              onKeyDown={onNameClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNameClick(e as unknown as React.MouseEvent); } } : undefined}
-              style={{
-                borderBottom: `4px solid ${getNameBackgroundColor(person.gender)}`,
-                ...(onNameClick ? { cursor: "pointer" } : {}),
-              }}
+              onKeyDown={
+                onNameClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleNameClick(e as unknown as React.MouseEvent);
+                      }
+                    }
+                  : undefined
+              }
+              style={accentNameSpanStyle({
+                whiteSpace: "normal",
+                overflow: "visible",
+                textOverflow: "clip",
+              })}
             >
               {firstName}
               <br />
@@ -143,9 +827,9 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           x={cx}
           y={top + 56 + NAME_ROW_EXTRA_HEIGHT}
           textAnchor="middle"
-          fill="var(--crimson)"
-          fontFamily="inherit"
-          style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.1em" }}
+          fill={COLORS.date}
+          fontFamily="system-ui, sans-serif"
+          style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.06em" }}
         >
           {birthYear ?? "?"} — {deathYear ?? "present"}
         </text>
@@ -154,7 +838,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           y={top + effectiveHeight - 10}
           textAnchor="middle"
           fontSize={7.5}
-          fill="var(--tree-linked)"
+          fill={COLORS.muted}
           fontFamily="Georgia, serif"
           fontStyle="italic"
         >
@@ -163,18 +847,26 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         {onAction && (
           <g
             style={{ cursor: "pointer" }}
-            onClick={(e) => { e.stopPropagation(); onAction("closeLinkedUnion", id); }}
-            onMouseEnter={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text)"))}
-            onMouseLeave={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-linked)"))}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction("closeLinkedUnion", id);
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text))
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.muted))
+            }
           >
-            <rect x={x + PERSON_WIDTH - 22} y={top + 4} width={18} height={18} fill="transparent" />
-            <IconX x={x + PERSON_WIDTH - 13} y={top + 13} size={14} stroke="var(--tree-linked)" fill="none" />
+            <rect x={x + closeActionHitX} y={top + closeActionHitY} width={22} height={22} fill="transparent" />
+            <IconX x={x + closeActionCx} y={top + closeActionCy} size={14} stroke={COLORS.muted} fill="none" />
           </g>
         )}
       </g>
     );
   }
 
+  const isUnknown = firstName === "Unknown" && !_unknownPlaceholder;
   if (isUnknown && settings.showUnknown === false) return null;
 
   if (isUnknown) {
@@ -183,11 +875,11 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         <rect
           x={x}
           y={top}
-          width={PERSON_WIDTH}
+          width={CARD_W}
           height={effectiveHeight}
-          rx={8}
-          fill="var(--surface-2)"
-          stroke="var(--border)"
+          rx={CARD_CORNER_RX}
+          fill={COLORS.card}
+          stroke={COLORS.cardStroke}
           strokeWidth={1}
           strokeDasharray="4 3"
           style={{ filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.08))" }}
@@ -195,7 +887,7 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
         <foreignObject
           x={x + 12}
           y={y - 22}
-          width={PERSON_WIDTH - 24}
+          width={CARD_W - 24}
           height={28}
           style={{ overflow: "visible" }}
         >
@@ -205,8 +897,8 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
               fontSize: "0.875rem",
               fontWeight: 600,
               fontStyle: "italic",
-              fontFamily: "var(--font-heading-raw), serif",
-              color: "var(--heading)",
+              fontFamily: "var(--font-heading-raw), Georgia, serif",
+              color: COLORS.text,
               textAlign: "center",
             }}
           >
@@ -214,11 +906,17 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
               role={onNameClick ? "button" : undefined}
               tabIndex={onNameClick ? 0 : undefined}
               onClick={onNameClick ? handleNameClick : undefined}
-              onKeyDown={onNameClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNameClick(e as unknown as React.MouseEvent); } } : undefined}
-              style={{
-                borderBottom: `4px solid ${NAME_BG_OTHER}`,
-                ...(onNameClick ? { cursor: "pointer" } : {}),
-              }}
+              onKeyDown={
+                onNameClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleNameClick(e as unknown as React.MouseEvent);
+                      }
+                    }
+                  : undefined
+              }
+              style={accentNameSpanStyle()}
             >
               Unknown
             </span>
@@ -228,231 +926,736 @@ export function PersonCard({ cx, y, person, isRoot = false, isSpouse = false, is
           x={cx}
           y={y + 8}
           textAnchor="middle"
-          fill="var(--crimson)"
-          fontFamily="inherit"
-          style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.1em" }}
+          fill={COLORS.date}
+          fontFamily="system-ui, sans-serif"
+          style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.06em" }}
         >
           parent
         </text>
         {onAction && (
           <g
             style={{ cursor: "pointer" }}
-            onClick={(e) => { e.stopPropagation(); onAction("closeSpouse", id); }}
-            onMouseEnter={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text)"))}
-            onMouseLeave={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text-subtle)"))}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction("closeSpouse", id);
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text))
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.iconStroke))
+            }
           >
-            <rect x={x + PERSON_WIDTH - 22} y={top + 4} width={18} height={18} fill="transparent" />
-            <IconX x={x + PERSON_WIDTH - 13} y={top + 13} size={14} stroke="var(--tree-text-subtle)" fill="none" />
+            <rect x={x + closeActionHitX} y={top + closeActionHitY} width={22} height={22} fill="transparent" />
+            <IconX x={x + closeActionCx} y={top + closeActionCy} size={14} stroke={COLORS.iconStroke} fill="none" />
           </g>
         )}
       </g>
     );
   }
 
-  return (
-    <g className="person-card">
-      {/* Card: recipe-card style — soft fill, shadow. Root: 2px crimson border; else: 1px #c8beaa border */}
-      <rect
-        x={x}
-        y={top}
-        width={PERSON_WIDTH}
-        height={effectiveHeight}
-        rx={8}
-        fill="var(--surface-2)"
-        stroke={isRoot ? "var(--crimson)" : "#c8beaa"}
-        strokeWidth={isRoot ? 2 : 1}
-        style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.14))" }}
-      />
-      {/* Thin accent line at top for spouse only (root uses full red border) */}
-      {isSpouse && (
-        <line
-          x1={x}
-          y1={top + 1}
-          x2={x + PERSON_WIDTH}
-          y2={top + 1}
-          stroke="var(--tree-spouse)"
-          strokeWidth={1.5}
-        />
-      )}
+  const photoUrl = (person.photoUrl ?? "").trim();
+  const PersonIcon = person.gender === "Male" ? IconPersonMale : person.gender === "Female" ? IconPersonFemale : IconPerson;
 
-      {settings.showPhotos !== false && (() => {
-        const iconY = top + 14 + CONTENT_TOP_OFFSET + 22;
-        const PersonIcon = person.gender === "Male" ? IconPersonMale : person.gender === "Female" ? IconPersonFemale : IconPerson;
-        return (
+  const closeSpouseG = isSpouse && !isLinkedSpouse && onAction && (
+    <g
+      style={{ cursor: "pointer" }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onAction("closeSpouse", id);
+      }}
+      onMouseEnter={(e) =>
+        (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text))
+      }
+      onMouseLeave={(e) =>
+        (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.iconStroke))
+      }
+    >
+      <rect x={closeActionHitX} y={closeActionHitY} width={22} height={22} fill="transparent" />
+      <IconX x={closeActionCx} y={closeActionCy} size={14} stroke={COLORS.iconStroke} fill="none" />
+    </g>
+  );
+
+  const closeLinkedG = isLinkedSpouse && onAction && (
+    <g
+      style={{ cursor: "pointer" }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onAction("closeLinkedUnion", id);
+      }}
+      onMouseEnter={(e) =>
+        (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.text))
+      }
+      onMouseLeave={(e) =>
+        (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", COLORS.muted))
+      }
+    >
+      <rect x={closeActionHitX} y={closeActionHitY} width={22} height={22} fill="transparent" />
+      <IconX x={closeActionCx} y={closeActionCy} size={14} stroke={COLORS.muted} fill="none" />
+    </g>
+  );
+
+  function renderAvatarBlock(avatarCx: number, avatarCy: number, avatarR: number) {
+    if (!showPhotos) return null;
+    return (
+      <>
+        <defs>
+          <clipPath id={photoClipId}>
+            <circle cx={avatarCx} cy={avatarCy} r={avatarR} />
+          </clipPath>
+        </defs>
+        <circle cx={avatarCx} cy={avatarCy} r={avatarR + 4} fill={COLORS.avatarRing} />
+        {photoUrl ? (
           <>
-            {/* Row 1: picture (centered) */}
-            <rect x={x + (PERSON_WIDTH - 44) / 2} y={top + 14 + CONTENT_TOP_OFFSET} width={44} height={44} rx={22} fill="var(--surface-inset)" stroke="var(--border-subtle)" strokeWidth={0.5} />
-            <PersonIcon x={cx} y={iconY} size={28} fill="none" stroke="var(--tree-text-subtle)" strokeWidth={1.5} />
+            <image
+              href={photoUrl}
+              x={avatarCx - avatarR}
+              y={avatarCy - avatarR}
+              width={avatarR * 2}
+              height={avatarR * 2}
+              preserveAspectRatio="xMidYMid slice"
+              clipPath={`url(#${photoClipId})`}
+            />
+            <circle cx={avatarCx} cy={avatarCy} r={avatarR} fill="none" stroke={COLORS.cardStroke} strokeWidth={1} />
           </>
-        );
-      })()}
-      {/* Row 2: name (full width, below picture) */}
-      <foreignObject
-        x={x + 12}
-        y={settings.showPhotos !== false ? top + 14 + CONTENT_TOP_OFFSET + 44 + 10 : top + 18 + CONTENT_TOP_OFFSET}
-        width={PERSON_WIDTH - 24}
-        height={settings.showPhotos !== false ? 36 + NAME_ROW_EXTRA_HEIGHT : 40 + NAME_ROW_EXTRA_HEIGHT}
-        style={{ overflow: "hidden" }}
-      >
+        ) : (
+          <>
+            <circle cx={avatarCx} cy={avatarCy} r={avatarR} fill={COLORS.avatarRing} stroke={COLORS.cardStroke} strokeWidth={1} />
+            {initials.length > 0 ? (
+              <text
+                x={avatarCx}
+                y={avatarCy + avatarR * 0.28}
+                textAnchor="middle"
+                fontSize={avatarR * 0.85}
+                fill={COLORS.text}
+                fontFamily="Georgia, serif"
+              >
+                {initials}
+              </text>
+            ) : (
+              <PersonIcon x={avatarCx} y={avatarCy} size={avatarR * 1.1} fill="none" stroke={COLORS.iconStroke} strokeWidth={1.2} />
+            )}
+          </>
+        )}
+      </>
+    );
+  }
+
+  function renderAvatarBlockNoPhoto(avatarCx: number, avatarCy: number, avatarR: number) {
+    if (showPhotos) return null;
+    return (
+      <g opacity={0.85}>
+        <circle cx={avatarCx} cy={avatarCy} r={avatarR * 0.65} fill={COLORS.avatarRing} stroke={COLORS.cardStroke} strokeWidth={1} />
+        <text
+          x={avatarCx}
+          y={avatarCy + 4}
+          textAnchor="middle"
+          fontSize={12}
+          fill={COLORS.muted}
+          fontFamily="system-ui, sans-serif"
+        >
+          …
+        </text>
+      </g>
+    );
+  }
+
+  function renderNameBlock(foX: number, foY: number, foW: number, foH: number, textAlign: "center" | "left") {
+    return (
+      <foreignObject x={foX} y={foY} width={foW} height={foH} style={{ overflow: "visible" }}>
         <div
-          className="font-heading text-sm font-semibold tracking-tight text-heading"
+          className="font-heading"
+          title={`${firstName} ${lastName}`}
           style={{
-            lineHeight: 1.3,
+            lineHeight: 1.25,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            textAlign: "center",
-            padding: "6px 6px",
+            textAlign,
+            padding: `4px 4px ${4 + NAME_UNDERLINE_PX}px 4px`,
+            fontSize: textAlign === "center" ? "0.95rem" : "0.9rem",
+            fontWeight: 600,
+            fontFamily: "var(--font-heading-raw), Georgia, serif",
+            color: COLORS.text,
           }}
-          title={`${firstName} ${lastName}`}
         >
           <span
             role={onNameClick ? "button" : undefined}
             tabIndex={onNameClick ? 0 : undefined}
             onClick={onNameClick ? handleNameClick : undefined}
-            onKeyDown={onNameClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleNameClick(e as unknown as React.MouseEvent); } } : undefined}
-            style={{
-              borderBottom: `4px solid ${getNameBackgroundColor(person.gender)}`,
-              ...(onNameClick ? { cursor: "pointer" } : {}),
-            }}
+            onKeyDown={
+              onNameClick
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleNameClick(e as unknown as React.MouseEvent);
+                    }
+                  }
+                : undefined
+            }
+            style={accentNameSpanStyle()}
           >
             {firstName} {lastName}
           </span>
         </div>
       </foreignObject>
-      {settings.showDates !== false && (
-      <text
-        x={cx}
-        y={settings.showPhotos !== false ? top + 14 + CONTENT_TOP_OFFSET + 44 + 10 + 36 + NAME_ROW_EXTRA_HEIGHT + 4 : top + 18 + CONTENT_TOP_OFFSET + 40 + NAME_ROW_EXTRA_HEIGHT + 6}
-        textAnchor="middle"
-        fill="var(--crimson)"
-        fontFamily="inherit"
-        style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.1em" }}
-      >
-        {birthYear ?? "?"} — {deathYear ?? "present"}
-      </text>
-      )}
-      {_hiddenCount != null && _hiddenCount > 0 && (
-        <text
-          x={x + PERSON_WIDTH - 10}
-          y={top + effectiveHeight - 8}
-          fontSize={15}
-          fontWeight={600}
-          fill="var(--tree-text-muted)"
-          fontFamily="Georgia, serif"
-          textAnchor="end"
+    );
+  }
+
+  /** Name + dates as one HTML column so dates sit tight under the name (used by v3 desktop + mobile avatar-left · menu). */
+  function renderNameDatesStackBlock(
+    foX: number,
+    foY: number,
+    foW: number,
+    foH: number,
+    textAlign: "center" | "left",
+    typography?: { nameFontSize?: string; dateFontSize?: string; dateLetterSpacing?: string }
+  ) {
+    const nameFontSize =
+      typography?.nameFontSize ?? (textAlign === "center" ? "0.95rem" : "0.9rem");
+    return (
+      <foreignObject x={foX} y={foY} width={foW} height={foH} style={{ overflow: "visible" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: textAlign === "center" ? "center" : "flex-start",
+            justifyContent: "flex-start",
+            gap: 2,
+            boxSizing: "border-box",
+            width: "100%",
+            padding: `4px 4px ${4 + NAME_UNDERLINE_PX}px 4px`,
+          }}
         >
-          +{_hiddenCount}
-        </text>
-      )}
-
-      {isRoot && (
-        <IconCrown
-          x={x + PERSON_WIDTH - 13}
-          y={top + 13}
-          size={10}
-          fill="var(--tree-root)"
-          stroke="var(--tree-root)"
-        />
-      )}
-      {isSpouse && !isLinkedSpouse && onAction && (
-        <g
-          style={{ cursor: "pointer" }}
-          onClick={(e) => { e.stopPropagation(); onAction("closeSpouse", id); }}
-          onMouseEnter={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text)"))}
-          onMouseLeave={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text-subtle)"))}
-        >
-          <rect x={x + PERSON_WIDTH - 22} y={top + 4} width={18} height={18} fill="transparent" />
-          <IconX x={x + PERSON_WIDTH - 13} y={top + 13} size={14} stroke="var(--tree-text-subtle)" fill="none" />
-        </g>
-      )}
-      {isLinkedSpouse && onAction && (
-        <g
-          style={{ cursor: "pointer" }}
-          onClick={(e) => { e.stopPropagation(); onAction("closeLinkedUnion", id); }}
-          onMouseEnter={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-text)"))}
-          onMouseLeave={(e) => (e.currentTarget as SVGGElement).querySelectorAll("path").forEach((p) => p.setAttribute("stroke", "var(--tree-linked)"))}
-        >
-          <rect x={x + PERSON_WIDTH - 22} y={top + 4} width={18} height={18} fill="transparent" />
-          <IconX x={x + PERSON_WIDTH - 13} y={top + 13} size={14} stroke="var(--tree-linked)" fill="none" />
-        </g>
-      )}
-
-      {onAction && (() => {
-        const btnCy = btnY + BTN_ROW_H / 2;
-        const buttons: { Icon: typeof IconUsers; stroke: string; title: string; action: PersonCardAction }[] = [];
-        if (!isSpouse && !isLinkedSpouse && isRoot && hasParents) {
-          buttons.push({ Icon: IconUsers, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Show siblings", action: "showSiblings" });
-        }
-        if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasSpouses) {
-          buttons.push({ Icon: IconHeart, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Show spouses", action: "showSpouses" });
-        }
-        if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasParents) {
-          buttons.push({ Icon: IconArrowUp, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Go to parents", action: "parents" });
-        }
-        buttons.push({ Icon: IconHome, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Set as root", action: "root" });
-        if (hasDescendantsInData && !isSpouse && !isLinkedSpouse) {
-          if (isSubtreeCollapsed) {
-            buttons.push({ Icon: IconChevronDown, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Expand subtree", action: "expandSubtree" });
-          } else {
-            buttons.push({ Icon: IconChevronUp, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "Collapse subtree", action: "collapseSubtree" });
-          }
-        }
-        if (isLeaf) {
-          buttons.push({ Icon: IconArrowDown, stroke: `var(--tree-text-muted, ${FALLBACK_TREE_TEXT_MUTED})`, title: "More", action: "expandDown" });
-        }
-
-        const count = buttons.length;
-        const totalWidth = count * BTN_CIRCLE_R * 2 + (count - 1) * BTN_GAP;
-        const startX = x + (PERSON_WIDTH - totalWidth) / 2 + BTN_CIRCLE_R;
-        const slot = (i: number) => startX + i * (BTN_CIRCLE_R * 2 + BTN_GAP);
-
-        const drawCircleBtn = (slotIndex: number, { Icon, stroke, title, action }: (typeof buttons)[0]) => (
-          <g
-            key={title}
-            style={{ cursor: "pointer" }}
-            onClick={(e) => { e.stopPropagation(); onAction(action, id); }}
-            onMouseEnter={(e) => {
-              const g = e.currentTarget as SVGGElement;
-              const circle = g.querySelector("circle");
-              if (circle) {
-                circle.setAttribute("fill", "#e5dcc8");
-                circle.setAttribute("fillOpacity", "0.5");
-                circle.setAttribute("stroke", "#e5dcc8");
-              }
-              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", `var(--tree-text, ${FALLBACK_TREE_TEXT})`));
-            }}
-            onMouseLeave={(e) => {
-              const g = e.currentTarget as SVGGElement;
-              const circle = g.querySelector("circle");
-              if (circle) {
-                circle.setAttribute("fill", "#e5dcc8");
-                circle.setAttribute("fillOpacity", "0.5");
-                circle.setAttribute("stroke", "#e5dcc8");
-              }
-              g.querySelectorAll("path").forEach((p) => p.setAttribute("stroke", stroke));
+          <div
+            className="font-heading"
+            title={`${firstName} ${lastName}`}
+            style={{
+              lineHeight: 1.25,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              width: "100%",
+              textAlign,
+              fontSize: nameFontSize,
+              fontWeight: 600,
+              fontFamily: "var(--font-heading-raw), Georgia, serif",
+              color: COLORS.text,
+              flexShrink: 0,
             }}
           >
-            <title>{title}</title>
-            <circle
-              cx={slot(slotIndex)}
-              cy={btnCy}
-              r={BTN_CIRCLE_R}
-              fill="#e5dcc8"
-              fillOpacity={0.5}
-              stroke="#e5dcc8"
-              strokeWidth={1}
-            />
-            <Icon x={slot(slotIndex)} y={btnCy} size={BTN_ICON} stroke={stroke} fill="none" />
-          </g>
-        );
+            <span
+              role={onNameClick ? "button" : undefined}
+              tabIndex={onNameClick ? 0 : undefined}
+              onClick={onNameClick ? handleNameClick : undefined}
+              onKeyDown={
+                onNameClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleNameClick(e as unknown as React.MouseEvent);
+                      }
+                    }
+                  : undefined
+              }
+              style={accentNameSpanStyle()}
+            >
+              {firstName} {lastName}
+            </span>
+          </div>
+          {showDates && (
+            <div
+              style={{
+                flexShrink: 0,
+                fontSize: typography?.dateFontSize ?? "0.72rem",
+                fontWeight: 600,
+                letterSpacing: typography?.dateLetterSpacing ?? "0.06em",
+                color: COLORS.date,
+                fontFamily: "system-ui, sans-serif",
+                whiteSpace: "nowrap",
+                textAlign,
+                width: "100%",
+              }}
+            >
+              {_unknownPlaceholder ? "—" : birthYear ?? "?"} — {_unknownPlaceholder ? "—" : deathYear ?? "present"}
+            </div>
+          )}
+        </div>
+      </foreignObject>
+    );
+  }
 
-        return (
-          <g>
-            {buttons.map((btn, i) => drawCircleBtn(i, btn))}
+  /** Card interior in local coords 0..CARD_W × 0..baseH (scaled to effectiveHeight). */
+  function renderDesktopInterior(variant: LegacyDesktopVariant) {
+    if (variant === "v1") {
+      const avatarCx = CARD_W / 2;
+      const avatarCy = 48;
+      const avatarR = 28;
+      const nameY = 94;
+      const dateY = 118;
+      const actionY = baseH - 36;
+      return (
+        <g>
+          {closeSpouseG}
+          {closeLinkedG}
+          {isRoot && <IconCrown x={crownX} y={crownY} size={18} fill={COLORS.green} stroke={COLORS.green} strokeWidth={1.2} />}
+          {renderAvatarBlock(avatarCx, avatarCy, avatarR)}
+          {renderAvatarBlockNoPhoto(avatarCx, avatarCy, avatarR)}
+          {renderNameBlock(12, nameY - 18, CARD_W - 24, 32 + NAME_ROW_EXTRA_HEIGHT, "center")}
+          {showDates && (
+            <text
+              x={CARD_W / 2}
+              y={dateY}
+              textAnchor="middle"
+              fill={COLORS.date}
+              fontFamily="system-ui, sans-serif"
+              style={{ fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.06em" }}
+            >
+              {_unknownPlaceholder ? "—" : birthYear ?? "?"} — {_unknownPlaceholder ? "—" : deathYear ?? "present"}
+            </text>
+          )}
+          {showCardActionIcons && onAction && (
+            <ActionIconRow buttons={actionButtons} cy={actionY} cardW={CARD_W} onAction={onAction} personId={id} />
+          )}
+        </g>
+      );
+    }
+    if (variant === "v2") {
+      const CONTENT_W = 250;
+      const RAIL_DIVIDER_X = 248;
+      const avatarCx = CONTENT_W / 2;
+      const avatarCy = 64;
+      const avatarR = 28;
+      const nameY = 112;
+      const dateY = 136;
+      return (
+        <g>
+          {closeSpouseG}
+          {closeLinkedG}
+          {isRoot && <IconCrown x={crownX} y={crownY} size={18} fill={COLORS.green} stroke={COLORS.green} strokeWidth={1.2} />}
+          <line
+            x1={RAIL_DIVIDER_X}
+            y1={24}
+            x2={RAIL_DIVIDER_X}
+            y2={baseH - 24}
+            stroke={COLORS.divider}
+            strokeWidth={1}
+          />
+          {renderAvatarBlock(avatarCx, avatarCy, avatarR)}
+          {renderAvatarBlockNoPhoto(avatarCx, avatarCy, avatarR)}
+          {renderNameBlock(10, nameY - 18, CONTENT_W - 20, 32 + NAME_ROW_EXTRA_HEIGHT, "center")}
+          {showDates && (
+            <text
+              x={CONTENT_W / 2}
+              y={dateY}
+              textAnchor="middle"
+              fill={COLORS.date}
+              fontFamily="system-ui, sans-serif"
+              style={{ fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.06em" }}
+            >
+              {_unknownPlaceholder ? "—" : birthYear ?? "?"} — {_unknownPlaceholder ? "—" : deathYear ?? "present"}
+            </text>
+          )}
+          {showCardActionIcons &&
+            onAction &&
+            (() => {
+              const overflowThreshold = 3;
+              if (actionButtons.length > overflowThreshold) {
+                const pair: [ActionBtn, ActionBtn] = [actionButtons[0], actionButtons[1]];
+                const rest = actionButtons.slice(2);
+                const chrome = overflowMenuChromeStyles();
+                return (
+                  <>
+                    <ActionIconRailAvatarLeftWithOverflow
+                      buttons={pair}
+                      cardH={baseH}
+                      cx={290}
+                      onAction={onAction}
+                      personId={id}
+                      onMoreToggle={() => {
+                        setRailOverflowOpenTop((o) => !o);
+                        setMenuOpen(false);
+                        setRailOverflowOpen(false);
+                      }}
+                    />
+                    {railOverflowOpenTop && rest.length > 0 && (
+                      <foreignObject
+                        x={CARD_W - 198}
+                        y={24}
+                        width={186}
+                        height={Math.min(48 + rest.length * 40 + 56, 340)}
+                        style={{ overflow: "visible", zIndex: 8 }}
+                      >
+                        <div
+                          role="menu"
+                          style={chrome.panel}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {rest.map((b) => (
+                            <button
+                              type="button"
+                              key={`${b.action}-${b.title}`}
+                              role="menuitem"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRailOverflowOpenTop(false);
+                                onAction(b.action, id);
+                              }}
+                              style={chrome.row}
+                            >
+                              <span style={chrome.icon}>
+                                <SvgActionIcon Icon={b.Icon} />
+                              </span>
+                              {b.title}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRailOverflowOpenTop(false);
+                            }}
+                            style={{
+                              ...chrome.row,
+                              borderTop: `1px solid ${COLORS.cardStroke}`,
+                              marginTop: 4,
+                              paddingTop: 12,
+                            }}
+                          >
+                            <span style={chrome.icon}>
+                              <SvgActionIcon Icon={IconX} />
+                            </span>
+                            Close menu
+                          </button>
+                        </div>
+                      </foreignObject>
+                    )}
+                  </>
+                );
+              }
+              return <ActionIconRail buttons={actionButtons} cardH={baseH} cx={290} onAction={onAction} personId={id} />;
+            })()}
+        </g>
+      );
+    }
+    if (variant === "v3") {
+      const avatarCx = 64;
+      const avatarR = 34;
+      const actionR = 18;
+      const actionY = baseH - 29;
+      /** Band above bottom action row; avatar + name/dates vertically centered inside it. */
+      const contentBandTop = 42;
+      const contentBandBot = actionY - actionR - 10;
+      const bandMidY = contentBandTop + (contentBandBot - contentBandTop) / 2;
+      const avatarCy = bandMidY;
+      const avatarOuterR = avatarR + 4;
+      const textColLeft = avatarCx + avatarOuterR + 10;
+      const textColRight = CARD_W - 14;
+      const textColW = Math.max(80, textColRight - textColLeft);
+      /** One stacked HTML column (name → dates): padding + rows + gap; matches renderNameDatesStackBlock. */
+      const identityPaddingY = 8;
+      const identityNameLine = 28;
+      const identityDateLine = showDates ? 15 : 0;
+      const identityGap = showDates ? 2 : 0;
+      const identityH = identityPaddingY + identityNameLine + identityGap + identityDateLine;
+      const identityTop = bandMidY - identityH / 2;
+      return (
+        <g>
+          {closeSpouseG}
+          {closeLinkedG}
+          {isRoot && <IconCrown x={crownX} y={crownY} size={18} fill={COLORS.green} stroke={COLORS.green} strokeWidth={1.2} />}
+          {renderAvatarBlock(avatarCx, avatarCy, avatarR)}
+          {renderAvatarBlockNoPhoto(avatarCx, avatarCy, avatarR)}
+          {renderNameDatesStackBlock(textColLeft, identityTop, textColW, identityH, "center")}
+          {showCardActionIcons && onAction && (
+            <ActionIconRow buttons={actionButtons} cy={actionY} cardW={CARD_W} onAction={onAction} personId={id} />
+          )}
+        </g>
+      );
+    }
+    /* v4 */
+    const avatarCx = 58;
+    const avatarCy = 76;
+    const avatarR = 34;
+    const textX = 108;
+    const nameY = 66;
+    const dateY = 90;
+    const railDividerX = 258;
+    return (
+      <g>
+        {closeSpouseG}
+        {closeLinkedG}
+        {isRoot && <IconCrown x={crownX} y={crownY} size={18} fill={COLORS.green} stroke={COLORS.green} strokeWidth={1.2} />}
+        <line
+          x1={railDividerX}
+          y1={18}
+          x2={railDividerX}
+          y2={baseH - 18}
+          stroke={COLORS.divider}
+          strokeWidth={1}
+        />
+        {renderAvatarBlock(avatarCx, avatarCy, avatarR)}
+        {renderAvatarBlockNoPhoto(avatarCx, avatarCy, avatarR)}
+        {renderNameBlock(textX - 4, nameY - 16, railDividerX - textX - 6, 28 + NAME_ROW_EXTRA_HEIGHT, "left")}
+        {showDates && (
+          <text
+            x={textX}
+            y={dateY}
+            textAnchor="start"
+            fill={COLORS.date}
+            fontFamily="system-ui, sans-serif"
+            style={{ fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.06em" }}
+          >
+            {_unknownPlaceholder ? "—" : birthYear ?? "?"} — {_unknownPlaceholder ? "—" : deathYear ?? "present"}
+          </text>
+        )}
+        {showCardActionIcons &&
+          onAction &&
+          (() => {
+            const overflowThreshold = 3;
+            if (actionButtons.length > overflowThreshold) {
+              const pair: [ActionBtn, ActionBtn] = [actionButtons[0], actionButtons[1]];
+              const rest = actionButtons.slice(2);
+              const chrome = overflowMenuChromeStyles();
+              return (
+                <>
+                  <ActionIconRailAvatarLeftWithOverflow
+                    buttons={pair}
+                    cardH={baseH}
+                    cx={294}
+                    compact
+                    onAction={onAction}
+                    personId={id}
+                    onMoreToggle={() => {
+                      setRailOverflowOpen((o) => !o);
+                      setMenuOpen(false);
+                    }}
+                  />
+                  {railOverflowOpen && rest.length > 0 && (
+                    <foreignObject
+                      x={CARD_W - 198}
+                      y={24}
+                      width={186}
+                      height={Math.min(48 + rest.length * 40 + 56, 340)}
+                      style={{ overflow: "visible", zIndex: 8 }}
+                    >
+                      <div
+                        role="menu"
+                        style={chrome.panel}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {rest.map((b) => (
+                          <button
+                            type="button"
+                            key={`${b.action}-${b.title}`}
+                            role="menuitem"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRailOverflowOpen(false);
+                              onAction(b.action, id);
+                            }}
+                            style={chrome.row}
+                          >
+                            <span style={chrome.icon}>
+                              <SvgActionIcon Icon={b.Icon} />
+                            </span>
+                            {b.title}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRailOverflowOpen(false);
+                          }}
+                          style={{
+                            ...chrome.row,
+                            borderTop: `1px solid ${COLORS.cardStroke}`,
+                            marginTop: 4,
+                            paddingTop: 12,
+                          }}
+                        >
+                          <span style={chrome.icon}>
+                            <SvgActionIcon Icon={IconX} />
+                          </span>
+                          Close menu
+                        </button>
+                      </div>
+                    </foreignObject>
+                  )}
+                </>
+              );
+            }
+            return <ActionIconRail buttons={actionButtons} cardH={baseH} cx={294} compact onAction={onAction} personId={id} />;
+          })()}
+      </g>
+    );
+  }
+
+  function renderMobileInterior(mode: "portrait" | "avatarLeft") {
+    if (mode === "portrait") {
+      const avatarCx = CARD_W / 2;
+      const avatarCy = 96;
+      const avatarR = 36;
+      const nameY = 148;
+      const dateY = 176;
+      return (
+        <g>
+          {isRoot && <IconCrown x={crownX} y={crownY} size={18} fill={COLORS.green} stroke={COLORS.green} strokeWidth={1.2} />}
+          {renderMobileOverflowButton()}
+          {closeSpouseG}
+          {closeLinkedG}
+          {renderAvatarBlock(avatarCx, avatarCy, avatarR)}
+          {renderAvatarBlockNoPhoto(avatarCx, avatarCy, avatarR)}
+          {renderNameBlock(16, nameY - 18, CARD_W - 32, 34 + NAME_ROW_EXTRA_HEIGHT, "center")}
+          {showDates && (
+            <text
+              x={CARD_W / 2}
+              y={dateY}
+              textAnchor="middle"
+              fill={COLORS.date}
+              fontFamily="system-ui, sans-serif"
+              style={{ fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.06em" }}
+            >
+              {_unknownPlaceholder ? "—" : birthYear ?? "?"} — {_unknownPlaceholder ? "—" : deathYear ?? "present"}
+            </text>
+          )}
+          {menuOpen && (onAction || onNameClick) && !useMobileMenuPortal && (
+            <foreignObject
+              x={CARD_W - 198}
+              y={46}
+              width={MOBILE_OVERFLOW_MENU_W}
+              height={Math.min(48 + actionButtons.length * 40, 320)}
+              style={{ overflow: "visible", zIndex: 5 }}
+            >
+              {renderMobileOverflowMenuMarkup(Math.min(48 + actionButtons.length * 40 + 72, 360))}
+            </foreignObject>
+          )}
+        </g>
+      );
+    }
+    /* avatarLeft mobile (avatar left · menu): avatar + name/dates stack vertically centered in card */
+    const avatarCx = 52;
+    const avatarR = 30;
+    const avatarOuterR = avatarR + 4;
+    const textColLeft = avatarCx + avatarOuterR + 10;
+    const textColRight = Math.min(CARD_W - 14, menuCx - 50);
+    const textColW = Math.max(72, textColRight - textColLeft);
+    const contentBandTop = isRoot ? 44 : 36;
+    const contentBandBot = baseH - 12;
+    const bandMidY = contentBandTop + (contentBandBot - contentBandTop) / 2;
+    const avatarCy = bandMidY;
+    const identityPaddingY = 8;
+    const identityNameLine = 26;
+    const identityDateLine = showDates ? 14 : 0;
+    const identityGap = showDates ? 2 : 0;
+    const identityH = identityPaddingY + identityNameLine + identityGap + identityDateLine;
+    const identityTop = bandMidY - identityH / 2;
+    return (
+      <g>
+        {isRoot && <IconCrown x={crownX} y={crownY} size={18} fill={COLORS.green} stroke={COLORS.green} strokeWidth={1.2} />}
+        {renderMobileOverflowButton()}
+        {closeSpouseG}
+        {closeLinkedG}
+        {renderAvatarBlock(avatarCx, avatarCy, avatarR)}
+        {renderAvatarBlockNoPhoto(avatarCx, avatarCy, avatarR)}
+        {renderNameDatesStackBlock(textColLeft, identityTop, textColW, identityH, "center", {
+          nameFontSize: "0.88rem",
+          dateFontSize: "0.7rem",
+          dateLetterSpacing: "0.05em",
+        })}
+        {menuOpen && (onAction || onNameClick) && !useMobileMenuPortal && (
+          <foreignObject
+            x={CARD_W - 198}
+            y={40}
+            width={MOBILE_OVERFLOW_MENU_W}
+            height={Math.min(48 + actionButtons.length * 40, 300)}
+            style={{ overflow: "visible" }}
+          >
+            {renderMobileOverflowMenuMarkup(Math.min(48 + actionButtons.length * 40 + 72, 340))}
+          </foreignObject>
+        )}
+      </g>
+    );
+  }
+
+  const cardStroke = isRoot ? COLORS.selectedStroke : COLORS.cardStroke;
+  const strokeW = isRoot ? 2 : 1;
+
+  const mobilePortalHost =
+    useMobileMenuPortal && chartViewportOverlay ? chartViewportOverlay.containerRef.current : null;
+  const mobileOverflowMenuPortal =
+    menuOpen &&
+    renderLayout.mode === "mobile" &&
+    useMobileMenuPortal &&
+    mobilePortalHost &&
+    mobileMenuPos != null &&
+    (onAction || onNameClick) &&
+    createPortal(
+      <div
+        style={{
+          position: "absolute",
+          left: mobileMenuPos.left,
+          top: mobileMenuPos.top,
+          width: MOBILE_OVERFLOW_MENU_W,
+          zIndex: CHART_PERSON_OVERFLOW_MENU_Z_INDEX,
+        }}
+      >
+        {renderMobileOverflowMenuMarkup(Math.min(48 + actionButtons.length * 40 + 72, 380))}
+      </div>,
+      mobilePortalHost
+    );
+
+  return (
+    <>
+      <g
+        style={{ opacity: _unknownPlaceholder ? 0.62 : 1 }}
+        onClick={() => {
+          setMenuOpen(false);
+          setRailOverflowOpenTop(false);
+          setRailOverflowOpen(false);
+        }}
+      >
+        <g className="person-card">
+          <rect
+            x={x}
+            y={top}
+            width={CARD_W}
+            height={effectiveHeight}
+            rx={CARD_CORNER_RX}
+            fill={COLORS.card}
+            stroke={cardStroke}
+            strokeWidth={strokeW}
+            style={{ filter: "drop-shadow(0 4px 16px rgba(0,0,0,0.12))" }}
+          />
+          {isSpouse && (
+            <line x1={x} y1={top + 1} x2={x + CARD_W} y2={top + 1} stroke="var(--tree-spouse, #8b7355)" strokeWidth={1.5} />
+          )}
+          <g transform={`translate(${x},${top}) scale(1, ${innerScaleY})`}>
+            {renderLayout.mode === "mobile"
+              ? renderMobileInterior(renderLayout.mobileVariant ?? "avatarLeft")
+              : renderDesktopInterior(renderLayout.desktopVariant ?? "v1")}
           </g>
-        );
-      })()}
-    </g>
+          {_hiddenCount != null && _hiddenCount > 0 && (
+            <text
+              x={x + CARD_W - 10}
+              y={top + effectiveHeight - 8}
+              fontSize={14}
+              fontWeight={600}
+              fill={COLORS.muted}
+              fontFamily="Georgia, serif"
+              textAnchor="end"
+            >
+              +{_hiddenCount}
+            </text>
+          )}
+        </g>
+      </g>
+      {mobileOverflowMenuPortal}
+    </>
   );
 }

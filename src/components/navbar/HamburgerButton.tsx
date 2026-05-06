@@ -9,9 +9,20 @@ type HamburgerButtonProps = {
   onClick: () => void;
   /** Use transparent background (e.g. for overlay navbars) */
   transparent?: boolean;
+  /**
+   * When false, the icon stays as three lines even when `open` is true.
+   * Use when another control already shows close (e.g. slide-over with its own X).
+   */
+  morphToCloseWhenOpen?: boolean;
 };
 
-export function HamburgerButton({ open, onClick, transparent = false }: HamburgerButtonProps) {
+export function HamburgerButton({
+  open,
+  onClick,
+  transparent = false,
+  morphToCloseWhenOpen = true,
+}: HamburgerButtonProps) {
+  const showAsClose = morphToCloseWhenOpen && open;
   return (
     <button
       type="button"
@@ -30,19 +41,19 @@ export function HamburgerButton({ open, onClick, transparent = false }: Hamburge
         <span
           className={cx(
             "absolute left-0 w-4 h-0.5 md:w-5 md:h-0.5 bg-current rounded-full transition-all duration-200 ease-out",
-            open ? "top-1/2 -translate-y-1/2 rotate-45" : "top-[3px]"
+            showAsClose ? "top-1/2 -translate-y-1/2 rotate-45" : "top-[3px]"
           )}
         />
         <span
           className={cx(
             "absolute left-0 top-1/2 -translate-y-1/2 w-4 h-0.5 md:w-5 md:h-0.5 bg-current rounded-full transition-opacity duration-200",
-            open && "opacity-0"
+            showAsClose && "opacity-0"
           )}
         />
         <span
           className={cx(
             "absolute left-0 w-4 h-0.5 md:w-5 md:h-0.5 bg-current rounded-full transition-all duration-200 ease-out",
-            open ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-[3px]"
+            showAsClose ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-[3px]"
           )}
         />
       </span>

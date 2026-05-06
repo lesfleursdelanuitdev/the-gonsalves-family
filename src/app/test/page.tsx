@@ -9,7 +9,11 @@ export default function TestIndexPage() {
     { href: "/hero-test", label: "Hero (HeroV2)" },
     { href: "/hero-and-menu-test", label: "Hero & Menu" },
     { href: "/homepage-test", label: "Homepage (Hero + Pillars + Journey)" },
-    { href: "/pillars-test", label: "Pillars" },
+    { href: "/pillars-test", label: "Pillars (full strip)" },
+    { href: "/pillars-v3-test", label: "Pillars V3 (three sections, zero row spacing)" },
+    { href: "/pillars/find-family-test", label: "Pillars — Find Family section" },
+    { href: "/pillars/read-histories-test", label: "Pillars — Read Histories section" },
+    { href: "/pillars/view-media-test", label: "Pillars — View Media section" },
     { href: "/journey-test", label: "Journey Strip" },
     { href: "/upcoming-dates-test", label: "Upcoming dates" },
   ];

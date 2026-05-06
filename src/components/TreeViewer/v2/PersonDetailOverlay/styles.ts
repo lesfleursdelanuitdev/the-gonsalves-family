@@ -20,8 +20,10 @@ export const overlayStyle: React.CSSProperties = {
   boxShadow: "0 12px 48px rgba(0,0,0,0.2)",
   zIndex: 501,
   overflow: "auto",
-  padding: 24,
   paddingTop: 40,
+  paddingRight: 24,
+  paddingBottom: 24,
+  paddingLeft: 24,
 };
 
 export const sectionBoxStyle: React.CSSProperties = {
@@ -31,6 +33,26 @@ export const sectionBoxStyle: React.CSSProperties = {
   marginTop: 16,
   boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
 };
+
+/** Footer bar and footer-attached popovers (e.g. “More” menu) share this surface. */
+export const profileFooterSurfaceStyle: React.CSSProperties = {
+  backgroundColor: "rgba(244, 236, 217, 0.94)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+};
+
+/** Person profile modal sticky footer — warm parchment, subtle lift (see PersonDetailSectionNav). */
+export const profileFooterShellStyle: React.CSSProperties = {
+  flexShrink: 0,
+  position: "relative",
+  zIndex: 20,
+  borderTop: "1px solid #d8cfbd",
+  ...profileFooterSurfaceStyle,
+  boxShadow: "0 -2px 12px rgba(0, 0, 0, 0.06)",
+};
+
+/** @deprecated Use `profileFooterShellStyle`; kept as alias for imports. */
+export const overlayFooterBarStyle = profileFooterShellStyle;
 
 export const sectionTitleStyle: React.CSSProperties = {
   margin: 0,
@@ -54,7 +76,10 @@ export const sectionContentStyle: React.CSSProperties = {
   borderBottom: "1px solid rgba(0, 0, 0, 0.04)",
   borderBottomLeftRadius: SECTION_BORDER_RADIUS,
   borderBottomRightRadius: SECTION_BORDER_RADIUS,
-  padding: "16px 16px",
+  paddingTop: 16,
+  paddingRight: 16,
+  paddingBottom: 16,
+  paddingLeft: 16,
   backgroundColor: "rgba(0, 0, 0, 0.02)",
 };
 
@@ -435,8 +460,10 @@ export function getProfileHeaderLastNameStyle(gender?: string | null): React.CSS
 /** Mobile overrides: smaller overlay and header text, reduced padding */
 export const overlayStyleMobile: React.CSSProperties = {
   fontSize: 13,
-  padding: 12,
   paddingTop: 20,
+  paddingRight: 12,
+  paddingBottom: 12,
+  paddingLeft: 12,
 };
 
 export const profileHeaderNameStyleMobile: React.CSSProperties = {
@@ -454,7 +481,10 @@ export const sectionTitleStyleMobile: React.CSSProperties = {
 
 export const sectionContentStyleMobile: React.CSSProperties = {
   fontSize: 13,
-  padding: "14px 12px",
+  paddingTop: 14,
+  paddingRight: 12,
+  paddingBottom: 14,
+  paddingLeft: 12,
 };
 
 export const sectionDescriptionStyleMobile: React.CSSProperties = {

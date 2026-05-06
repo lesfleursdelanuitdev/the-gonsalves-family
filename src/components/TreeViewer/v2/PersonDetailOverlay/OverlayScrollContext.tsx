@@ -60,25 +60,62 @@ export function OverlayScrollProvider({ children }: { children: ReactNode }) {
 export function OverlayScrollRoot({
   children,
   style,
+  footer,
+  scrollAreaStyle,
   ...rest
 }: {
   children: ReactNode;
   style?: CSSProperties;
+  /** Fixed below the scroll area; use with `scrollAreaStyle` so padding lives on the scroll region. */
+  footer?: ReactNode;
+  /** Merged into the scrollable inner region when `footer` is set. */
+  scrollAreaStyle?: CSSProperties;
   [key: string]: unknown;
 }) {
   const ctx = useContext(OverlayScrollContext);
   if (!ctx) {
-    return <div style={style} {...rest}>{children}</div>;
+    return (
+      <div style={style} {...rest}>
+        {children}
+        {footer}
+      </div>
+    );
   }
   const { setScrollRoot, onScroll } = ctx;
+  if (footer == null) {
+    return (
+      <div ref={setScrollRoot} onScroll={onScroll} style={style} {...rest}>
+        {children}
+      </div>
+    );
+  }
+
+  const shellStyle: CSSProperties = {
+    ...(style ?? {}),
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    paddingTop: 0,
+    paddingRight: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+  };
+
+  const innerScrollStyle: CSSProperties = {
+    flex: 1,
+    minHeight: 0,
+    overflow: "auto",
+    WebkitOverflowScrolling: "touch",
+    ...scrollAreaStyle,
+  };
+
   return (
-    <div
-      ref={setScrollRoot}
-      onScroll={onScroll}
-      style={style}
-      {...rest}
-    >
-      {children}
+    <div style={shellStyle} {...rest}>
+      <div ref={setScrollRoot} onScroll={onScroll} style={innerScrollStyle}>
+        {children}
+      </div>
+      {footer}
     </div>
   );
 }

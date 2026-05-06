@@ -723,14 +723,14 @@ function PublicAlbumLightbox({
 
 export type PublicAlbumLayoutProps = {
   model: AlbumViewModel;
-  /** e.g. `/` until a public album index exists */
+  /** When set, shows a top-left back control (e.g. `/albums`). Omit to hide it. */
   backHref?: string;
   backLabel?: string;
 };
 
 export function PublicAlbumLayout({
   model,
-  backHref = "/",
+  backHref,
   backLabel = "Back to albums",
 }: PublicAlbumLayoutProps) {
   const description = (model.description ?? "").trim();
@@ -1188,13 +1188,15 @@ export function PublicAlbumLayout({
         />
 
         <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-10 pt-14 md:px-8 md:pb-12 md:pt-16">
-          <Link
-            href={backHref}
-            className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-surface-elevated/80 px-2.5 py-2 font-body text-sm font-semibold text-heading shadow-sm backdrop-blur-sm transition-colors hover:border-border hover:bg-surface-elevated md:left-8 md:top-5"
-          >
-            <ArrowLeft size={18} className="shrink-0 text-muted" aria-hidden />
-            {backLabel}
-          </Link>
+          {backHref ? (
+            <Link
+              href={backHref}
+              className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-surface-elevated/80 px-2.5 py-2 font-body text-sm font-semibold text-heading shadow-sm backdrop-blur-sm transition-colors hover:border-border hover:bg-surface-elevated md:left-8 md:top-5"
+            >
+              <ArrowLeft size={18} className="shrink-0 text-muted" aria-hidden />
+              {backLabel}
+            </Link>
+          ) : null}
 
           <div className="grid items-end gap-8 pt-6 lg:grid-cols-[minmax(0,280px)_1fr] lg:gap-12 lg:pt-2">
             <div className="mx-auto w-full max-w-[220px] sm:max-w-[260px] lg:mx-0 lg:max-w-none">

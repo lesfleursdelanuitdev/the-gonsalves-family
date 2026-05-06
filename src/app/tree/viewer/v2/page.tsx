@@ -1,7 +1,15 @@
 import { FamilyTree } from "@/components/TreeViewer/v2/FamilyTree";
 import { LockViewportOnMobile } from "@/components/TreeViewer";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
+import { parseTreeViewerUrlParams } from "@/lib/treeViewerUrl";
 
-type SearchParams = Promise<{ root?: string }>;
+type SearchParams = Promise<{
+  root?: string;
+  chart?: string;
+  depth?: string;
+  card?: string;
+  partners?: string;
+}>;
 
 export default async function TreeV2Page({
   searchParams,
@@ -10,6 +18,29 @@ export default async function TreeV2Page({
 }) {
   const params = await searchParams;
   const initialRootId = params.root?.trim() || null;
+  const chartParam = params.chart?.trim().toLowerCase();
+  const initialChartStrategy: ChartViewStrategyName =
+    chartParam === "pedigree"
+      ? "pedigree"
+      : chartParam === "vertical_pedigree" ||
+          chartParam === "vertical-pedigree" ||
+          chartParam === "verticalpedigree"
+        ? "vertical_pedigree"
+        : "descendancy";
+
+  const parsedUrl = parseTreeViewerUrlParams({
+    depth: params.depth,
+    card: params.card,
+    partners: params.partners,
+  });
+
+  const mountKey = [
+    initialRootId ?? "default",
+    initialChartStrategy,
+    parsedUrl.initialUrlDepth ?? "",
+    parsedUrl.initialPersonCardLayout ?? "",
+    parsedUrl.initialPartnersUrl ?? "",
+  ].join("-");
 
   return (
     <>
@@ -50,7 +81,14 @@ export default async function TreeV2Page({
             overflow: "hidden",
           }}
         >
-          <FamilyTree key={initialRootId ?? "default"} initialRootId={initialRootId} />
+          <FamilyTree
+            key={mountKey}
+            initialRootId={initialRootId}
+            initialChartStrategy={initialChartStrategy}
+            initialUrlDepth={parsedUrl.initialUrlDepth}
+            initialPersonCardLayout={parsedUrl.initialPersonCardLayout}
+            initialPartnersUrl={parsedUrl.initialPartnersUrl}
+          />
         </main>
       </div>
     </>

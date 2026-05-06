@@ -1,7 +1,7 @@
 "use client";
 
 import { getPeople } from "@/genealogy-visualization-engine";
-import type { ViewState, HistoryEntry } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName, ViewState, HistoryEntry } from "@/genealogy-visualization-engine";
 import { ChartHeaderTitle } from "./ChartHeaderTitle";
 import { ChartHeaderSiblingLegendButton } from "./ChartHeaderSiblingLegendButton";
 import { ChartHeaderInfo } from "./ChartHeaderInfo";
@@ -11,6 +11,7 @@ interface ChartHeaderProps {
   isMobile?: boolean;
   rootId: string;
   rootDisplayName?: string | null;
+  chartStrategy?: ChartViewStrategyName;
   viewState: ViewState;
   showLegendPanel: boolean;
   onToggleLegendPanel: () => void;
@@ -23,6 +24,7 @@ export function ChartHeader({
   isMobile = false,
   rootId,
   rootDisplayName,
+  chartStrategy = "descendancy",
   viewState,
   showLegendPanel,
   onToggleLegendPanel,
@@ -57,7 +59,7 @@ export function ChartHeader({
           }}
         />
       )}
-      <ChartHeaderTitle displayName={displayName} isMobile={isMobile} />
+      <ChartHeaderTitle displayName={displayName} isMobile={isMobile} chartStrategy={chartStrategy} />
       <div
         style={{
           marginLeft: "auto",

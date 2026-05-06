@@ -9,10 +9,16 @@ import {
   ChevronsUpDown,
   Search,
   History,
-  Settings,
-  Info,
   UserCircle,
   HelpCircle,
+  Columns2,
+  MoreHorizontal,
+  ZoomIn,
+  Share2,
+  Info,
+  Settings,
+  PanelTopOpen,
+  Move,
 } from "lucide-react";
 import { Crest } from "@/components/wireframe";
 
@@ -20,7 +26,6 @@ export interface TutorialModalProps {
   open: boolean;
   onClose: () => void;
   isMobile: boolean;
-  strategyName: string;
 }
 
 const iconSize = 18;
@@ -80,12 +85,180 @@ function TutorialRow({
   );
 }
 
-export function TutorialModal({
-  open,
-  onClose,
-  isMobile,
-  strategyName,
-}: TutorialModalProps) {
+function TutorialPersonCardSection() {
+  return (
+    <div
+      style={{
+        borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+        paddingBottom: 16,
+        marginBottom: 16,
+      }}
+    >
+      <div style={{ ...sectionTitleStyle, marginTop: 20 }}>Person card buttons</div>
+      <TutorialRow icon={<Heart size={iconSize} strokeWidth={2} />}>
+        <strong style={strongLabelStyle}>Show partners</strong> — open the partner list and pick who to show on the
+        tree.
+      </TutorialRow>
+      <TutorialRow icon={<ArrowUp size={iconSize} strokeWidth={2} />}>
+        <strong style={strongLabelStyle}>Show parents</strong> — jump to this person’s parents.
+      </TutorialRow>
+      <TutorialRow icon={<Users size={iconSize} strokeWidth={2} />}>
+        <strong style={strongLabelStyle}>Show siblings</strong> — view siblings for this person.
+      </TutorialRow>
+      <TutorialRow icon={<ArrowDown size={iconSize} strokeWidth={2} />}>
+        <strong style={strongLabelStyle}>Display next generation</strong> — reveal the next generation of children when
+        available.
+      </TutorialRow>
+      <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
+        <strong style={strongLabelStyle}>Make root of tree</strong> — make this person the new root of the chart.
+      </TutorialRow>
+      <TutorialRow icon={<ChevronsUpDown size={iconSize} strokeWidth={2} />}>
+        <strong style={strongLabelStyle}>Collapse / expand subtree</strong> — hide or show this person’s descendants
+        (only when they have children in the tree).
+      </TutorialRow>
+    </div>
+  );
+}
+
+function TutorialMobileChrome() {
+  return (
+    <>
+      <div
+        style={{
+          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+          paddingBottom: 16,
+          marginBottom: 16,
+        }}
+      >
+        <div style={sectionTitleStyle}>Chart & zoom</div>
+        <TutorialRow icon={<Move size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Pan</strong> — drag on the chart background to move the tree around.
+        </TutorialRow>
+        <TutorialRow icon={<ZoomIn size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Zoom (right edge)</strong> — use <strong style={strongLabelStyle}>+</strong>{" "}
+          and <strong style={strongLabelStyle}>−</strong> to zoom in and out, and the{" "}
+          <strong style={strongLabelStyle}>fit</strong> control (diagonal arrows) to fit the chart back on screen.
+        </TutorialRow>
+      </div>
+
+      <div
+        style={{
+          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+          paddingBottom: 16,
+          marginBottom: 16,
+        }}
+      >
+        <div style={sectionTitleStyle}>Top bar</div>
+        <TutorialRow icon={<Columns2 size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Charts</strong> — choose Descendancy, Pedigree, or Vertical Pedigree.
+        </TutorialRow>
+        <TutorialRow icon={<History size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>History</strong> — open your navigation history (undo, redo, clear).
+        </TutorialRow>
+        <TutorialRow icon={<UserCircle size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Jump to Person</strong> — pick someone already in the chart and move the
+          view to them.
+        </TutorialRow>
+        <TutorialRow icon={<MoreHorizontal size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>More</strong> — opens the menu described below (Share, shortcuts, Info,{" "}
+          <strong style={strongLabelStyle}>Help</strong>, Settings).
+        </TutorialRow>
+      </div>
+
+      <div
+        style={{
+          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+          paddingBottom: 16,
+          marginBottom: 16,
+        }}
+      >
+        <div style={sectionTitleStyle}>More menu</div>
+        <TutorialRow icon={<Search size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Find Person for New Chart</strong> — search the database and set a new root.
+        </TutorialRow>
+        <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Center on Current Person</strong> — pan and zoom so the current root person
+          is centered in the view.
+        </TutorialRow>
+        <TutorialRow icon={<Heart size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Toggle All Partners</strong> — on descendancy charts, expand or collapse all
+          partner branches at once (when this action is available).
+        </TutorialRow>
+        <TutorialRow icon={<Share2 size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Share</strong> — share the page link (or copy it if sharing isn’t
+          available).
+        </TutorialRow>
+        <TutorialRow icon={<Info size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Info</strong> — notes about the dataset.
+        </TutorialRow>
+        <TutorialRow icon={<HelpCircle size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Help</strong> — opens this guide again.
+        </TutorialRow>
+        <TutorialRow icon={<Settings size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Settings</strong> — depth, cards, and other display options.
+        </TutorialRow>
+      </div>
+    </>
+  );
+}
+
+function TutorialDesktopChrome() {
+  return (
+    <>
+      <div
+        style={{
+          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+          paddingBottom: 16,
+          marginBottom: 16,
+        }}
+      >
+        <div style={sectionTitleStyle}>Top toolbar</div>
+        <TutorialRow icon={<Search size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Search</strong> — type given and family names to find someone in the tree and
+          set them as root.
+        </TutorialRow>
+        <TutorialRow icon={<Columns2 size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Charts</strong> — choose Descendancy, Pedigree, or Vertical Pedigree.
+        </TutorialRow>
+        <TutorialRow icon={<History size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>History</strong> — open navigation history (undo, redo, clear).
+        </TutorialRow>
+        <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Center on Current Person</strong> — pan and zoom so the current root person
+          is centered.
+        </TutorialRow>
+        <TutorialRow icon={<PanelTopOpen size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Show / Hide header</strong> — collapse or expand the title banner above the
+          toolbar to save space.
+        </TutorialRow>
+        <TutorialRow icon={<MoreHorizontal size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>More</strong> — Share, Info, <strong style={strongLabelStyle}>Help</strong>{" "}
+          (this guide), and Settings.
+        </TutorialRow>
+      </div>
+
+      <div
+        style={{
+          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+          paddingBottom: 16,
+          marginBottom: 16,
+        }}
+      >
+        <div style={sectionTitleStyle}>Alongside the chart</div>
+        <TutorialRow icon={<Move size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Pan</strong> — drag on the chart background (or use a trackpad) to move the
+          tree.
+        </TutorialRow>
+        <TutorialRow icon={<ZoomIn size={iconSize} strokeWidth={2} />}>
+          <strong style={strongLabelStyle}>Zoom strip</strong> — on the right: zoom in, zoom out, and fit. When a
+          minimap is available, an extra control can appear there too.
+        </TutorialRow>
+      </div>
+    </>
+  );
+}
+
+export function TutorialModal({ open, onClose, isMobile }: TutorialModalProps) {
   if (!open) return null;
 
   return (
@@ -121,7 +294,7 @@ export function TutorialModal({
           style={{
             display: "flex",
             flexDirection: "row",
-            alignItems: "flex-start",
+            alignItems: "center",
             gap: isMobile ? 10 : 16,
             paddingTop: isMobile ? 8 : 12,
             paddingBottom: 16,
@@ -129,111 +302,55 @@ export function TutorialModal({
             marginBottom: 16,
           }}
         >
-            <div
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Crest size={isMobile ? "md" : "lg"} alt="Gonsalves family crest" />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={titleStyle}>
-                <span style={{ borderBottom: "2px solid #8b2e2e" }}>Welcome</span>
-              </h2>
-              <p
-                style={{
-                  margin: "10px 0 0",
-                  fontSize: isMobile ? 13 : 14,
-                  lineHeight: 1.45,
-                  color: "var(--tree-text)",
-                  fontFamily: "system-ui, sans-serif",
-                }}
-              >
-                Welcome to the Tree Viewer for the Gonsalves Family Genealogy Pages.
-              </p>
-            </div>
-          </div>
-
-          <h2 style={{ ...titleStyle, marginTop: 20 }}>
-            Getting{" "}
-            <span
-              style={{
-                fontStyle: "italic",
-                borderBottom: "2px solid #8b2e2e",
-              }}
-            >
-              Started
-            </span>
-          </h2>
-
           <div
             style={{
-              borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-              paddingBottom: 16,
-              marginBottom: 16,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <div style={{ ...sectionTitleStyle, marginTop: 20 }}>
-              Person card buttons
-            </div>
-            <TutorialRow icon={<Heart size={iconSize} strokeWidth={2} />}>
-          <strong style={strongLabelStyle}>Show partners</strong> — open the list of partners; choose one to show on the tree.
-        </TutorialRow>
-        <TutorialRow icon={<ArrowUp size={iconSize} strokeWidth={2} />}>
-          <strong style={strongLabelStyle}>Show parents</strong> — go to this person’s parents.
-        </TutorialRow>
-        <TutorialRow icon={<Users size={iconSize} strokeWidth={2} />}>
-          <strong style={strongLabelStyle}>Show siblings</strong> — view siblings for this person.
-        </TutorialRow>
-        <TutorialRow icon={<ArrowDown size={iconSize} strokeWidth={2} />}>
-          <strong style={strongLabelStyle}>Display next generation</strong> — reveal the next generation of children.
-        </TutorialRow>
-        <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
-          <strong style={strongLabelStyle}>Make root of tree</strong> — set this person as the new root of the tree.
-        </TutorialRow>
-        <TutorialRow icon={<ChevronsUpDown size={iconSize} strokeWidth={2} />}>
-          <strong style={strongLabelStyle}>Collapse / Expand subtree</strong> — hide or show this person’s descendants (only on people who have children in the tree).
-        </TutorialRow>
+            <Crest size={isMobile ? "md" : "lg"} alt="Gonsalves family crest" />
           </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={titleStyle}>
+              <span style={{ borderBottom: "2px solid #8b2e2e" }}>Welcome</span>
+            </h2>
+            <p
+              style={{
+                margin: "10px 0 0",
+                fontSize: isMobile ? 13 : 14,
+                lineHeight: 1.45,
+                color: "var(--tree-text)",
+                fontFamily: "system-ui, sans-serif",
+              }}
+            >
+              This is the Tree Viewer for the Gonsalves Family Genealogy pages. Use the sections below to learn the
+              controls — they differ a bit on phones and on larger screens.
+            </p>
+          </div>
+        </div>
 
-        {isMobile && (
-          <div
+        <h2 style={{ ...titleStyle, marginTop: 20 }}>
+          Getting{" "}
+          <span
             style={{
-              borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-              paddingBottom: 16,
-              marginBottom: 16,
+              fontStyle: "italic",
+              borderBottom: "2px solid #8b2e2e",
             }}
           >
-            <div style={sectionTitleStyle}>Menu icons</div>
-            <TutorialRow icon={<Search size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>Search database</strong> — find a person to make the new root of the tree.
-            </TutorialRow>
-            <TutorialRow icon={<Home size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>Center on root</strong> — pan and zoom so the root person is centered.
-            </TutorialRow>
-            <TutorialRow icon={<History size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>History panel</strong> — open navigation history (undo, redo, clear).
-            </TutorialRow>
-            <TutorialRow icon={<Settings size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>Settings panel</strong> — tree depth, display options, and more.
-            </TutorialRow>
-            <TutorialRow icon={<Info size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>Info panel</strong> — dataset information.
-            </TutorialRow>
-            <TutorialRow icon={<UserCircle size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>Go to person</strong> — jump to a person in the current graph.
-            </TutorialRow>
-            <TutorialRow icon={<Heart size={iconSize} strokeWidth={2} />}>
-              <strong style={strongLabelStyle}>Toggle all partners</strong> — expand or collapse all partner sets at once.
-            </TutorialRow>
-          </div>
-        )}
-        <div style={sectionTitleStyle}>Get help later</div>
+            started
+          </span>
+        </h2>
+
+        <TutorialPersonCardSection />
+
+        {isMobile ? <TutorialMobileChrome /> : <TutorialDesktopChrome />}
+
+        <div style={sectionTitleStyle}>Open this again</div>
         <TutorialRow icon={<HelpCircle size={iconSize} strokeWidth={2} />}>
-          You can open this tutorial again anytime by clicking the <strong style={strongLabelStyle}>Help</strong> icon in the right menu.
+          Anytime: open <strong style={strongLabelStyle}>More</strong> (⋯) in the top bar, then{" "}
+          <strong style={strongLabelStyle}>Help</strong>.
         </TutorialRow>
 
         <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>

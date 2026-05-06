@@ -3,6 +3,7 @@ import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
 import { getPersonDetailContext, stripSlashesFromName, type Row } from "../lib";
 import { formatGender } from "@/lib/individual-mapper";
+import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
 
 export async function GET(
   req: NextRequest,
@@ -54,6 +55,8 @@ export async function GET(
       string,
       {
         family: { id: string; xref: string };
+        husbandId: string | null;
+        wifeId: string | null;
         parents: { role: string; name: string | null; xref: string; gender?: string | null }[];
         children: { name: string | null; xref: string; gender?: string | null; birthYear?: number | null; birthMonth?: number | null; birthDay?: number | null }[];
       }
@@ -64,7 +67,13 @@ export async function GET(
         const parents: { role: string; name: string | null; xref: string; gender?: string | null }[] = [];
         if (r.husband_id) parents.push({ role: "husband", name: stripSlashesFromName(r.husband_name as string) ?? null, xref: (r.husband_xref as string) ?? "", gender: formatGender((r.husband_sex as string) ?? null, (r.husband_gender as string) ?? null) ?? null });
         if (r.wife_id) parents.push({ role: "wife", name: stripSlashesFromName(r.wife_name as string) ?? null, xref: (r.wife_xref as string) ?? "", gender: formatGender((r.wife_sex as string) ?? null, (r.wife_gender as string) ?? null) ?? null });
-        familyOriginByKey.set(fid, { family: { id: fid, xref: (r.family_xref as string) ?? "" }, parents, children: [] });
+        familyOriginByKey.set(fid, {
+          family: { id: fid, xref: (r.family_xref as string) ?? "" },
+          husbandId: (r.husband_id as string | null | undefined) ?? null,
+          wifeId: (r.wife_id as string | null | undefined) ?? null,
+          parents,
+          children: [],
+        });
       }
       const entry = familyOriginByKey.get(fid)!;
       const childXref = (r.child_xref as string) ?? "";
@@ -104,9 +113,32 @@ export async function GET(
       const dB = Number(b.birthDay ?? 32);
       return dA - dB;
     };
+
+    const pcRows = await prisma.$queryRaw<Row[]>(
+      Prisma.sql`
+        SELECT family_id, relationship_type, pedigree
+        FROM gedcom_parent_child_v2
+        WHERE file_uuid = ${fileUuid}::uuid
+          AND child_id = ${personId}::uuid
+          AND family_id IS NOT NULL
+      `
+    );
+    const pedigreeByFamilyId = new Map<string, { relationshipType: string | null; pedigree: string | null }[]>();
+    for (const r of pcRows) {
+      const fid = r.family_id as string | undefined;
+      if (!fid) continue;
+      const list = pedigreeByFamilyId.get(fid) ?? [];
+      list.push({
+        relationshipType: (r.relationship_type as string | null | undefined) ?? null,
+        pedigree: (r.pedigree as string | null | undefined) ?? null,
+      });
+      pedigreeByFamilyId.set(fid, list);
+    }
+
     const familiesOfOrigin = Array.from(familyOriginByKey.values()).map((fam) => ({
       family: fam.family,
       parents: fam.parents,
+      parentsLabel: parentsHeaderLabelFromPedigreeRows(pedigreeByFamilyId.get(fam.family.id) ?? []),
       children: fam.children.slice().sort(sortChildrenByBirth).map((c) => ({ name: c.name, xref: c.xref, gender: c.gender ?? null })),
     }));
     return NextResponse.json({ familiesOfOrigin });

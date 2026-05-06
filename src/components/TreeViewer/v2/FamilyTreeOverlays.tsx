@@ -73,7 +73,6 @@ export interface FamilyTreeOverlaysProps {
   onClosePanToPartnerModal: () => void;
   showTutorialModal: boolean;
   onCloseTutorial: () => void;
-  strategyName: string;
 }
 
 export function FamilyTreeOverlays({
@@ -122,7 +121,6 @@ export function FamilyTreeOverlays({
   onClosePanToPartnerModal,
   showTutorialModal,
   onCloseTutorial,
-  strategyName,
 }: FamilyTreeOverlaysProps) {
   const legendItems = useMemo(
     () => buildLegendItems(viewState.siblingView, effectiveRootId, viewState),
@@ -222,12 +220,7 @@ export function FamilyTreeOverlays({
         onClose={onClosePanToPartnerModal}
       />
 
-      <TutorialModal
-        open={showTutorialModal}
-        onClose={onCloseTutorial}
-        isMobile={isMobile}
-        strategyName={strategyName}
-      />
+      <TutorialModal open={showTutorialModal} onClose={onCloseTutorial} isMobile={isMobile} />
     </>
   );
 }

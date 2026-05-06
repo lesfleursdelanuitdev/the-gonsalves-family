@@ -17,9 +17,15 @@ export function HeroV2() {
         />
       </div>
       <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col px-1 gap-0 md:flex-row md:items-center md:justify-center md:px-6 md:gap-0">
-        <div className="flex-1 md:flex-[0.9] min-h-[160px] flex items-end md:items-center justify-center md:justify-end leading-[0] pt-4 md:pt-0">
-          <div className="crest">
-            <Crest size="3xl" alt="Gonsalves family crest" priority />
+        <div className="flex-1 md:flex-[0.9] min-h-[160px] flex items-end md:items-center justify-center md:justify-end pt-4 md:pt-0">
+          <div className="relative flex items-center justify-center leading-[0]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[72%] w-[135%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(255,250,235,0.9)_0%,rgba(255,250,235,0.55)_38%,rgba(255,250,235,0)_74%)] blur-md"
+            />
+            <div className="crest relative z-10">
+              <Crest size="3xl" alt="Gonsalves family crest" priority />
+            </div>
           </div>
         </div>
         <div className="flex-1 md:flex-[1.1] min-h-[160px] flex items-start md:items-center justify-center md:justify-start">

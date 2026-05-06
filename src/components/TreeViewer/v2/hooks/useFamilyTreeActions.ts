@@ -7,6 +7,7 @@ import {
   type PersonCardAction,
   type HandlePersonCardActionContext,
 } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import type { ViewState } from "@/genealogy-visualization-engine";
 import type { TreeAction } from "@/genealogy-visualization-engine";
 import { dispatchRefreshViewport } from "../utils/viewportRefresh";
@@ -14,6 +15,7 @@ import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
 import type { ToastState } from "./useFamilyTreeState";
 
 export interface UseFamilyTreeActionsParams {
+  chartStrategyName: ChartViewStrategyName;
   dispatch: (action: TreeAction) => void;
   viewState: ViewState;
   settings: ChartSettingsV2;
@@ -58,6 +60,7 @@ export interface RootActionDeps {
 
 export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
   const {
+    chartStrategyName,
     dispatch,
     viewState,
     settings,
@@ -118,13 +121,15 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
 
   const onAction = useCallback(
     (action: PersonCardAction, personId: string) => {
+      if (chartStrategyName !== "descendancy") return;
       handlePersonCardAction(action, personId, onActionContext);
     },
-    [onActionContext]
+    [chartStrategyName, onActionContext]
   );
 
   const onDrawerSelect = useCallback(
     (personId: string, spouseId: string) => {
+      if (chartStrategyName !== "descendancy") return;
       skipNextGoToInitialViewRef.current = true;
       dispatch({ type: "DRAWER_SELECT", personId, spouseId });
       spouseDrawer.closeDrawer();
@@ -132,6 +137,7 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
       openPanToPartnerModal(spouseId);
     },
     [
+      chartStrategyName,
       dispatch,
       spouseDrawer.closeDrawer,
       triggerBlinkBack,
@@ -142,6 +148,7 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
 
   const onDrawerSelectAll = useCallback(
     (personId: string, spouseIdToPanTo: string) => {
+      if (chartStrategyName !== "descendancy") return;
       skipNextGoToInitialViewRef.current = true;
       dispatch({ type: "DRAWER_SELECT_ALL", personId });
       spouseDrawer.closeDrawer();
@@ -149,6 +156,7 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
       openPanToPartnerModal(spouseIdToPanTo);
     },
     [
+      chartStrategyName,
       dispatch,
       spouseDrawer.closeDrawer,
       triggerBlinkBack,
@@ -159,16 +167,18 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
 
   const onCloseSpouse = useCallback(
     (spouseId: string) => {
+      if (chartStrategyName !== "descendancy") return;
       dispatch({ type: "CLOSE_SPOUSE", spouseId });
     },
-    [dispatch]
+    [chartStrategyName, dispatch]
   );
 
   const onCloseAllSpouses = useCallback(
     (personId: string) => {
+      if (chartStrategyName !== "descendancy") return;
       dispatch({ type: "CLOSE_ALL_SPOUSES_FOR_PERSON", personId });
     },
-    [dispatch]
+    [chartStrategyName, dispatch]
   );
 
   const clearSearchAndClosePanel = useCallback(() => {

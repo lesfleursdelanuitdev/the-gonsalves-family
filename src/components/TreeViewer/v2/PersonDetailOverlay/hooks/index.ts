@@ -1,6 +1,7 @@
 export { useBasicPersonDetails } from "./useBasicPersonDetails";
 export { useFamiliesAsChild } from "./useFamiliesAsChild";
 export { useFamiliesAsSpouse } from "./useFamiliesAsSpouse";
+export { useIndividualMediaPeek } from "./useIndividualMediaPeek";
 export { useNotes } from "./useNotes";
 export { useSources } from "./useSources";
 export { useGedcomEvents } from "./useGedcomEvents";

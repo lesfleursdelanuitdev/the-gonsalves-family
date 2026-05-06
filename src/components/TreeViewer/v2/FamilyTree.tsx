@@ -3,14 +3,17 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import {
   DEFAULT_MAX_DEPTH,
+  DEFAULT_PEDIGREE_DEPTH,
   isAllSpousesRevealed,
-  useDescendancyFetch,
   useChartSearch,
+  useChartViewFetch,
   useDepth,
   usePanZoom,
   usePanToPerson,
   useTreeBuild,
+  isChartViewStrategyName,
 } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { useTreeIndividuals } from "@/hooks/useTreeData";
 import type { ChartMenuRootActionDeps } from "./ChartHeader";
 import { TreeNodeViewProvider } from "@/providers/TreeNodeViewContext";
@@ -19,6 +22,7 @@ import { FamilyTreeLoading } from "./FamilyTreeLoading";
 import { FamilyTreeHeader } from "./FamilyTreeHeader";
 import { FamilyTreeOverlays } from "./FamilyTreeOverlays";
 import { PersonDetailOverlay, type PersonDetailOverlayPerson } from "./PersonDetailOverlay";
+import { normalizeGedcomXref } from "./PersonDetailOverlay/utils";
 import { ChartViewport } from "./ChartViewport/ChartViewport";
 import { useFamilyTreeState } from "./hooks/useFamilyTreeState";
 import { useFamilyTreeActions } from "./hooks/useFamilyTreeActions";
@@ -27,6 +31,12 @@ import { useHistoryHandlers } from "./hooks/useHistoryHandlers";
 import { useTreePeople } from "./hooks/useTreePeople";
 import { useRootDisplayName } from "./hooks/useRootDisplayName";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
+import type { PersonCardLayout } from "@/lib/person-card-layout";
+import type { TreeViewerPartnersUrl } from "@/lib/treeViewerUrl";
+import {
+  buildTreeViewerSearchParams,
+  treeViewerSearchParamsEqual,
+} from "@/lib/treeViewerUrl";
 
 export interface FamilyTreeProps {
   /** When set, tree loads with this person as root (e.g. /tree/viewer?root=@I123@). */
@@ -35,14 +45,31 @@ export interface FamilyTreeProps {
   loadSavedHistory?: boolean;
   /** Display name for the new root when loadSavedHistory is true (used in history entry label). */
   rootName?: string | null;
+  /** Initial chart mode from URL (`chart=pedigree` | `chart=descendancy`). */
+  initialChartStrategy?: ChartViewStrategyName | null;
+  /** From `depth` query (see `lib/treeViewerUrl.ts`). */
+  initialUrlDepth?: number | null;
+  /** From `card` query. */
+  initialPersonCardLayout?: PersonCardLayout | null;
+  /** From `partners` query (`open` | `closed`); `null` = do not apply from URL. */
+  initialPartnersUrl?: TreeViewerPartnersUrl | null;
 }
 
 const TUTORIAL_SEEN_KEY = "treeViewerTutorialSeenV2";
 
 export function FamilyTree(props: FamilyTreeProps = {}) {
-  const { initialRootId = null, loadSavedHistory = false, rootName = null } = props;
+  const {
+    initialRootId = null,
+    loadSavedHistory = false,
+    rootName = null,
+    initialChartStrategy = null,
+    initialUrlDepth = null,
+    initialPersonCardLayout = null,
+    initialPartnersUrl = null,
+  } = props;
   const svgRef = useRef<SVGSVGElement>(null);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [chartTypeModalOpen, setChartTypeModalOpen] = useState(false);
   const [personDetailOverlay, setPersonDetailOverlay] = useState<PersonDetailOverlayPerson | null>(null);
 
   useEffect(() => {
@@ -64,7 +91,14 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     setShowTutorialModal(false);
   }, []);
 
-  const treeState = useFamilyTreeState({ initialRootId, loadSavedHistory, rootName });
+  const treeState = useFamilyTreeState({
+    initialRootId,
+    loadSavedHistory,
+    rootName,
+    initialChartStrategy,
+    initialUrlDepth,
+    initialPersonCardLayout,
+  });
   const {
     state,
     dispatch,
@@ -85,11 +119,18 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
   } = treeState;
 
   const { rootId } = state;
+  const chartStrategy: ChartViewStrategyName = isChartViewStrategyName(state.strategyName)
+    ? state.strategyName
+    : "descendancy";
   const effectiveRootId = rootId;
   const effectiveFetchDepth = Math.max(
     viewState.currentDepth ?? DEFAULT_MAX_DEPTH,
     viewState.displayDepth ?? 0
   );
+  const chartFetchDepth =
+    chartStrategy === "pedigree" || chartStrategy === "vertical_pedigree"
+      ? Math.min(Math.max(effectiveFetchDepth, 1), DEFAULT_PEDIGREE_DEPTH)
+      : effectiveFetchDepth;
   const siblingViewPersonId = viewState.siblingView?.personId;
   const onSiblingViewMeta = useCallback(
     (siblingView: {
@@ -103,23 +144,31 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     [dispatch]
   );
 
-  const { isDescendancyLoading, descendancyDataKey, builder } = useDescendancyFetch(
+  const { isChartLoading, chartDataKey, chartAdapter } = useChartViewFetch(
+    chartStrategy,
     rootId,
-    effectiveFetchDepth,
+    chartFetchDepth,
     siblingViewPersonId,
     onSiblingViewMeta
   );
 
   const search = useChartSearch({ useTreeIndividuals });
-  const effectiveBuildDepth =
+  const effectiveBuildDepthRaw =
     viewState.currentDepth ?? viewState.displayDepth ?? DEFAULT_MAX_DEPTH;
-  const effectivePersonHeight = getEffectivePersonHeight(settings);
+  const effectiveBuildDepth =
+    chartStrategy === "pedigree" || chartStrategy === "vertical_pedigree"
+      ? Math.min(effectiveBuildDepthRaw, DEFAULT_PEDIGREE_DEPTH)
+      : effectiveBuildDepthRaw;
+  const effectivePersonHeight = getEffectivePersonHeight(settings, {
+    chartStrategy,
+    isMobile,
+  });
   const { root, baseX, baseY, bounds, maxDepthRendered } = useTreeBuild({
     effectiveRootId,
     viewState,
     maxDepth: effectiveBuildDepth,
-    descendancyDataKey,
-    builder,
+    chartDataKey,
+    chartAdapter,
     effectivePersonHeight,
   });
 
@@ -127,7 +176,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     dispatch,
     viewState,
     maxDepthRendered,
-    builder,
+    builder: chartAdapter?.getDataBuilder() ?? null,
   });
   const {
     effectiveMaxDepth,
@@ -135,6 +184,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     currentDepthRendered,
     atMaxDepth,
     displayedDepth,
+    effectiveCurrentDepth,
   } = depth;
 
   const panZoom = usePanZoom({ svgRef, bounds, baseX, baseY });
@@ -153,10 +203,6 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     onWheel,
     dragging,
   } = panZoom;
-
-  const onPan = useCallback((dx: number, dy: number) => {
-    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
-  }, [setPan]);
 
   const { centerOnPerson, scheduleCenterOnPerson } = usePanToPerson({
     root,
@@ -186,7 +232,62 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
 
   const panToPartnerModal = usePanToPartnerModal({ dispatch });
 
+  const handleChartStrategyChange = useCallback((next: ChartViewStrategyName) => {
+    dispatch({ type: "SET_VIEW_STRATEGY", strategyName: next });
+  }, [dispatch]);
+
+  const appliedUrlPartnersRef = useRef(false);
+  useEffect(() => {
+    appliedUrlPartnersRef.current = false;
+  }, [initialPartnersUrl]);
+
+  useEffect(() => {
+    if (initialPartnersUrl == null) return;
+    if (chartStrategy !== "descendancy") return;
+    if (!chartAdapter || isChartLoading) return;
+    if (appliedUrlPartnersRef.current) return;
+    appliedUrlPartnersRef.current = true;
+    dispatch({
+      type: initialPartnersUrl === "open" ? "REVEAL_ALL_SPOUSES" : "CLOSE_ALL_SPOUSES",
+    });
+  }, [initialPartnersUrl, chartStrategy, chartAdapter, isChartLoading, dispatch]);
+
+  const descendantsPartnersAllOpen =
+    chartStrategy === "descendancy" && isAllSpousesRevealed(viewState.revealedUnions);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const partnersUrl: TreeViewerPartnersUrl | null =
+      chartStrategy === "descendancy"
+        ? descendantsPartnersAllOpen
+          ? "open"
+          : "closed"
+        : null;
+    const existing = new URLSearchParams(window.location.search);
+    const next = buildTreeViewerSearchParams(
+      {
+        rootId,
+        chartStrategy,
+        depth: effectiveCurrentDepth,
+        personCardLayout: settings.personCardLayout,
+        partnersUrl,
+      },
+      existing
+    );
+    if (treeViewerSearchParamsEqual(existing, next)) return;
+    const u = new URL(window.location.href);
+    u.search = next.toString() ? `?${next.toString()}` : "";
+    window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
+  }, [
+    rootId,
+    chartStrategy,
+    effectiveCurrentDepth,
+    settings.personCardLayout,
+    descendantsPartnersAllOpen,
+  ]);
+
   const actions = useFamilyTreeActions({
+    chartStrategyName: chartStrategy,
     dispatch,
     viewState,
     settings,
@@ -215,10 +316,8 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     effectiveRootId,
     rootDisplayNames,
     setRootDisplayNames,
-    descendancyDataKey
+    chartDataKey
   );
-
-  const strategyName = builder?.currentStrategyName ?? "descendancy";
 
   const historyHandlers = useHistoryHandlers({
     dispatch,
@@ -240,7 +339,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
   );
 
   return (
-    <TreeNodeViewProvider strategyName={strategyName}>
+    <TreeNodeViewProvider strategyName={chartStrategy}>
       <style>{`
         .tree-viewer-root {
           min-height: var(--app-height, 100svh);
@@ -274,6 +373,11 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
           isMobile={isMobile}
           rootId={rootId}
           rootDisplayName={rootDisplayName}
+          chartStrategy={chartStrategy}
+          onChartStrategyChange={handleChartStrategyChange}
+          chartTypeModalOpen={chartTypeModalOpen}
+          onChartTypeModalOpenChange={setChartTypeModalOpen}
+          onOpenTutorial={() => setShowTutorialModal(true)}
           viewState={viewState}
           showLegendPanel={panels.showLegendPanel}
           onToggleLegendPanel={() => panels.setShowLegendPanel((p) => !p)}
@@ -297,17 +401,21 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
           showSettings={panels.showSettings}
           onSettingsClick={panels.toggleSettingsPanel}
           onGoToPerson={() => setGoToPersonDrawerOpen(true)}
-          onToggleAllSpouses={() => {
-            dispatch({
-              type: isAllSpousesRevealed(viewState.revealedUnions)
-                ? "CLOSE_ALL_SPOUSES"
-                : "REVEAL_ALL_SPOUSES",
-            });
-          }}
+          onToggleAllSpouses={
+            chartStrategy === "descendancy"
+              ? () => {
+                  dispatch({
+                    type: isAllSpousesRevealed(viewState.revealedUnions)
+                      ? "CLOSE_ALL_SPOUSES"
+                      : "REVEAL_ALL_SPOUSES",
+                  });
+                }
+              : undefined
+          }
         />
 
-        {builder == null ? (
-          <FamilyTreeLoading isLoading={isDescendancyLoading} />
+        {chartAdapter == null ? (
+          <FamilyTreeLoading isLoading={isChartLoading} />
         ) : (
           <div
             style={{
@@ -318,7 +426,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
             }}
           >
             <ChartViewport
-              isLoading={isDescendancyLoading}
+              isLoading={isChartLoading}
               svgRef={svgRef}
               baseX={baseX}
               baseY={baseY}
@@ -330,10 +438,11 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
               onNameClick={(person: PersonDetailOverlayPerson) => setPersonDetailOverlay(person)}
               settings={settings}
               viewState={viewState}
+              chartStrategy={chartStrategy}
               connectors={
                 (() => {
-                  const strategy = builder.getCurrentStrategy();
-                  return strategy?.getConnectors?.(effectivePersonHeight) ?? strategy?.connectors;
+                  const d = chartAdapter.getDescriptor();
+                  return d.getConnectors?.(effectivePersonHeight) ?? d.connectors;
                 })()
               }
               dragging={dragging}
@@ -344,15 +453,18 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
               onZoomIn={zoomIn}
               onZoomOut={zoomOut}
               onFitToScreen={fitToScreen}
-              onPan={onPan}
               onGoToPerson={() => setGoToPersonDrawerOpen(true)}
-              onToggleAllSpouses={() => {
-                dispatch({
-                  type: isAllSpousesRevealed(viewState.revealedUnions)
-                    ? "CLOSE_ALL_SPOUSES"
-                    : "REVEAL_ALL_SPOUSES",
-                });
-              }}
+              onToggleAllSpouses={
+                chartStrategy === "descendancy"
+                  ? () => {
+                      dispatch({
+                        type: isAllSpousesRevealed(viewState.revealedUnions)
+                          ? "CLOSE_ALL_SPOUSES"
+                          : "REVEAL_ALL_SPOUSES",
+                      });
+                    }
+                  : undefined
+              }
               bounds={bounds}
               setPan={setPan}
               isMobile={isMobile}
@@ -361,7 +473,6 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
               onToggleLegendPanel={() => panels.setShowLegendPanel((p) => !p)}
               showDebugPanel={panels.showDebugPanel}
               onToggleDebugPanel={() => panels.setShowDebugPanel((p) => !p)}
-              onOpenTutorial={() => setShowTutorialModal(true)}
             />
           </div>
         )}
@@ -418,12 +529,20 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
           onClosePanToPartnerModal={panToPartnerModal.onClosePanToPartnerModal}
           showTutorialModal={showTutorialModal}
           onCloseTutorial={handleCloseTutorial}
-          strategyName={builder?.currentStrategyName ?? "descendancy"}
         />
         {personDetailOverlay && (
           <PersonDetailOverlay
+            key={normalizeGedcomXref(personDetailOverlay.xref) || personDetailOverlay.xref}
             person={personDetailOverlay}
             onClose={() => setPersonDetailOverlay(null)}
+            onSelectLinkedPerson={(p) => {
+              setPersonDetailOverlay((prev) => {
+                if (prev != null && normalizeGedcomXref(prev.xref) === normalizeGedcomXref(p.xref)) {
+                  return prev;
+                }
+                return p;
+              });
+            }}
             isMobile={isMobile}
           />
         )}

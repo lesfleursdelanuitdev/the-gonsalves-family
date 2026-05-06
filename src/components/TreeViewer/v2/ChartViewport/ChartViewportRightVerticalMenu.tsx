@@ -1,5 +1,6 @@
 "use client";
 
+import { CHART_VIEWPORT_CHROME_Z_INDEX } from "./ChartViewportOverlayContext";
 import { ChartViewportRightVerticalMenuItem } from "./ChartViewportRightVerticalMenuItem";
 import {
   getChartViewportRightVerticalMenuItems,
@@ -12,7 +13,6 @@ export interface ChartViewportRightVerticalMenuProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToScreen: () => void;
-  onPan: (dx: number, dy: number) => void;
   showDebugPanel?: boolean;
   onToggleDebugPanel?: () => void;
   showMinimapToggle: boolean;
@@ -21,7 +21,6 @@ export interface ChartViewportRightVerticalMenuProps {
   hasSiblingView?: boolean;
   showLegendPanel?: boolean;
   onToggleLegendPanel?: () => void;
-  onOpenTutorial?: () => void;
 }
 
 export function ChartViewportRightVerticalMenu(
@@ -37,11 +36,13 @@ export function ChartViewportRightVerticalMenu(
       style={{
         position: "absolute",
         right: 10,
-        top: 10,
+        top: 0,
+        bottom: 0,
         display: "flex",
         flexDirection: "column",
+        justifyContent: "center",
         gap: isMobile ? 4 : 8,
-        zIndex: 10,
+        zIndex: CHART_VIEWPORT_CHROME_Z_INDEX,
       }}
     >
       <style>{`

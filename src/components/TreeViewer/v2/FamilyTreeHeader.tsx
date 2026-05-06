@@ -2,6 +2,7 @@
 
 import type { ViewState, HistoryEntry } from "@/genealogy-visualization-engine";
 import type { DescendancyPerson } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { ChartHeader } from "./ChartHeader";
 import { ChartMenu } from "./ChartHeader";
 import type { ChartMenuRootActionDeps } from "./ChartHeader";
@@ -38,6 +39,11 @@ export interface FamilyTreeHeaderProps {
   onSettingsClick: () => void;
   onGoToPerson?: () => void;
   onToggleAllSpouses?: () => void;
+  chartStrategy: ChartViewStrategyName;
+  onChartStrategyChange: (next: ChartViewStrategyName) => void;
+  chartTypeModalOpen: boolean;
+  onChartTypeModalOpenChange: (open: boolean) => void;
+  onOpenTutorial?: () => void;
 }
 
 export function FamilyTreeHeader({
@@ -71,6 +77,11 @@ export function FamilyTreeHeader({
   onSettingsClick,
   onGoToPerson,
   onToggleAllSpouses,
+  chartStrategy,
+  onChartStrategyChange,
+  chartTypeModalOpen,
+  onChartTypeModalOpenChange,
+  onOpenTutorial,
 }: FamilyTreeHeaderProps) {
   return (
     <div style={{ flexShrink: 0 }}>
@@ -85,6 +96,7 @@ export function FamilyTreeHeader({
           isMobile={isMobile}
           rootId={rootId}
           rootDisplayName={rootDisplayName}
+          chartStrategy={chartStrategy}
           viewState={viewState}
           showLegendPanel={showLegendPanel}
           onToggleLegendPanel={onToggleLegendPanel}
@@ -98,7 +110,8 @@ export function FamilyTreeHeader({
         onToggleHeader={onToggleHeader}
         overlayOpen={overlayOpen}
         isMobile={isMobile}
-        rootDisplayName={rootDisplayName}
+        chartStrategy={chartStrategy}
+        onChartStrategyChange={onChartStrategyChange}
         searchGivenName={searchGivenName}
         searchLastName={searchLastName}
         onSearchGivenNameChange={onSearchGivenNameChange}
@@ -117,6 +130,9 @@ export function FamilyTreeHeader({
         onSettingsClick={onSettingsClick}
         onGoToPerson={onGoToPerson}
         onToggleAllSpouses={onToggleAllSpouses}
+        chartTypeModalOpen={chartTypeModalOpen}
+        onChartTypeModalOpenChange={onChartTypeModalOpenChange}
+        onOpenTutorial={onOpenTutorial}
       />
     </div>
   );

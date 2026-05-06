@@ -28,6 +28,7 @@ interface ConnectorLinesProps {
   root: ChartNode;
   /** When provided (e.g. from builder.getCurrentStrategy()?.connectors), use for geometry. Else use default (descendancy). */
   connectors?: ConnectorHelpers;
+  personHeight?: number;
 }
 
 export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLinesProps) {

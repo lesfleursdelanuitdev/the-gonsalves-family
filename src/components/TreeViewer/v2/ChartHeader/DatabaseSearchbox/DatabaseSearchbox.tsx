@@ -4,10 +4,8 @@ import type { DescendancyPerson } from "@/genealogy-visualization-engine";
 import { Search } from "lucide-react";
 import { DesktopDatabaseSearchboxInputs } from "./DesktopDatabaseSearchboxInputs";
 import { DesktopDatabaseSearchboxResults } from "./DesktopDatabaseSearchboxResults";
-import { MobileDatabaseSearchbox } from "./MobileDatabaseSearchbox";
 
 export interface DatabaseSearchboxProps {
-  isMobile: boolean;
   searchGivenName: string;
   searchLastName: string;
   onSearchGivenNameChange: (v: string) => void;
@@ -17,12 +15,9 @@ export interface DatabaseSearchboxProps {
   selectedRootId?: string;
   onSelectResult: (person: DescendancyPerson) => void;
   setShowSearchPanel: (v: boolean | ((prev: boolean) => boolean)) => void;
-  /** Mobile only: when set, the search control is a link to this href (dedicated search page). */
-  mobileSearchHref?: string;
 }
 
 export function DatabaseSearchbox({
-  isMobile,
   searchGivenName,
   searchLastName,
   onSearchGivenNameChange,
@@ -32,7 +27,6 @@ export function DatabaseSearchbox({
   selectedRootId,
   onSelectResult,
   setShowSearchPanel,
-  mobileSearchHref,
 }: DatabaseSearchboxProps) {
   const hasQuery = searchGivenName.trim() || searchLastName.trim();
 
@@ -41,15 +35,6 @@ export function DatabaseSearchbox({
     onSearchLastNameChange("");
     setShowSearchPanel(false);
   };
-
-  if (isMobile && mobileSearchHref) {
-    return (
-      <MobileDatabaseSearchbox href={mobileSearchHref} title="Search the database" />
-    );
-  }
-  else if (isMobile) {
-    return null;
-  }
 
   return (
     <div style={{ position: "relative", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>

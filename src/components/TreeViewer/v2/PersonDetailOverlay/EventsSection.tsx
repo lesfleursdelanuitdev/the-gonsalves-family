@@ -12,7 +12,7 @@ import {
   Skull,
   X,
 } from "lucide-react";
-import { Fragment, useState, useMemo, useEffect } from "react";
+import { Fragment, useState, useMemo, useEffect, type CSSProperties, type ReactNode } from "react";
 import { PersonNameLink } from "./PersonNameLink";
 import { Section } from "./Section";
 import {
@@ -33,7 +33,7 @@ import {
 } from "./styles";
 import { gedcomEventTypeDisplayLabel, getGedcomEventLucideIcon } from "@/lib/gedcom-event-display";
 import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
-import type { DetailEvent } from "./types";
+import type { DetailEvent, PersonDetailOverlayPerson } from "./types";
 
 const EVENTS_PAGE_SIZE = 5;
 
@@ -129,48 +129,89 @@ function filterLabel(filter: AppliedFilter): string {
 
 interface EventsSectionProps {
   events: DetailEvent[];
+  onSelectLinkedPerson?: (person: PersonDetailOverlayPerson) => void;
   isMobile?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
-function eventTypeLabel(e: DetailEvent): React.ReactNode {
+function eventTypeLabel(
+  e: DetailEvent,
+  onSelectLinkedPerson?: (person: PersonDetailOverlayPerson) => void
+): ReactNode {
   if (e.source === "childBirth" && e.childXref) {
-    return <>Birth of <PersonNameLink xref={e.childXref} name={e.childName ?? null} /></>;
+    return (
+      <>
+        Birth of{" "}
+        <PersonNameLink xref={e.childXref} name={e.childName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "childBirth") {
     return `Birth of ${e.childName ?? "Unknown"}`;
   }
   if (e.source === "childDeath" && e.childXref) {
-    return <>Death of <PersonNameLink xref={e.childXref} name={e.childName ?? null} /></>;
+    return (
+      <>
+        Death of{" "}
+        <PersonNameLink xref={e.childXref} name={e.childName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "childDeath") {
     return `Death of ${e.childName ?? "Unknown"}`;
   }
   if (e.source === "spouseDeath" && e.spouseXref) {
-    return <>Death of spouse <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} /></>;
+    return (
+      <>
+        Death of spouse{" "}
+        <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "spouseDeath") {
     return `Death of spouse ${e.spouseName ?? "Unknown"}`;
   }
   if (e.source === "parentDeath" && e.spouseXref) {
-    return <>Death of parent <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} /></>;
+    return (
+      <>
+        Death of parent{" "}
+        <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "parentDeath") {
     return `Death of parent ${e.spouseName ?? "Unknown"}`;
   }
   if (e.source === "siblingDeath" && e.childXref) {
-    return <>Death of sibling <PersonNameLink xref={e.childXref} name={e.childName ?? null} /></>;
+    return (
+      <>
+        Death of sibling{" "}
+        <PersonNameLink xref={e.childXref} name={e.childName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "siblingDeath") {
     return `Death of sibling ${e.childName ?? "Unknown"}`;
   }
   if (e.source === "grandchildBirth" && e.childXref) {
-    return <>Birth of grandchild <PersonNameLink xref={e.childXref} name={e.childName ?? null} /></>;
+    return (
+      <>
+        Birth of grandchild{" "}
+        <PersonNameLink xref={e.childXref} name={e.childName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "grandchildBirth") {
     return `Birth of grandchild ${e.childName ?? "Unknown"}`;
   }
   if (e.source === "grandparentDeath" && e.spouseXref) {
-    return <>Death of grandparent <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} /></>;
+    return (
+      <>
+        Death of grandparent{" "}
+        <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "grandparentDeath") {
     return `Death of grandparent ${e.spouseName ?? "Unknown"}`;
@@ -178,7 +219,9 @@ function eventTypeLabel(e: DetailEvent): React.ReactNode {
   if (e.source === "childMarriage" && e.childXref && e.spouseXref) {
     return (
       <>
-        Marriage of <PersonNameLink xref={e.childXref} name={e.childName ?? null} /> to <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} />
+        Marriage of{" "}
+        <PersonNameLink xref={e.childXref} name={e.childName ?? null} onNavigateToPerson={onSelectLinkedPerson} /> to{" "}
+        <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
       </>
     );
   }
@@ -189,13 +232,23 @@ function eventTypeLabel(e: DetailEvent): React.ReactNode {
     return `Marriage of ${e.childName ?? "Unknown"} to ${e.spouseName ?? "Unknown"}`;
   }
   if (e.source === "family" && e.eventType === "MARR" && e.spouseXref) {
-    return <>Marriage to <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} /></>;
+    return (
+      <>
+        Marriage to{" "}
+        <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "family" && e.eventType === "MARR") {
     return `Marriage to ${e.spouseName ?? "Unknown"}`;
   }
   if (e.source === "family" && e.eventType === "DIV" && e.spouseXref) {
-    return <>Divorce from <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} /></>;
+    return (
+      <>
+        Divorce from{" "}
+        <PersonNameLink xref={e.spouseXref} name={e.spouseName ?? null} onNavigateToPerson={onSelectLinkedPerson} />
+      </>
+    );
   }
   if (e.source === "family" && e.eventType === "DIV") {
     return `Divorce from ${e.spouseName ?? "Unknown"}`;
@@ -203,12 +256,18 @@ function eventTypeLabel(e: DetailEvent): React.ReactNode {
   return gedcomEventTypeDisplayLabel(e.eventType);
 }
 
-export function EventsSection({ events, isMobile }: EventsSectionProps) {
+export function EventsSection({
+  events,
+  onSelectLinkedPerson,
+  isMobile,
+  expanded,
+  onExpandedChange,
+}: EventsSectionProps) {
   const [page, setPage] = useState(1);
   const [broadSelect, setBroadSelect] = useState<BroadType>("all");
   const [specificSelect, setSpecificSelect] = useState<SpecificType>("all");
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>([]);
-  const [filterSectionOpen, setFilterSectionOpen] = useState(true);
+  const [filterSectionOpen, setFilterSectionOpen] = useState(false);
 
   const filteredEvents = useMemo(
     () => events.filter((e) => eventMatchesAnyFilter(e, appliedFilters)),
@@ -288,9 +347,15 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
       title="Events"
       description="Life events for this person and close family—births, deaths, marriages, moves, military service, and more."
       descriptionStyle={{ paddingTop: 12 }}
+      collapsible
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
       isMobile={isMobile}
       contentStyle={{
-        padding: 0,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
         borderBottomLeftRadius: SECTION_BORDER_RADIUS,
         borderBottomRightRadius: SECTION_BORDER_RADIUS,
       }}
@@ -410,7 +475,7 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
         }}
       >
         {pageEvents.map((e, i) => {
-          const eventTypeLabelNode = eventTypeLabel(e);
+          const eventTypeLabelNode = eventTypeLabel(e, onSelectLinkedPerson);
           const o = e.dateOriginal?.trim() ?? "";
           const hasYmd = e.year != null || e.month != null || e.day != null;
           const date =
@@ -438,10 +503,10 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
             e.source !== "grandparentDeath"
               ? ` (${e.source})`
               : "";
-          const contentParts: React.ReactNode[] = [eventTypeLabelNode];
+          const contentParts: ReactNode[] = [eventTypeLabelNode];
           if (description) contentParts.push(description);
           if (location) contentParts.push(<em key="loc">{location}</em>);
-          const contentWithSeparators = contentParts.reduce<React.ReactNode[]>(
+          const contentWithSeparators = contentParts.reduce<ReactNode[]>(
             (acc, p) => (acc.length ? [...acc, " – ", p] : [p]),
             []
           );
@@ -464,7 +529,7 @@ export function EventsSection({ events, isMobile }: EventsSectionProps) {
             : isMarriage ? Heart
             : isDivorce ? HeartCrack
             : getGedcomEventLucideIcon(normalizedEventTag(e));
-          const eventIconWrapStyle: React.CSSProperties = {
+          const eventIconWrapStyle: CSSProperties = {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",

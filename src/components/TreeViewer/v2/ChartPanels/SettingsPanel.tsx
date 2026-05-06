@@ -5,12 +5,20 @@ import { SettingsPanelDisplay } from "./SettingsPanelDisplay";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsPanelTreeDepth } from "./SettingsPanelTreeDepth";
 
+import type { PersonCardLayout } from "@/lib/person-card-layout";
+
 /** v2 settings: no defaultRootId. */
 export interface ChartSettingsV2 {
   showDates: boolean;
   showPhotos: boolean;
   showUnknown: boolean;
+  /** Bottom row (heart, root, expand, etc.) on person cards; pedigree & vertical pedigree use the same cards. */
+  showCardActionIcons: boolean;
+  /** Desktop: overview minimap (hidden on mobile regardless). */
+  showMinimap: boolean;
   autoLegendModal: boolean;
+  /** Person card visual style across desktop/mobile (mobile auto-falls back to menu variants). */
+  personCardLayout: PersonCardLayout;
 }
 
 export interface SettingsPanelProps {
@@ -86,7 +94,10 @@ export function SettingsPanel({
         displayedDepth={displayedDepth}
         onMaxDepthChange={onMaxDepthChange}
       />
-      <SettingsPanelDisplay settings={settings} onUpdateSetting={onUpdateSetting} />
+      <SettingsPanelDisplay
+        settings={settings}
+        onUpdateSetting={(key, value) => onUpdateSetting(key, value as ChartSettingsV2[typeof key])}
+      />
       <SettingsSection title="Behaviour">
         <div style={toggleRowStyle}>
           <span style={{ color: "var(--tree-text-muted)", fontSize: 12 }}>

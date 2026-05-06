@@ -5,16 +5,21 @@ import { ChartMenuButton } from "./ChartMenuButton";
 
 export interface ChartMenuGoToPersonButtonProps {
   onClick: () => void;
+  showLabel?: boolean;
 }
 
-/** Mobile-only: go to person. Icon only. */
-export function ChartMenuGoToPersonButton({ onClick }: ChartMenuGoToPersonButtonProps) {
+/** Mobile: jump-to-person drawer; desktop hidden via menu item `show`. */
+export function ChartMenuGoToPersonButton({
+  onClick,
+  showLabel = true,
+}: ChartMenuGoToPersonButtonProps) {
   return (
     <ChartMenuButton
       icon={<UserCircle size={13} />}
       onClick={onClick}
-      title="Go to person"
-      showLabel={false}
+      title="Jump to Person"
+      label="Jump to Person"
+      showLabel={showLabel}
     />
   );
 }

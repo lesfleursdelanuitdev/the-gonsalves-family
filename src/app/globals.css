@@ -60,6 +60,10 @@
   --accent-foreground: oklch(0.205 0 0);
   --link: #1F5A38;
   --link-hover: #18452B;
+  /* Filled CTAs that should echo link green (lighter wash than solid primary) */
+  --link-soft-bg: color-mix(in srgb, var(--link) 20%, var(--surface));
+  --link-soft-bg-hover: color-mix(in srgb, var(--link) 34%, var(--surface-2));
+  --link-soft-fg: var(--link);
   --focus-ring: #C3A45A;
   --secondary: oklch(0.97 0 0);
   --secondary-muted: #8FA9A4;
@@ -158,6 +162,9 @@
   --accent-foreground: oklch(0.985 0 0);
   --link: #D6B25A;
   --link-hover: #E3C36E;
+  --link-soft-bg: color-mix(in srgb, var(--link) 22%, var(--surface));
+  --link-soft-bg-hover: color-mix(in srgb, var(--link) 36%, var(--surface-elevated));
+  --link-soft-fg: var(--text);
   --focus-ring: #D6B25A;
   --danger: #D14A4A;
   --success: #2E7A52;
@@ -228,6 +235,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-link: var(--link);
   --color-link-hover: var(--link-hover);
+  --color-link-soft-bg: var(--link-soft-bg);
+  --color-link-soft-bg-hover: var(--link-soft-bg-hover);
+  --color-link-soft-fg: var(--link-soft-fg);
   --color-focus-ring: var(--focus-ring);
   --color-danger: var(--danger);
   --color-success: var(--success);
@@ -290,17 +300,6 @@
   font-family: var(--font-body-raw), system-ui, sans-serif;
 }
 
-/* TreeViewer v2 desktop: person card scales up very slightly on hover */
-@media (min-width: 641px) {
-  .tree-viewer-root .person-card {
-    transition: transform 0.15s ease;
-    transform-origin: center;
-  }
-  .tree-viewer-root .person-card:hover {
-    transform: scale(1.005);
-  }
-}
-
 html {
   margin: 0;
   padding: 0;
@@ -352,7 +351,9 @@ body {
 }
 
 /* Axis 1: Original centered axis - horizontal through middle (desktop), vertical through center (mobile) */
-.timeline::before {
+/* Journey strip axis only — not DaisyUI `.timeline` elsewhere */
+.journey-section .timeline::before,
+.journey-section-v2 .timeline::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -363,13 +364,15 @@ body {
   transform: translateY(-50%);
 }
 
-.dark .timeline::before {
+.dark .journey-section .timeline::before,
+.dark .journey-section-v2 .timeline::before {
   background: rgba(201, 168, 130, 0.18);
 }
 
 @media (max-width: 767px) {
   /* Axis: vertical through center on mobile */
-  .timeline.timeline-vertical::before {
+  .journey-section .timeline.timeline-vertical::before,
+  .journey-section-v2 .timeline.timeline-vertical::before {
     top: 0;
     bottom: 0;
     left: 50%;
@@ -380,12 +383,14 @@ body {
   }
 
   /* Left-align journey cards and arrows on mobile (v1) */
-  .timeline.timeline-vertical > * {
+  .journey-section .timeline.timeline-vertical > *,
+  .journey-section-v2 .timeline.timeline-vertical > * {
     align-self: flex-start;
   }
 
   /* v2: keep cards centered on mobile */
-  .journey-timeline-v2.timeline.timeline-vertical > * {
+  .journey-section .journey-timeline-v2.timeline.timeline-vertical > *,
+  .journey-section-v2 .journey-timeline-v2.timeline.timeline-vertical > * {
     align-self: center;
   }
 }

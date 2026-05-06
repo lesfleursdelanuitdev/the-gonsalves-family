@@ -11,6 +11,8 @@ import type { UnionRowProps } from "../../DescendancyChart/FamilyTreeNodes/Union
 export interface ConnectorLinesProps {
   root: ChartNode;
   connectors?: ConnectorHelpers;
+  /** Matches layout / PersonNodeView when photos or dates are hidden. */
+  personHeight?: number;
 }
 
 export interface SpouseJoinLinesProps {

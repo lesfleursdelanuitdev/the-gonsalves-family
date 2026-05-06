@@ -16,6 +16,7 @@ export type ReaderSection = {
   id: string;
   title: string;
   isChapter?: boolean;
+  isPage?: boolean;
   blocks: ReaderStoryBlock[];
   children?: ReaderSection[];
 };
@@ -53,14 +54,17 @@ export function prismaStoryToReaderSections(story: StoryPublicPayload): ReaderSe
         id: s0.id,
         title: s0.title,
         isChapter: s0.isChapter ?? false,
+        isPage: s0.isPage ?? false,
         blocks: parseBlocks(s0.contentJson),
       });
     } else {
       const chapterFlag = secs[0]?.isChapter ?? false;
+      const pageFlag = secs[0]?.isPage ?? false;
       roots.push({
         id: ch.id,
         title: ch.title,
         isChapter: chapterFlag,
+        isPage: pageFlag,
         blocks: [],
         children: secs.map((s) => ({
           id: s.id,
@@ -116,8 +120,9 @@ export function flattenDbSectionRows(story: StoryPublicPayload): Array<{
   title: string;
   contentJson: unknown;
   isChapter: boolean;
+  isPage: boolean;
 }> {
-  const rows: Array<{ id: string; title: string; contentJson: unknown; isChapter: boolean }> = [];
+  const rows: Array<{ id: string; title: string; contentJson: unknown; isChapter: boolean; isPage: boolean }> = [];
   const chapters = [...story.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
   for (const ch of chapters) {
     const secs = [...ch.sections].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -127,6 +132,7 @@ export function flattenDbSectionRows(story: StoryPublicPayload): Array<{
         title: s.title,
         contentJson: s.contentJson,
         isChapter: s.isChapter ?? false,
+        isPage: s.isPage ?? false,
       });
     }
   }

@@ -3,4 +3,8 @@ export { registerTreeNodeViewSet, getTreeNodeViewSet } from "./registry";
 export { registerDescendancyViewSet } from "./descendancy";
 
 import { registerDescendancyViewSet } from "./descendancy";
+import { registerPedigreeViewSet } from "./pedigree";
+import { registerVerticalPedigreeViewSet } from "./verticalPedigree";
 registerDescendancyViewSet();
+registerPedigreeViewSet();
+registerVerticalPedigreeViewSet();

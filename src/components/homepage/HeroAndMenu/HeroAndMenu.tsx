@@ -8,24 +8,15 @@ export function HeroAndMenu() {
     <div className="relative min-h-[420px] w-full min-w-0 max-w-full overflow-x-clip pt-20 md:pt-28">
       <div className="absolute inset-0 left-0 right-0 top-0 bottom-0 z-0 h-full w-full max-w-full overflow-hidden">
         <Image
-          src="/images/heroimagemobile2.png"
+          src="/images/oldMapBackground.png"
           alt=""
           fill
-          className="object-cover object-center md:hidden"
+          className="object-cover object-center"
           priority
           sizes="100vw"
           aria-hidden
         />
-        <Image
-          src="/images/heroimage2.png"
-          alt=""
-          fill
-          className="object-cover object-center hidden md:block"
-          priority
-          sizes="100vw"
-          aria-hidden
-        />
-        <div className="absolute inset-0 bg-bg/42 dark:bg-bg/42 backdrop-blur-md md:backdrop-blur-sm" aria-hidden />
+        <div className="absolute inset-0 bg-bg/52 dark:bg-bg/52" aria-hidden />
         <div
           className="absolute inset-0 pointer-events-none"
           aria-hidden
@@ -43,15 +34,7 @@ export function HeroAndMenu() {
           />
         </div>
         <div
-          className="pointer-events-none absolute inset-0 md:hidden"
-          aria-hidden
-          style={{
-            background:
-              "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 40%, transparent 70%)",
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 hidden md:block"
+          className="pointer-events-none absolute inset-0"
           aria-hidden
           style={{
             background:

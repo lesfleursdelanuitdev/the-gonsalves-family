@@ -1,8 +1,7 @@
 "use client";
 
 import { ZoomControls } from "./ZoomControls";
-import { PanControls } from "./PanControls";
-import { Map, Info, Bug, HelpCircle } from "lucide-react";
+import { Map, Info, Bug } from "lucide-react";
 
 export type ChartViewportRightVerticalMenuEntry =
   | {
@@ -25,7 +24,6 @@ export interface ChartViewportRightVerticalMenuItemsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToScreen: () => void;
-  onPan: (dx: number, dy: number) => void;
   showDebugPanel?: boolean;
   onToggleDebugPanel?: () => void;
   showMinimapToggle: boolean;
@@ -34,7 +32,6 @@ export interface ChartViewportRightVerticalMenuItemsProps {
   hasSiblingView?: boolean;
   showLegendPanel?: boolean;
   onToggleLegendPanel?: () => void;
-  onOpenTutorial?: () => void;
 }
 
 const iconColor = "#474131";
@@ -60,7 +57,6 @@ export function getChartViewportRightVerticalMenuItems(
     onZoomIn,
     onZoomOut,
     onFitToScreen,
-    onPan,
     showDebugPanel = false,
     onToggleDebugPanel,
     showMinimapToggle,
@@ -69,26 +65,9 @@ export function getChartViewportRightVerticalMenuItems(
     hasSiblingView = false,
     showLegendPanel = false,
     onToggleLegendPanel,
-    onOpenTutorial,
   } = props;
 
   return [
-    {
-      id: "help",
-      kind: "single",
-      show: Boolean(onOpenTutorial),
-      ariaLabel: "Help / Tutorial",
-      content: (
-        <button
-          type="button"
-          onClick={onOpenTutorial}
-          aria-label="Open tutorial"
-          style={buttonBaseStyle}
-        >
-          <HelpCircle size={16} strokeWidth={2} />
-        </button>
-      ),
-    },
     {
       id: "debug",
       kind: "single",
@@ -122,12 +101,6 @@ export function getChartViewportRightVerticalMenuItems(
           onFitToScreen={onFitToScreen}
         />
       ),
-    },
-    {
-      id: "pan",
-      kind: "component",
-      show: true,
-      content: <PanControls onPan={onPan} />,
     },
     {
       id: "minimap",

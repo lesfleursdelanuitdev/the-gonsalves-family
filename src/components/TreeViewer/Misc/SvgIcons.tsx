@@ -12,6 +12,7 @@ export const ICON_PATHS = {
   chevronDown: ["m6 9 6 6 6-6"],
   /** Lucide ChevronUp – collapse subtree (hide descendants) */
   chevronUp: ["m18 15-6-6-6 6"],
+  chevronRight: ["M9 18 L15 12 L9 6"],
 } as const;
 
 /** Lucide "User" circle (head): cx=12, cy=7, r=4 */
@@ -91,4 +92,25 @@ export function IconChevronDown(props: IconInSvgProps) {
 
 export function IconChevronUp(props: IconInSvgProps) {
   return <IconPaths paths={ICON_PATHS.chevronUp} {...props} />;
+}
+
+export function IconChevronRight(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.chevronRight} {...props} />;
+}
+
+/** Three horizontal dots for overflow / more (centered at x, y). */
+export function IconMoreHorizontal({
+  x,
+  y,
+  size = 18,
+  fill = "#6e6254",
+}: IconInSvgProps & { fill?: string }) {
+  const s = size / 24;
+  return (
+    <g transform={"translate(" + x + ", " + y + ") scale(" + s + ") translate(-12, -12)"}>
+      <circle cx={5} cy={12} r={1.6} fill={fill} />
+      <circle cx={12} cy={12} r={1.6} fill={fill} />
+      <circle cx={19} cy={12} r={1.6} fill={fill} />
+    </g>
+  );
 }

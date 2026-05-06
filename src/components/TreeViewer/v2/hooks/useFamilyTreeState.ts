@@ -4,7 +4,10 @@ import { useMemo, useState, useReducer, useEffect, useCallback, useRef } from "r
 import {
   treeReducer,
   createInitialState,
+  isChartViewStrategyName,
 } from "@/genealogy-visualization-engine";
+import { DEFAULT_PERSON_CARD_LAYOUT, type PersonCardLayout } from "@/lib/person-card-layout";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import type { ViewState } from "@/genealogy-visualization-engine";
 import type { TreeState, HistoryEntry } from "@/genealogy-visualization-engine";
 import { usePanelVisibility, useSpouseDrawer } from "@/genealogy-visualization-engine";
@@ -34,7 +37,10 @@ const defaultSettings: ChartSettingsV2 = {
   showDates: true,
   showPhotos: true,
   showUnknown: true,
+  showCardActionIcons: true,
+  showMinimap: true,
   autoLegendModal: true,
+  personCardLayout: DEFAULT_PERSON_CARD_LAYOUT,
 };
 
 export interface UseFamilyTreeStateOptions {
@@ -43,14 +49,40 @@ export interface UseFamilyTreeStateOptions {
   loadSavedHistory?: boolean;
   /** Display name for the new root when loadSavedHistory is true. */
   rootName?: string | null;
+  /** Initial chart mode from URL or default. */
+  initialChartStrategy?: ChartViewStrategyName | null;
+  /** `depth` query (1..max). Ignored when restoring saved session history with a new root. */
+  initialUrlDepth?: number | null;
+  /** `card` query — person card layout preset. */
+  initialPersonCardLayout?: PersonCardLayout | null;
 }
 
 export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
-  const { initialRootId = null, loadSavedHistory = false, rootName = null } = options;
+  const {
+    initialRootId = null,
+    loadSavedHistory = false,
+    rootName = null,
+    initialChartStrategy = null,
+    initialUrlDepth = null,
+    initialPersonCardLayout = null,
+  } = options;
+
+  const resolvedStrategy: ChartViewStrategyName =
+    initialChartStrategy != null && isChartViewStrategyName(initialChartStrategy)
+      ? initialChartStrategy
+      : "descendancy";
+
+  const createStateOpts =
+    loadSavedHistory && initialRootId != null
+      ? null
+      : initialUrlDepth != null
+        ? { initialCurrentDepth: initialUrlDepth }
+        : null;
 
   const initialState = useMemo(
-    () => createInitialState("descendancy", initialRootId ?? undefined),
-    [initialRootId]
+    () =>
+      createInitialState(resolvedStrategy, initialRootId ?? undefined, createStateOpts ?? undefined),
+    [initialRootId, resolvedStrategy, loadSavedHistory, initialUrlDepth]
   );
   const [state, dispatch] = useReducer(treeReducer, initialState);
   const viewState = state.viewState as ViewState;
@@ -69,11 +101,12 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
         if (!raw) {
           if (initialRootId != null && loadSavedHistory) {
             // No saved history: just push "Make root, rootName" onto current state.
-            const freshState = createInitialState("descendancy", initialRootId);
+            const freshState = createInitialState(resolvedStrategy, initialRootId);
             const actionLabel = `Make ${rootName ?? initialRootId} root`;
             const newEntry: HistoryEntry = {
               rootId: initialRootId,
               viewState: freshState.viewState,
+              strategyName: freshState.strategyName,
               actionLabel,
               rootPersonFullName: rootName ?? undefined,
               rootPersonInitials: rootName
@@ -105,11 +138,12 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
 
         if (initialRootId != null && loadSavedHistory && savedHistory && savedHistory.length > 0) {
           // Append "Make root, rootName" to saved history.
-          const freshState = createInitialState("descendancy", initialRootId);
+          const freshState = createInitialState(resolvedStrategy, initialRootId);
           const actionLabel = `Make ${rootName ?? initialRootId} root`;
           const newEntry: HistoryEntry = {
             rootId: initialRootId,
             viewState: freshState.viewState,
+            strategyName: freshState.strategyName,
             actionLabel,
             rootPersonFullName: rootName ?? undefined,
             rootPersonInitials: rootName
@@ -142,7 +176,7 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
     if (initialRootId == null) {
       runRestore();
     }
-  }, [initialRootId, loadSavedHistory, rootName]);
+  }, [initialRootId, loadSavedHistory, rootName, resolvedStrategy]);
 
   // Persist history when it changes.
   useEffect(() => {
@@ -160,7 +194,10 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
     }
   }, [state.history, state.historyIndex]);
 
-  const [settings, setSettingsState] = useState<ChartSettingsV2>(defaultSettings);
+  const [settings, setSettingsState] = useState<ChartSettingsV2>(() => ({
+    ...defaultSettings,
+    ...(initialPersonCardLayout ? { personCardLayout: initialPersonCardLayout } : {}),
+  }));
   const [toast, setToast] = useState<ToastState>(null);
   const [blinkBack, setBlinkBack] = useState(false);
   const [headerOpen, setHeaderOpen] = useState(true);
@@ -175,7 +212,7 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
 
   useEffect(() => {
     const check = () =>
-      setIsMobile(typeof window !== "undefined" && window.innerWidth < 640);
+      setIsMobile(typeof window !== "undefined" && window.innerWidth <= 640);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);

@@ -1,11 +1,21 @@
 import { FamilyTree } from "@/components/TreeViewer/v2/FamilyTree";
 import { LockViewportOnMobile } from "@/components/TreeViewer";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
+import { parseTreeViewerUrlParams } from "@/lib/treeViewerUrl";
 
-type SearchParams = Promise<{ root?: string; loadSavedHistory?: string; rootName?: string }>;
+type SearchParams = Promise<{
+  root?: string;
+  loadSavedHistory?: string;
+  rootName?: string;
+  chart?: string;
+  depth?: string;
+  card?: string;
+  partners?: string;
+}>;
 
 /**
  * Main tree viewer route: /tree/viewer. Serves v2 tree.
- * Query: root (xref), loadSavedHistory (true|false), rootName (for history label when loadSavedHistory=true).
+ * Query: root, chart, depth, card, partners, loadSavedHistory, rootName (see `lib/treeViewerUrl.ts`).
  */
 export default async function TreeViewerPage({
   searchParams,
@@ -16,6 +26,35 @@ export default async function TreeViewerPage({
   const initialRootId = params.root?.trim() || null;
   const loadSavedHistory = params.loadSavedHistory?.toLowerCase() === "true";
   const rootName = params.rootName?.trim() || null;
+  const chartParam = params.chart?.trim().toLowerCase();
+  const initialChartStrategy: ChartViewStrategyName =
+    chartParam === "pedigree"
+      ? "pedigree"
+      : chartParam === "vertical_pedigree" ||
+          chartParam === "vertical-pedigree" ||
+          chartParam === "verticalpedigree"
+        ? "vertical_pedigree"
+        : "descendancy";
+
+  const parsedUrl = parseTreeViewerUrlParams({
+    depth: params.depth,
+    card: params.card,
+    partners: params.partners,
+  });
+  const skipUrlViewOverrides = Boolean(loadSavedHistory && initialRootId != null);
+  const initialUrlDepth = skipUrlViewOverrides ? null : parsedUrl.initialUrlDepth;
+  const initialPartnersUrl = skipUrlViewOverrides ? null : parsedUrl.initialPartnersUrl;
+  const initialPersonCardLayout = parsedUrl.initialPersonCardLayout;
+
+  const mountKey = [
+    initialRootId ?? "default",
+    loadSavedHistory,
+    rootName ?? "",
+    initialChartStrategy,
+    initialUrlDepth ?? "",
+    initialPersonCardLayout ?? "",
+    initialPartnersUrl ?? "",
+  ].join("-");
 
   return (
     <>
@@ -57,11 +96,15 @@ export default async function TreeViewerPage({
           }}
         >
           <FamilyTree
-          key={`${initialRootId ?? "default"}-${loadSavedHistory}-${rootName ?? ""}`}
-          initialRootId={initialRootId}
-          loadSavedHistory={loadSavedHistory}
-          rootName={rootName}
-        />
+            key={mountKey}
+            initialRootId={initialRootId}
+            loadSavedHistory={loadSavedHistory}
+            rootName={rootName}
+            initialChartStrategy={initialChartStrategy}
+            initialUrlDepth={initialUrlDepth}
+            initialPersonCardLayout={initialPersonCardLayout}
+            initialPartnersUrl={initialPartnersUrl}
+          />
         </main>
       </div>
     </>

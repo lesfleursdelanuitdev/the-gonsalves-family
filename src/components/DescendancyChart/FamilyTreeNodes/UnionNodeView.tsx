@@ -4,6 +4,7 @@ import {
   DIAMOND_SIZE,
   getUnionsByPerson,
   getParentUnionsByChild,
+  getAllChildrenOf,
   PERSON_WIDTH,
   CONNECTOR_WIDTH,
   NormalUnionNode,
@@ -11,7 +12,7 @@ import {
   LinkedParentNode,
   SiblingAdoptiveUnionNode,
 } from "@/genealogy-visualization-engine";
-import type { UnionNode } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName, UnionNode, ViewState } from "@/genealogy-visualization-engine";
 import { PersonCard } from "./PersonNodeView";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { PersonCardSettings } from "./PersonNodeView";
@@ -23,6 +24,9 @@ export interface UnionRowProps {
   onAction?: (action: PersonCardAction, personId: string) => void;
   onNameClick?: OnNameClick;
   settings?: ChartSettings;
+  viewState?: ViewState;
+  chartStrategy?: ChartViewStrategyName;
+  isMobile?: boolean;
 }
 
 /** Fallbacks so diamond and lines stay visible when CSS variables don't cascade (e.g. tree-viewer-test). */
@@ -75,8 +79,18 @@ function isDashedLine(node: UnionNode): boolean {
  * Union row: left card, line, diamond, line, right card.
  * left.x = node.x - CONNECTOR_WIDTH/2 - PERSON_WIDTH/2, right.x = node.x + CONNECTOR_WIDTH/2 + PERSON_WIDTH/2.
  */
-export function UnionRow({ node, rootId, onAction, onNameClick, settings }: UnionRowProps) {
+export function UnionRow({
+  node,
+  rootId,
+  onAction,
+  onNameClick,
+  settings,
+  viewState,
+  chartStrategy = "descendancy",
+  isMobile = false,
+}: UnionRowProps) {
   const { x, y } = node;
+  const collapsedSet = new Set(viewState?.collapsedSubtrees ?? []);
   const leftCX = x - CONNECTOR_WIDTH / 2 - PERSON_WIDTH / 2;
   const rightCX = x + CONNECTOR_WIDTH / 2 + PERSON_WIDTH / 2;
   const diamondColor = getDiamondColor(node);
@@ -98,9 +112,13 @@ export function UnionRow({ node, rootId, onAction, onNameClick, settings }: Unio
             hasParents={(getParentUnionsByChild().get(node.left.content.id) ?? []).length > 0}
             onlyRoot={!!node.left.content._onlyRoot}
             isLeaf={node.children.length === 0}
+            hasDescendantsInData={(getAllChildrenOf(node.left.content.id) ?? []).length > 0}
+            isSubtreeCollapsed={collapsedSet.has(node.left.content.id)}
             onAction={onAction}
             onNameClick={onNameClick}
             settings={settings as PersonCardSettings | undefined}
+            chartStrategy={chartStrategy}
+            isMobile={isMobile}
           />
           <line
             x1={leftCX + PERSON_WIDTH / 2}
@@ -142,9 +160,13 @@ export function UnionRow({ node, rootId, onAction, onNameClick, settings }: Unio
             hasParents={(getParentUnionsByChild().get(node.right.content.id) ?? []).length > 0}
             onlyRoot={!!node.right.content._onlyRoot}
             isLeaf={node.children.length === 0}
+            hasDescendantsInData={(getAllChildrenOf(node.right.content.id) ?? []).length > 0}
+            isSubtreeCollapsed={collapsedSet.has(node.right.content.id)}
             onAction={onAction}
             onNameClick={onNameClick}
             settings={settings as PersonCardSettings | undefined}
+            chartStrategy={chartStrategy}
+            isMobile={isMobile}
           />
         </>
       )}

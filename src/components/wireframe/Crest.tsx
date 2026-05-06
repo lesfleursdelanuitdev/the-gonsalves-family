@@ -5,6 +5,7 @@ const CREST_ASPECT = "aspect-[986/1216]";
 
 const SIZE_MAP = {
   xs: `w-6 ${CREST_ASPECT}`,
+  compact: `w-8 ${CREST_ASPECT}`,
   sm: `w-10 ${CREST_ASPECT}`,
   md: `w-16 ${CREST_ASPECT}`,
   lg: `w-24 ${CREST_ASPECT}`,

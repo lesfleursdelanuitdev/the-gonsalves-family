@@ -13,6 +13,12 @@ import { ARROW_DURATION_MS, JourneyCardV2 } from "./JourneyCardV2";
 /** Amount of card visible (0–1) to trigger animation */
 const IN_VIEW_THRESHOLD = 0.15;
 
+/** Opacity for the `vintageTime2.png` background only. */
+const JOURNEY_VINTAGE_IMAGE_OPACITY = 0.09;
+
+/** Opacity for the `agedpaperbg.png` texture only (separate from the vintage image). */
+const JOURNEY_PAPER_TEXTURE_OPACITY = 0.05;
+
 /**
  * Journey Strip v2 — mobile: cards slide up when in view, sequential by slot.
  * Desktop: cards/arrows slide in from right when section in view, staggered C1→A1→C2→A2→...→A(n-1)→Cn.
@@ -69,16 +75,36 @@ export function JourneyStripV2() {
       ref={sectionRef}
       className="journey-section-v2 relative w-full min-w-0 max-w-full overflow-x-clip pt-12 pb-24"
     >
-      <div className="pointer-events-none absolute inset-0 left-0 right-0 top-0 bottom-0 z-0 h-full w-full max-w-full overflow-hidden opacity-[0.12]" aria-hidden>
-        <div className="absolute inset-0 origin-center" style={{ transform: "scale(1.12)" }}>
+      <div
+        className="pointer-events-none absolute inset-0 left-0 right-0 top-0 bottom-0 z-0 h-full w-full max-w-full overflow-hidden"
+        aria-hidden
+      >
+        <div
+          className="absolute inset-0 origin-center"
+          style={{ transform: "scale(1.12)", opacity: JOURNEY_VINTAGE_IMAGE_OPACITY }}
+        >
           <Image
-            src="/images/agedmap.png"
+            src="/images/vintageTime2.png"
             alt=""
             fill
             className="object-cover object-center"
             aria-hidden
           />
         </div>
+      </div>
+      <div
+        className="pointer-events-none absolute inset-0 z-[1] mix-blend-soft-light"
+        aria-hidden
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            opacity: JOURNEY_PAPER_TEXTURE_OPACITY,
+            backgroundImage: 'url("/images/agedpaperbg.png")',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
       </div>
       <div className="relative z-10 text-center">
         <p className="section-subtitle mb-2">Timelines</p>
@@ -130,7 +156,7 @@ export function JourneyStripV2() {
         <p className="mt-10 text-center">
           <Link
             href="/timelines"
-            className="font-body inline-block rounded-lg bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
+            className="font-body inline-block rounded-lg bg-[#435B35] px-8 py-4 text-base font-semibold text-primary-foreground shadow-sm hover:bg-[#3a5030] hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
           >
             See more timelines…
           </Link>

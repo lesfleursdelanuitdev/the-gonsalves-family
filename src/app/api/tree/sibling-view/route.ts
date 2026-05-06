@@ -7,6 +7,10 @@ import {
   loadSpouseMap,
   getDescendantIds,
 } from "@/lib/tree-ancestry";
+import {
+  batchIndividualDisplayPhotoMedia,
+  individualDisplayPhotoMediaToPublicUrl,
+} from "@/lib/tree/individual-display-photo";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -231,6 +235,12 @@ export async function GET(req: NextRequest) {
       select: INDIVIDUAL_SELECT,
     });
 
+    const photoByIndividual = await batchIndividualDisplayPhotoMedia(
+      prisma,
+      fileUuid,
+      individualRows.map((r) => r.id)
+    );
+
     const people = individualRows.map((row) => {
       const mapped = mapIndividualRow(row);
       const { birthYear, deathYear } = individualLifeYearsFromRow(row);
@@ -242,6 +252,7 @@ export async function GET(req: NextRequest) {
         lastName: mapped.lastName ?? "",
         birthYear,
         deathYear,
+        photoUrl: individualDisplayPhotoMediaToPublicUrl(photoByIndividual.get(row.id)) ?? null,
       };
     });
 
