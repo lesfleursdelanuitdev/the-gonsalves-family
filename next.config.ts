@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
     "@ligneous/visualization-engine",
     "konva",
     "react-konva",
+    "plotly.js",
+    "react-plotly.js",
   ],
   turbopack: {
     root: path.resolve(__dirname, ".."),

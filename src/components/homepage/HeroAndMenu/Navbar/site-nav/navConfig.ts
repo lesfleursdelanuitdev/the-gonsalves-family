@@ -11,6 +11,7 @@ import {
   Music,
   Newspaper,
   Route,
+  Search,
   User,
   UtensilsCrossed,
   Video,
@@ -70,6 +71,12 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
         href: "/tree/places",
         description: "Explore locations",
         icon: MapPin,
+      },
+      {
+        label: "Natural language search",
+        href: "/research/nl-search",
+        description: "Ask analytics questions about the tree in plain language",
+        icon: Search,
       },
       {
         label: "Timelines",

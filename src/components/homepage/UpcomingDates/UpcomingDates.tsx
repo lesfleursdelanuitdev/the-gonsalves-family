@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTreeUpcomingEvents } from "@/hooks/useTreeData";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { UpcomingEvent } from "@/types/tree";
+import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
 import { Cake, Heart, List, Skull } from "lucide-react";
 
 type EventFilter = "all" | UpcomingEvent["eventType"];
@@ -28,18 +29,12 @@ const EVENT_ICONS: Record<UpcomingEvent["eventType"], typeof Cake> = {
   MARR: Heart,
 };
 
-/** Strip GEDCOM surname delimiters "/" for display. */
-function stripSlashes(s: string | null | undefined): string {
-  if (s == null || s === "") return "";
-  return s.replace(/\//g, "").replace(/\s+/g, " ").trim();
-}
-
 function getEventNameLine(ev: UpcomingEvent): string {
-  if (ev.individual) return stripSlashes(ev.individual.fullName);
+  if (ev.individual) return formatGedcomFullNameForDisplay(ev.individual.fullName);
   if (ev.family?.husband?.fullName || ev.family?.wife?.fullName) {
     return [
-      stripSlashes(ev.family.husband?.fullName),
-      stripSlashes(ev.family.wife?.fullName),
+      formatGedcomFullNameForDisplay(ev.family.husband?.fullName),
+      formatGedcomFullNameForDisplay(ev.family.wife?.fullName),
     ]
       .filter(Boolean)
       .join(" & ");
@@ -69,7 +64,7 @@ function getEventDateStr(ev: UpcomingEvent): string {
 }
 
 function getEventPlaceStr(ev: UpcomingEvent): string {
-  return stripSlashes(ev.place?.original ?? ev.place?.name ?? "");
+  return formatGedcomFullNameForDisplay(ev.place?.original ?? ev.place?.name ?? "");
 }
 
 /**

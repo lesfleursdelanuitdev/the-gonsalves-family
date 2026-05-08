@@ -7,18 +7,11 @@ import {
   placeDisplayFromJoinedEventRow,
 } from "@/lib/individual-key-fact-display";
 import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
-import { nlIndividualAddonFromSqlPerson } from "./lib";
+import { nlIndividualAddonFromSqlPerson, stripSlashesFromName } from "./lib";
 
 function normalizeXref(xref: string): string {
   const s = xref.trim();
   return s.startsWith("@") ? s : `@${s}@`;
-}
-
-/** Strip GEDCOM slashes from last names for display (e.g. "John /Reyes/" → "John Reyes"). */
-function stripSlashesFromName(s: string | null | undefined): string | null {
-  if (s == null || s === "") return null;
-  const t = s.replace(/\//g, "").trim();
-  return t === "" ? null : t;
 }
 
 type Row = Record<string, unknown>;

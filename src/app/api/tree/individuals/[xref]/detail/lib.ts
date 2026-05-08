@@ -1,4 +1,5 @@
 import { Prisma } from "@ligneous/prisma";
+import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 
@@ -9,8 +10,7 @@ export function normalizeXref(xref: string): string {
 
 /** Strip GEDCOM slashes from last names for display (e.g. "John /Reyes/" → "John Reyes"). */
 export function stripSlashesFromName(s: string | null | undefined): string | null {
-  if (s == null || s === "") return null;
-  const t = s.replace(/\//g, "").trim();
+  const t = formatGedcomFullNameForDisplay(s);
   return t === "" ? null : t;
 }
 

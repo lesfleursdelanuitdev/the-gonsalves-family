@@ -1,6 +1,7 @@
+import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
+
 export function stripSlashesFromName(s: string | null | undefined): string {
-  if (s == null || s === "") return "Unknown";
-  const t = s.replace(/\//g, "").trim();
+  const t = formatGedcomFullNameForDisplay(s);
   return t === "" ? "Unknown" : t;
 }
 

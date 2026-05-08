@@ -66,11 +66,12 @@ export async function GET() {
         xref: true,
         husbandXref: true,
         wifeXref: true,
+        husbandId: true,
+        wifeId: true,
         marriageDateDisplay: true,
         marriagePlaceDisplay: true,
         isDivorced: true,
         childrenCount: true,
-        familyPartners: { select: { individualId: true } },
       },
       orderBy: { id: "asc" },
       take: 1,
@@ -82,7 +83,7 @@ export async function GET() {
       return NextResponse.json({ family: null });
     }
 
-    const { familyPartners, ...row } = raw;
+    const row = raw;
 
     const xrefs = [row.husbandXref, row.wifeXref].filter(
       (x): x is string => x != null && x !== ""
@@ -125,7 +126,7 @@ export async function GET() {
       childrenCount: row.childrenCount ?? 0,
       husbandName: husbandName || null,
       wifeName: wifeName || null,
-      partnerIndividualIds: familyPartners.map((p) => p.individualId),
+      partnerIndividualIds: [row.husbandId, row.wifeId].filter((id): id is string => id != null && id !== ""),
     };
 
     return NextResponse.json({ family });

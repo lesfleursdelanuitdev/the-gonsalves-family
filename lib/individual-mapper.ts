@@ -23,6 +23,15 @@ export function parseFullName(
   return { firstName: fullName.trim(), lastName: null };
 }
 
+/**
+ * GEDCOM-style full name for UI: replace surname slashes with spaces and collapse whitespace
+ * (e.g. `Augustinho Thomas / Gonsalves` → `Augustinho Thomas Gonsalves`).
+ */
+export function formatGedcomFullNameForDisplay(name: string | null | undefined): string {
+  if (name == null || typeof name !== "string") return "";
+  return name.replace(/\//g, " ").replace(/\s+/g, " ").trim();
+}
+
 /** Map sex enum to display string */
 export function formatGender(sex: string | null, gender: string | null): string | null {
   if (sex) {

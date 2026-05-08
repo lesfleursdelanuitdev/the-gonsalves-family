@@ -4,6 +4,24 @@ import { getPublicResearchTreeId } from "@/lib/research-public-tree";
 
 const PYTHON_API_URL = (process.env.PYTHON_API_URL ?? "http://127.0.0.1:5001").replace(/\/$/, "");
 
+function researchUpstreamOrigin(): string {
+  try {
+    const u = new URL(PYTHON_API_URL);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return "(invalid PYTHON_API_URL)";
+  }
+}
+
+function reachabilityCause(err: unknown): string | undefined {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/ECONNREFUSED/i.test(msg)) return "connection_refused";
+  if (/ENOTFOUND/i.test(msg)) return "dns_not_found";
+  if (/ETIMEDOUT|timeout/i.test(msg)) return "timed_out";
+  if (/fetch failed/i.test(msg)) return "fetch_failed";
+  return undefined;
+}
+
 function buildTargetUrl(request: NextRequest, pathSegments: string[]): string {
   const path = pathSegments.join("/");
   const qs = request.nextUrl.searchParams.toString();
@@ -60,11 +78,15 @@ async function proxy(request: NextRequest, ctx: { params: Promise<{ path: string
       headers: { "Content-Type": responseContentType },
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Research API unavailable";
+    const message = err instanceof Error ? err.message : String(err);
+    const cause = reachabilityCause(err);
     return NextResponse.json(
       {
         error: "Research API unavailable",
-        detail: process.env.NODE_ENV === "development" ? message : undefined,
+        upstream: researchUpstreamOrigin(),
+        hint: "Start ligneous-python-api (or fix its listen address) and ensure PYTHON_API_URL matches for this Next.js process. PM2: set env in `.env.local` / `.env.production` here, then `pm2 restart temp-gonsalvesfamily --update-env`.",
+        cause,
+        detail: process.env.NODE_ENV !== "production" ? message : undefined,
       },
       { status: 502 },
     );
