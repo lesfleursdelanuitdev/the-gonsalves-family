@@ -19,6 +19,8 @@ export interface ChartDrawerProps {
   style?: React.CSSProperties;
   /** z-index for drawer and backdrop. Default 400. */
   zIndex?: number;
+  /** Optional `id` of a visible title element inside the drawer (dialog accessibility). */
+  ariaLabelledBy?: string;
 }
 
 const anchorStyles: Record<
@@ -59,6 +61,7 @@ export function ChartDrawer({
   showBackdrop = Boolean(onClose),
   style = {},
   zIndex = 400,
+  ariaLabelledBy,
 }: ChartDrawerProps) {
   const { position, transformOpen, transformClosed } = anchorStyles[anchor];
   const drawerStyle: React.CSSProperties = {
@@ -93,7 +96,12 @@ export function ChartDrawer({
           onClick={onClose}
         />
       )}
-      <div style={drawerStyle} role="dialog" aria-modal={showBackdrop}>
+      <div
+        style={drawerStyle}
+        role="dialog"
+        aria-modal={showBackdrop}
+        aria-labelledby={ariaLabelledBy}
+      >
         {children}
       </div>
     </>

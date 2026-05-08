@@ -8,6 +8,10 @@ import { useTreeNodeViewSet } from "@/providers/TreeNodeViewContext";
 import { getTreeNodeViewSet } from "../TreeNodeViewFactory";
 import { TreeNodes, type OnNameClick } from "../../DescendancyChart/FamilyTreeNodes";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
+import { PersonNode, UnionNode } from "@/genealogy-visualization-engine";
+import { FanChartContent } from "./fan/FanChartContent";
+import type { FanMoreClickPayload } from "./fan/fanPeekTypes";
+import { isFanChartStrategy, shouldRenderConnectorsForStrategy } from "./chartStrategy";
 
 /** Minimal settings shape used by chart content (compatible with v1 ChartSettings and v2 ChartSettingsV2). */
 export type ChartContentSettings = {
@@ -16,6 +20,7 @@ export type ChartContentSettings = {
   showUnknown?: boolean;
   showCardActionIcons?: boolean;
   autoLegendModal?: boolean;
+  fanRootRadius?: number;
 } & PersonCardLayoutSettings;
 
 export interface ChartContentProps {
@@ -23,11 +28,15 @@ export interface ChartContentProps {
   rootId: string;
   onAction?: (action: PersonCardAction, personId: string) => void;
   onNameClick?: OnNameClick;
+  /** Fan chart: “more” chip opens peek modal (not used for other strategies). */
+  onFanMoreClick?: (payload: FanMoreClickPayload) => void;
   settings?: ChartContentSettings;
   connectors?: ConnectorHelpers;
   viewState?: ViewState;
   chartStrategy?: ChartViewStrategyName;
   isMobile?: boolean;
+  pedigreeHasRoomToExpandDepth?: boolean;
+  pedigreeMultiFamilyChildXrefs?: string[] | null;
 }
 
 /**
@@ -39,22 +48,57 @@ export const ChartContent = memo(function ChartContent({
   rootId,
   onAction,
   onNameClick,
+  onFanMoreClick,
   settings,
   connectors,
   viewState,
   chartStrategy = "descendancy",
   isMobile = false,
+  pedigreeHasRoomToExpandDepth = false,
+  pedigreeMultiFamilyChildXrefs = null,
 }: ChartContentProps) {
   const viewSet = useTreeNodeViewSet() ?? getTreeNodeViewSet("descendancy");
+
+  const fanDepthFromRoot = (node: ChartNode): number => {
+    if (!(node instanceof PersonNode)) return 0;
+    const walk = (person: PersonNode, generation: number): number => {
+      const parentUnion = person.children[0];
+      if (!(parentUnion instanceof UnionNode)) return generation;
+      const [left, right] = parentUnion.content;
+      let maxGeneration = generation;
+      if (left) maxGeneration = Math.max(maxGeneration, walk(left, generation + 1));
+      if (right) maxGeneration = Math.max(maxGeneration, walk(right, generation + 1));
+      return maxGeneration;
+    };
+    return walk(node, 0);
+  };
+
+  if (isFanChartStrategy(chartStrategy)) {
+    return (
+      <FanChartContent
+        root={root}
+        generationCount={fanDepthFromRoot(root)}
+        rootRadius={settings?.fanRootRadius}
+        pedigreeMultiFamilyChildXrefs={pedigreeMultiFamilyChildXrefs}
+        onMoreClick={onFanMoreClick}
+      />
+    );
+  }
+
   if (!viewSet) {
     return null;
   }
   const { ConnectorLines, SpouseJoinLines, PersonNodeView, UnionNodeView } = viewSet;
   const personHeight = getEffectivePersonHeight(settings, { chartStrategy, isMobile });
+  const showTreeConnectors = shouldRenderConnectorsForStrategy(chartStrategy);
   return (
     <>
-      <ConnectorLines root={root} connectors={connectors} personHeight={personHeight} />
-      <SpouseJoinLines root={root} />
+      {showTreeConnectors ? (
+        <>
+          <ConnectorLines root={root} connectors={connectors} personHeight={personHeight} />
+          <SpouseJoinLines root={root} />
+        </>
+      ) : null}
       <TreeNodes
         root={root}
         rootId={rootId}
@@ -66,6 +110,8 @@ export const ChartContent = memo(function ChartContent({
         unionNodeView={UnionNodeView}
         chartStrategy={chartStrategy}
         isMobile={isMobile}
+        pedigreeHasRoomToExpandDepth={pedigreeHasRoomToExpandDepth}
+        pedigreeMultiFamilyChildXrefs={pedigreeMultiFamilyChildXrefs}
       />
     </>
   );

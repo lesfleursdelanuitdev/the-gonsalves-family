@@ -13,6 +13,12 @@ import type { TreeAction } from "@/genealogy-visualization-engine";
 import { dispatchRefreshViewport } from "../utils/viewportRefresh";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
 import type { ToastState } from "./useFamilyTreeState";
+import type { FamiliesAsChildResponse } from "../PersonDetailOverlay/types";
+import { normalizeGedcomXref } from "../PersonDetailOverlay/utils";
+import { handlePedigreeCardAction } from "../pedigree/handlePedigreeCardAction";
+import { resolvePedigreeActionStrategy, usesPedigreeActionSet } from "../chartStrategy";
+
+export type LoadFamiliesAsChildFn = (xref: string) => Promise<FamiliesAsChildResponse | null>;
 
 export interface UseFamilyTreeActionsParams {
   chartStrategyName: ChartViewStrategyName;
@@ -46,6 +52,18 @@ export interface UseFamilyTreeActionsParams {
   skipNextGoToInitialViewRef: React.MutableRefObject<boolean>;
   /** When person P has more spouses to open, open this modal so user can choose to pan to the newly opened partner. */
   openPanToPartnerModal: (spouseId: string) => void;
+  setPedigreeFamcPicker: React.Dispatch<
+    React.SetStateAction<
+      | null
+      | {
+          strategyName: "pedigree" | "vertical_pedigree" | "fan_chart";
+          families: FamiliesAsChildResponse["familiesOfOrigin"];
+          forPersonId?: string | null;
+        }
+    >
+  >;
+  /** Cached loader (shared with chart switch); speeds up "Choose parent family". */
+  loadFamiliesAsChild: LoadFamiliesAsChildFn;
 }
 
 export interface RootActionDeps {
@@ -71,7 +89,7 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
     atMaxDepth,
     effectiveMaxDepth: _effectiveMaxDepth,
     handleMaxDepthChange: _handleMaxDepthChange,
-    displayedDepth: _displayedDepth,
+    displayedDepth,
     setPan,
     goToInitialView,
     setToast,
@@ -81,7 +99,50 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
     triggerBlinkBack,
     skipNextGoToInitialViewRef,
     openPanToPartnerModal,
+    setPedigreeFamcPicker,
+    loadFamiliesAsChild,
   } = params;
+
+  const openChooseParentFamily = useCallback(
+    async (personId: string) => {
+      const norm = normalizeGedcomXref(personId);
+      try {
+        const json = await loadFamiliesAsChild(personId);
+        if (!json) return;
+        const families = json.familiesOfOrigin ?? [];
+        if (families.length <= 1) return;
+        setPedigreeFamcPicker({
+          strategyName: resolvePedigreeActionStrategy(chartStrategyName) ?? "pedigree",
+          families,
+          forPersonId: norm,
+        });
+      } catch {
+        // ignore
+      }
+    },
+    [chartStrategyName, setPedigreeFamcPicker, loadFamiliesAsChild]
+  );
+
+  const pedigreeActionContext = useMemo(
+    () => ({
+      dispatch,
+      setPan,
+      setRootDisplayNames,
+      triggerBlinkBack,
+      viewState,
+      displayedDepth,
+      openChooseParentFamily,
+    }),
+    [
+      dispatch,
+      setPan,
+      setRootDisplayNames,
+      triggerBlinkBack,
+      viewState,
+      displayedDepth,
+      openChooseParentFamily,
+    ]
+  );
 
   const onActionContext: HandlePersonCardActionContext = useMemo(
     () => ({
@@ -121,10 +182,16 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
 
   const onAction = useCallback(
     (action: PersonCardAction, personId: string) => {
-      if (chartStrategyName !== "descendancy") return;
-      handlePersonCardAction(action, personId, onActionContext);
+      if (chartStrategyName === "descendancy") {
+        handlePersonCardAction(action, personId, onActionContext);
+        return;
+      }
+      if (usesPedigreeActionSet(chartStrategyName)) {
+        if (!String(action).startsWith("pedigree")) return;
+        handlePedigreeCardAction(action, personId, pedigreeActionContext);
+      }
     },
-    [chartStrategyName, onActionContext]
+    [chartStrategyName, onActionContext, pedigreeActionContext]
   );
 
   const onDrawerSelect = useCallback(

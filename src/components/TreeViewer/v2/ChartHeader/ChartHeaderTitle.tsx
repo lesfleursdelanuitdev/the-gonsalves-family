@@ -2,6 +2,7 @@
 
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { Crest } from "@/components/wireframe";
+import { getChartStrategyLabel } from "../chartStrategy";
 
 interface ChartHeaderTitleProps {
   displayName?: string | null;
@@ -16,9 +17,7 @@ export function ChartHeaderTitle({
 }: ChartHeaderTitleProps) {
   const subtitleSize = "0.6rem";
   const titleSize = isMobile ? 12 : 13;
-  const isPedigree = chartStrategy === "pedigree";
-  const isVerticalPedigree = chartStrategy === "vertical_pedigree";
-  const modeLabel = isVerticalPedigree ? "Vertical Pedigree" : isPedigree ? "Pedigree" : "Descendants";
+  const modeLabel = getChartStrategyLabel(chartStrategy);
   return (
     <div
       style={{

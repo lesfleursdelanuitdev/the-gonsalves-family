@@ -2,16 +2,23 @@
 
 import { useMemo, useState, useReducer, useEffect, useCallback, useRef } from "react";
 import {
+  DEFAULT_PEDIGREE_PARENT_PAIR_GAP,
+  FAN_CHART_DEFAULTS,
   treeReducer,
   createInitialState,
-  isChartViewStrategyName,
 } from "@/genealogy-visualization-engine";
-import { DEFAULT_PERSON_CARD_LAYOUT, type PersonCardLayout } from "@/lib/person-card-layout";
+import {
+  DEFAULT_COMPACT_CARD_SIZE,
+  DEFAULT_PERSON_CARD_LAYOUT,
+  DEFAULT_PERSON_CARD_VARIANT,
+  type PersonCardLayout,
+} from "@/lib/person-card-layout";
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import type { ViewState } from "@/genealogy-visualization-engine";
 import type { TreeState, HistoryEntry } from "@/genealogy-visualization-engine";
 import { usePanelVisibility, useSpouseDrawer } from "@/genealogy-visualization-engine";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
+import { resolveChartStrategyName } from "../chartStrategy";
 
 const TREE_HISTORY_STORAGE_KEY = "treeViewerHistoryV2";
 
@@ -41,6 +48,10 @@ const defaultSettings: ChartSettingsV2 = {
   showMinimap: true,
   autoLegendModal: true,
   personCardLayout: DEFAULT_PERSON_CARD_LAYOUT,
+  personCardVariant: DEFAULT_PERSON_CARD_VARIANT,
+  compactCardSize: DEFAULT_COMPACT_CARD_SIZE,
+  parentPairGap: DEFAULT_PEDIGREE_PARENT_PAIR_GAP,
+  fanRootRadius: FAN_CHART_DEFAULTS.rootRadius,
 };
 
 export interface UseFamilyTreeStateOptions {
@@ -55,6 +66,8 @@ export interface UseFamilyTreeStateOptions {
   initialUrlDepth?: number | null;
   /** `card` query — person card layout preset. */
   initialPersonCardLayout?: PersonCardLayout | null;
+  /** `famc` query — pedigree family xref when opening in pedigree mode. */
+  initialPedigreeFamcFamilyXref?: string | null;
 }
 
 export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
@@ -65,24 +78,30 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
     initialChartStrategy = null,
     initialUrlDepth = null,
     initialPersonCardLayout = null,
+    initialPedigreeFamcFamilyXref = null,
   } = options;
 
-  const resolvedStrategy: ChartViewStrategyName =
-    initialChartStrategy != null && isChartViewStrategyName(initialChartStrategy)
-      ? initialChartStrategy
-      : "descendancy";
+  const resolvedStrategy: ChartViewStrategyName = resolveChartStrategyName(initialChartStrategy);
 
   const createStateOpts =
     loadSavedHistory && initialRootId != null
-      ? null
-      : initialUrlDepth != null
-        ? { initialCurrentDepth: initialUrlDepth }
-        : null;
+      ? undefined
+      : (() => {
+          const o: {
+            initialCurrentDepth?: number | null;
+            initialPedigreeFamcFamilyXref?: string | null;
+          } = {};
+          if (initialUrlDepth != null) o.initialCurrentDepth = initialUrlDepth;
+          if (initialPedigreeFamcFamilyXref != null && initialPedigreeFamcFamilyXref.trim() !== "") {
+            o.initialPedigreeFamcFamilyXref = initialPedigreeFamcFamilyXref.trim();
+          }
+          return Object.keys(o).length ? o : undefined;
+        })();
 
   const initialState = useMemo(
     () =>
       createInitialState(resolvedStrategy, initialRootId ?? undefined, createStateOpts ?? undefined),
-    [initialRootId, resolvedStrategy, loadSavedHistory, initialUrlDepth]
+    [initialRootId, resolvedStrategy, loadSavedHistory, initialUrlDepth, initialPedigreeFamcFamilyXref]
   );
   const [state, dispatch] = useReducer(treeReducer, initialState);
   const viewState = state.viewState as ViewState;
