@@ -25,11 +25,11 @@ export function HeroRightColumn() {
   return (
     <div
       ref={ref}
-      className="w-full sm:w-fit sm:max-w-[36rem] flex flex-col items-center text-center md:ml-6"
+      className="flex w-full flex-col items-center text-center sm:w-fit sm:max-w-[40rem] md:ml-6"
     >
       <HeroWebsiteTitle />
       <HeroTagline />
-      <div className="flex justify-center mt-4 mb-12 md:mb-4 w-full max-w-[18rem] sm:w-[36rem] sm:max-w-none">
+      <div className="mt-4 mb-10 flex w-full max-w-[min(100%,22.5rem)] justify-center sm:mb-12 sm:max-w-[min(100%,36rem)] md:mb-4">
         <HeroSearchBox key={runId} triggerTyping={runId > 0} />
       </div>
     </div>

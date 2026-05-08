@@ -33,7 +33,7 @@ export function LegendPanel({ items, onClose, maxDepth: _maxDepth }: LegendPanel
 
   return (
     <ChartPanel
-      title="Sibling View Legend"
+      title="Parents & Siblings View Legend"
       onClose={onClose}
       placement={{ top: 70, right: 16 }}
       minWidth={240}

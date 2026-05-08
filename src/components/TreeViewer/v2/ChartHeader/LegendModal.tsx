@@ -59,7 +59,7 @@ export function LegendModal({
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          Sibling View
+          Parents & Siblings View
         </div>
         <p
           style={{

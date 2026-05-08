@@ -3,6 +3,8 @@ import { Prisma } from "@ligneous/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { mapIndividualRow, type IndividualRowForMapping } from "@/lib/individual-mapper";
+import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
+import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -12,6 +14,8 @@ const INDIVIDUAL_SELECT = {
   birthPlaceDisplay: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...individualBirthDeathPlaceSelect,
+  ...gedcomIndividualNlDenormSelect,
   isLiving: true,
   sex: true,
   gender: true,
@@ -60,6 +64,13 @@ function toSearchItem(row: IndividualRowForMapping & { id: string; xref: string 
       lastName: mapped.lastName ?? null,
     },
     xref: row.xref,
+    primarySurnameLower: mapped.primarySurnameLower,
+    birthCountry: mapped.birthCountry,
+    birthCountryLower: mapped.birthCountryLower,
+    deathCountry: mapped.deathCountry,
+    deathCountryLower: mapped.deathCountryLower,
+    ageAtDeath: mapped.ageAtDeath,
+    generationDepth: mapped.generationDepth,
   };
 }
 

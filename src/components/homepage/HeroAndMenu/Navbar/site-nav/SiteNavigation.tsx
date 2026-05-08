@@ -13,12 +13,14 @@ export function SiteNavigation() {
   const [treeExpanded, setTreeExpanded] = React.useState(false);
   const [archiveExpanded, setArchiveExpanded] = React.useState(false);
   const [cultureExpanded, setCultureExpanded] = React.useState(false);
+  const [loginExpanded, setLoginExpanded] = React.useState(false);
 
   React.useEffect(() => {
     if (!menuOpen) return;
     setTreeExpanded(false);
     setArchiveExpanded(false);
     setCultureExpanded(false);
+    setLoginExpanded(false);
   }, [menuOpen]);
 
   const searchActive = React.useMemo(
@@ -44,9 +46,11 @@ export function SiteNavigation() {
         treeExpanded={treeExpanded}
         archiveExpanded={archiveExpanded}
         cultureExpanded={cultureExpanded}
+        loginExpanded={loginExpanded}
         onTreeToggle={() => setTreeExpanded((v) => !v)}
         onArchiveToggle={() => setArchiveExpanded((v) => !v)}
         onCultureToggle={() => setCultureExpanded((v) => !v)}
+        onLoginToggle={() => setLoginExpanded((v) => !v)}
       />
     </>
   );

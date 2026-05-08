@@ -10,6 +10,7 @@ config({ path: ".env.local" });
 import { resolveTreeFileUuid } from "../lib/tree";
 import { prisma } from "../lib/database/prisma";
 import { mapIndividualRow } from "../lib/individual-mapper";
+import { gedcomIndividualNlDenormSelect } from "../lib/gedcom-individual-nl-select";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -19,6 +20,7 @@ const INDIVIDUAL_SELECT = {
   birthPlaceDisplay: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...gedcomIndividualNlDenormSelect,
   isLiving: true,
   sex: true,
   gender: true,

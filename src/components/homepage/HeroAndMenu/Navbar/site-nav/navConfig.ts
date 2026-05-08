@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { SITE_ADMIN_LOGIN_HREF } from "@/lib/siteAdminLogin";
 import {
   BookOpen,
   CalendarDays,
@@ -148,3 +149,5 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
 ];
 
 export const SITE_NAV_SEARCH_HREF = "/tree/viewer/searchDatabase";
+
+export const SITE_NAV_LOGIN_HREF = SITE_ADMIN_LOGIN_HREF;

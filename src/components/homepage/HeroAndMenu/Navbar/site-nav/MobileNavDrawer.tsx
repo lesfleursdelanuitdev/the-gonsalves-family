@@ -7,6 +7,7 @@ import { Search, X } from "lucide-react";
 import { Crest } from "@/components/wireframe";
 import { SITE_NAV_GROUPS, SITE_NAV_SEARCH_HREF } from "./navConfig";
 import { MobileNavAccordion } from "./MobileNavAccordion";
+import { MobileNavLoginAccordion } from "./MobileNavLoginAccordion";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -18,9 +19,11 @@ type MobileNavDrawerProps = {
   treeExpanded: boolean;
   archiveExpanded: boolean;
   cultureExpanded: boolean;
+  loginExpanded: boolean;
   onTreeToggle: () => void;
   onArchiveToggle: () => void;
   onCultureToggle: () => void;
+  onLoginToggle: () => void;
 };
 
 export function MobileNavDrawer({
@@ -30,9 +33,11 @@ export function MobileNavDrawer({
   treeExpanded,
   archiveExpanded,
   cultureExpanded,
+  loginExpanded,
   onTreeToggle,
   onArchiveToggle,
   onCultureToggle,
+  onLoginToggle,
 }: MobileNavDrawerProps) {
   const router = useRouter();
   const panelRef = React.useRef<HTMLDivElement>(null);
@@ -200,6 +205,11 @@ export function MobileNavDrawer({
                     onLinkClick={onClose}
                   />
                 ))}
+                <MobileNavLoginAccordion
+                  expanded={loginExpanded}
+                  onToggle={onLoginToggle}
+                  onLinkClick={onClose}
+                />
               </nav>
             </div>
 

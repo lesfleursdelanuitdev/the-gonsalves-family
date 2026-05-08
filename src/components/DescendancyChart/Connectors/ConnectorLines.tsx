@@ -10,6 +10,7 @@ import {
   NormalUnionNode,
   getUnionById,
   DIAMOND_SIZE,
+  DEFAULT_TREE_CONNECTOR_FALLBACK_HEX,
 } from "@/genealogy-visualization-engine";
 import type { ChartNode, ConnectorHelpers } from "@/genealogy-visualization-engine";
 
@@ -20,8 +21,8 @@ function getUnionConnectorColor(node: UnionNode): string | undefined {
   return undefined;
 }
 
-/** Fallback colors when CSS variables are not available (e.g. no cascade). Match light-theme --text-subtle / --text-muted. */
-const FALLBACK_CONNECTOR = "#9A8F7C";
+/** Fallback when `var(--tree-connector, …)` has no cascade; keep in sync with `DEFAULT_TREE_CONNECTOR_FALLBACK_HEX` in the engine. */
+const FALLBACK_CONNECTOR = DEFAULT_TREE_CONNECTOR_FALLBACK_HEX;
 const FALLBACK_LINKED = "#6F675A";
 
 interface ConnectorLinesProps {
@@ -51,13 +52,14 @@ export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLi
       const linkedUnion = getUnionById().get(node.linkedUnionId);
       if (linkedUnion) {
         const fromY = node.y + DIAMOND_SIZE;
-        for (const { id: childId } of linkedUnion.children) {
+        for (const [childIdx, { id: childId }] of linkedUnion.children.entries()) {
           const childNode = posMap.get(childId);
           if (!childNode) continue;
           const cx = conn.incomingX(childNode);
           const toY = conn.incomingY(childNode);
           const midY = fromY + (toY - fromY) / 2;
-          const uid = `${node.linkedUnionId}-${childId}`;
+          /** Diamond position + child index: multiple LinkedParentNode can share linkedUnionId and the same child. */
+          const uid = `${node.linkedUnionId}-${childId}-${node.x}-${node.y}-c${childIdx}`;
           lines.push(
             <line
               key={`linked-v-${uid}`}

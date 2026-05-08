@@ -12,6 +12,8 @@ export type ParsedTreeViewerUrl = {
   initialPersonCardLayout: PersonCardLayout | null;
   /** `null` = omit from URL / do not override partners from history. */
   initialPartnersUrl: TreeViewerPartnersUrl | null;
+  /** Ancestor charts (pedigree / vertical pedigree / fan): `famc` query — family xref (`@F…@`). */
+  initialPedigreeFamcFamilyXref: string | null;
 };
 
 function firstParam(v: string | string[] | undefined): string | undefined {
@@ -23,6 +25,7 @@ export function parseTreeViewerUrlParams(raw: {
   depth?: string | string[];
   card?: string | string[];
   partners?: string | string[];
+  famc?: string | string[];
 }): ParsedTreeViewerUrl {
   const depthRaw = firstParam(raw.depth)?.trim();
   let initialUrlDepth: number | null = null;
@@ -51,7 +54,11 @@ export function parseTreeViewerUrlParams(raw: {
     initialPartnersUrl = "closed";
   }
 
-  return { initialUrlDepth, initialPersonCardLayout, initialPartnersUrl };
+  const famcRaw = firstParam(raw.famc)?.trim() ?? "";
+  const initialPedigreeFamcFamilyXref =
+    famcRaw === "" ? null : famcRaw.startsWith("@") ? famcRaw : `@${famcRaw.replace(/@/g, "")}@`;
+
+  return { initialUrlDepth, initialPersonCardLayout, initialPartnersUrl, initialPedigreeFamcFamilyXref };
 }
 
 export type TreeViewerUrlSyncInput = {
@@ -60,6 +67,8 @@ export type TreeViewerUrlSyncInput = {
   depth: number;
   personCardLayout: PersonCardLayout;
   partnersUrl: TreeViewerPartnersUrl | null;
+  /** When set (ancestor-chart modes), written as `famc` query. */
+  pedigreeFamcFamilyXref?: string | null;
 };
 
 /** Preserves unrelated query keys (e.g. loadSavedHistory, rootName). */
@@ -82,6 +91,15 @@ export function buildTreeViewerSearchParams(
   next.set("card", input.personCardLayout);
   if (input.chartStrategy === "descendancy" && input.partnersUrl != null) {
     next.set("partners", input.partnersUrl);
+  }
+  if (
+    (input.chartStrategy === "pedigree" ||
+      input.chartStrategy === "vertical_pedigree" ||
+      input.chartStrategy === "fan_chart") &&
+    input.pedigreeFamcFamilyXref != null &&
+    input.pedigreeFamcFamilyXref.trim() !== ""
+  ) {
+    next.set("famc", input.pedigreeFamcFamilyXref.trim());
   }
   return next;
 }

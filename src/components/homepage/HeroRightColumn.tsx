@@ -40,7 +40,7 @@ export function HeroRightColumn() {
       <p className="font-body text-base sm:text-lg lg:text-xl text-muted mt-2 sm:mt-3 mb-6 sm:mb-8 max-w-2xl leading-relaxed">
         A living archive of the Gonsalves family of Guyana
       </p>
-      <div className="flex justify-center mb-4 w-full max-w-sm sm:max-w-xl">
+      <div className="mb-4 flex w-full max-w-[min(100%,22.5rem)] justify-center sm:max-w-xl">
         <HeroSearchBox key={runId} triggerTyping={runId > 0} />
       </div>
     </div>

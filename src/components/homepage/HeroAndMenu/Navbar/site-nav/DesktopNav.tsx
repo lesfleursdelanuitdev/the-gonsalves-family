@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { SITE_NAV_GROUPS, SITE_NAV_SEARCH_HREF } from "./navConfig";
 import { DesktopDropdown } from "./DesktopDropdown";
+import { DesktopLoginDropdown } from "./DesktopLoginDropdown";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -19,6 +20,7 @@ export function DesktopNav({ pathname, searchActive }: DesktopNavProps) {
   const [treeOpen, setTreeOpen] = React.useState(false);
   const [archiveOpen, setArchiveOpen] = React.useState(false);
   const [cultureOpen, setCultureOpen] = React.useState(false);
+  const [loginOpen, setLoginOpen] = React.useState(false);
 
   const setters = {
     tree: setTreeOpen,
@@ -26,10 +28,11 @@ export function DesktopNav({ pathname, searchActive }: DesktopNavProps) {
     culture: setCultureOpen,
   } as const;
 
-  const closeOthers = (id: "tree" | "archive" | "culture") => {
+  const closeOthers = (id: "tree" | "archive" | "culture" | "login") => {
     if (id !== "tree") setTreeOpen(false);
     if (id !== "archive") setArchiveOpen(false);
     if (id !== "culture") setCultureOpen(false);
+    if (id !== "login") setLoginOpen(false);
   };
 
   return (
@@ -52,6 +55,13 @@ export function DesktopNav({ pathname, searchActive }: DesktopNavProps) {
           />
         );
       })}
+      <DesktopLoginDropdown
+        isOpen={loginOpen}
+        onOpenChange={(next) => {
+          if (next) closeOthers("login");
+          setLoginOpen(next);
+        }}
+      />
       <Link
         href={SITE_NAV_SEARCH_HREF}
         aria-label="Search the archive"

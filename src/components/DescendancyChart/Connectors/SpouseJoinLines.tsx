@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChartNode } from "@/genealogy-visualization-engine";
-import { UnionNode } from "@/genealogy-visualization-engine";
+import { LinkedParentNode, SiblingAdoptiveUnionNode, UnionNode } from "@/genealogy-visualization-engine";
 
 interface SpouseJoinLinesProps {
   root: ChartNode;
@@ -12,7 +12,18 @@ export function SpouseJoinLines({ root }: SpouseJoinLinesProps) {
   const rows: ChartNode[][] = [];
 
   function collect(node: ChartNode) {
-    const unionChildren = node.children.filter((c): c is UnionNode => c instanceof UnionNode);
+    /**
+     * Only **NormalUnionNode** rows are multiple spouse unions at the same generation.
+     * - **SiblingAdoptiveUnionNode**: sibling-view adoptive row (not a co-spouse bar).
+     * - **LinkedParentNode**: extra parent unions from linked-unions state (e.g. adoptive
+     *   family) — same structural slot as siblings but must not share the horizontal spouse join.
+     */
+    const unionChildren = node.children.filter(
+      (c): c is UnionNode =>
+        c instanceof UnionNode &&
+        !(c instanceof SiblingAdoptiveUnionNode) &&
+        !(c instanceof LinkedParentNode)
+    );
     if (unionChildren.length >= 2) rows.push(unionChildren);
     for (const child of node.children) collect(child);
   }

@@ -146,12 +146,12 @@ FamilyTree calls `useFamilyTreeState({ initialRootId })` and gets state, dispatc
 | Open spouse drawer | `spouseDrawer.setDrawerPersonId(personId)` (or openDrawer(personId)). |
 | Close spouse drawer | `spouseDrawer.closeDrawer()`. |
 | Reveal a spouse / toggle all spouses | `dispatch({ type: "REVEAL_SPOUSE", personId, spouseId })` or REVEAL_ALL_SPOUSES / CLOSE_ALL_SPOUSES. |
-| Show children / parents / siblings | Corresponding action: SHOW_CHILDREN, PARENTS, SHOW_SIBLINGS (see genealogy-visualization-engine reducer). |
+| Show children / parents & siblings | Corresponding action: SHOW_CHILDREN, SHOW_SIBLINGS (see genealogy-visualization-engine reducer). `PARENTS` remains in the reducer for history replay only. |
 | Set tree depth | `dispatch({ type: "SET_CURRENT_DEPTH", depth })`; depth UI usually goes through handleMaxDepthChange from useDepth. |
 | Open Go To Person drawer | `setGoToPersonDrawerOpen(true)`. |
 | Show a toast | `setToast({ title, parts })`; clear with `setToast(null)`. |
 
-Full action types: core actions in `reducer/types.ts` (ROOT, ROOT_KEEP_VIEW, BACK, FORWARD, NAVIGATE_TO_INDEX); descendancy actions in `reducer/strategies/descendancy/types.ts` (REVEAL_SPOUSE, CLOSE_SPOUSE, SHOW_CHILDREN, PARENTS, etc.).
+Full action types: core actions in `reducer/types.ts` (ROOT, ROOT_KEEP_VIEW, BACK, FORWARD, NAVIGATE_TO_INDEX); descendancy actions in `reducer/strategies/descendancy/types.ts` (REVEAL_SPOUSE, CLOSE_SPOUSE, SHOW_CHILDREN, PARENTS for history, SHOW_SIBLINGS, etc.).
 
 ---
 

@@ -40,7 +40,7 @@ export interface FamilyTreeHeaderProps {
   onGoToPerson?: () => void;
   onToggleAllSpouses?: () => void;
   chartStrategy: ChartViewStrategyName;
-  onChartStrategyChange: (next: ChartViewStrategyName) => void;
+  onChartStrategyChange: (next: ChartViewStrategyName) => void | Promise<void>;
   chartTypeModalOpen: boolean;
   onChartTypeModalOpenChange: (open: boolean) => void;
   onOpenTutorial?: () => void;

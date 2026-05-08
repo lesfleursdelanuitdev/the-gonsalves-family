@@ -3,6 +3,11 @@
  * Used by individuals list, ancestors, and descendants endpoints.
  */
 
+import {
+  fullPlaceLabelFromGedcomPlace,
+  type GedcomPlaceDisplayRow,
+} from "@/lib/gedcom-place-display";
+
 /** Parse GEDCOM fullName "Given /Surname/" into firstName and lastName */
 export function parseFullName(
   fullName: string | null
@@ -39,6 +44,14 @@ export type IndividualRowForMapping = {
   /** Denormalized from primary birth date; prefer over parsing birthDateDisplay for chart years */
   birthYear?: number | null;
   deathYear?: number | null;
+  /** From `gedcom_individuals_v2` NL denorm (merge into selects for tree APIs). */
+  primarySurnameLower?: string | null;
+  birthCountry?: string | null;
+  birthCountryLower?: string | null;
+  deathCountry?: string | null;
+  deathCountryLower?: string | null;
+  ageAtDeath?: number | null;
+  generationDepth?: number | null;
   isLiving: boolean;
   sex: string | null;
   gender: string | null;
@@ -46,6 +59,9 @@ export type IndividualRowForMapping = {
     givenNames: Array<{ givenName: { givenName: string } }>;
     surnames: Array<{ surname: { surname: string } }>;
   }>;
+  /** Linked {@link GedcomPlace} — use for full place line when display columns are truncated. */
+  birthPlace?: GedcomPlaceDisplayRow | null;
+  deathPlace?: GedcomPlaceDisplayRow | null;
 };
 
 /**
@@ -83,6 +99,14 @@ export interface MappedIndividual {
   deathPlace: string | null;
   isLiving: boolean;
   gender: string | null;
+  /** Denormalized for NL/filtering — always present (`null` if unknown / not loaded). */
+  primarySurnameLower: string | null;
+  birthCountry: string | null;
+  birthCountryLower: string | null;
+  deathCountry: string | null;
+  deathCountryLower: string | null;
+  ageAtDeath: number | null;
+  generationDepth: number | null;
 }
 
 export function mapIndividualRow(row: IndividualRowForMapping): MappedIndividual {
@@ -114,10 +138,21 @@ export function mapIndividualRow(row: IndividualRowForMapping): MappedIndividual
     lastName,
     givenNames,
     birthDate: row.birthDateDisplay ?? null,
-    birthPlace: row.birthPlaceDisplay ?? null,
+    birthPlace:
+      fullPlaceLabelFromGedcomPlace(row.birthPlace ?? null) ??
+      (row.birthPlaceDisplay?.trim() || null),
     deathDate: row.deathDateDisplay ?? null,
-    deathPlace: row.deathPlaceDisplay ?? null,
+    deathPlace:
+      fullPlaceLabelFromGedcomPlace(row.deathPlace ?? null) ??
+      (row.deathPlaceDisplay?.trim() || null),
     isLiving: row.isLiving,
     gender: formatGender(row.sex, row.gender),
+    primarySurnameLower: row.primarySurnameLower ?? null,
+    birthCountry: row.birthCountry ?? null,
+    birthCountryLower: row.birthCountryLower ?? null,
+    deathCountry: row.deathCountry ?? null,
+    deathCountryLower: row.deathCountryLower ?? null,
+    ageAtDeath: row.ageAtDeath ?? null,
+    generationDepth: row.generationDepth ?? null,
   };
 }

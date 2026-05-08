@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MobileExpandableSection } from "./MobileExpandableSection";
 import { MobileSearchForm } from "./MobileSearchForm";
 import type { NavItem } from "./constants";
+import { SITE_ADMIN_LOGIN_HREF } from "@/lib/siteAdminLogin";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -98,6 +99,17 @@ export function MobileNav({
                 {it.label}
               </Link>
             ))}
+
+          <Link
+            href={SITE_ADMIN_LOGIN_HREF}
+            className={cx(
+              "rounded-lg px-3 py-2 text-sm transition no-underline block",
+              "text-text hover:bg-surface-elevated hover:text-primary hover:no-underline"
+            )}
+            onClick={onClose}
+          >
+            Login
+          </Link>
 
           <MobileSearchForm onClose={onClose} />
         </div>

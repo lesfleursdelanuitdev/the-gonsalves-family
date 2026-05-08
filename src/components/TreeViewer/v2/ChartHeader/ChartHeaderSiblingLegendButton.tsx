@@ -13,6 +13,7 @@ export function ChartHeaderSiblingLegendButton({
     <button
       type="button"
       onClick={onToggleLegendPanel}
+      aria-label={showLegendPanel ? "Hide Parents & Siblings View legend" : "Show Parents & Siblings View legend"}
       style={{
         background: showLegendPanel ? "var(--hover-overlay)" : "transparent",
         border: `1px solid ${showLegendPanel ? "var(--tree-root)" : "var(--tree-button-border)"}`,
@@ -26,7 +27,7 @@ export function ChartHeaderSiblingLegendButton({
         transition: "all 0.15s",
       }}
     >
-      Sibling Legend
+      Parents & Siblings legend
     </button>
   );
 }

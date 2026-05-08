@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { mapIndividualRow } from "@/lib/individual-mapper";
+import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
+import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 
 const individualSelect = {
   id: true,
@@ -11,6 +13,8 @@ const individualSelect = {
   birthPlaceDisplay: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...individualBirthDeathPlaceSelect,
+  ...gedcomIndividualNlDenormSelect,
   isLiving: true,
   sex: true,
   gender: true,
@@ -66,16 +70,19 @@ export async function GET() {
         marriagePlaceDisplay: true,
         isDivorced: true,
         childrenCount: true,
+        familyPartners: { select: { individualId: true } },
       },
       orderBy: { id: "asc" },
       take: 1,
       skip,
     });
 
-    const row = families[0];
-    if (!row) {
+    const raw = families[0];
+    if (!raw) {
       return NextResponse.json({ family: null });
     }
+
+    const { familyPartners, ...row } = raw;
 
     const xrefs = [row.husbandXref, row.wifeXref].filter(
       (x): x is string => x != null && x !== ""
@@ -118,6 +125,7 @@ export async function GET() {
       childrenCount: row.childrenCount ?? 0,
       husbandName: husbandName || null,
       wifeName: wifeName || null,
+      partnerIndividualIds: familyPartners.map((p) => p.individualId),
     };
 
     return NextResponse.json({ family });

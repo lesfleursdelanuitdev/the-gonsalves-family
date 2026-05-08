@@ -13,6 +13,44 @@ export const ICON_PATHS = {
   /** Lucide ChevronUp – collapse subtree (hide descendants) */
   chevronUp: ["m18 15-6-6-6 6"],
   chevronRight: ["M9 18 L15 12 L9 6"],
+  /** Lucide GitBranchPlus — choose parent family (pedigree) */
+  gitBranchPlus: [
+    "M6 3v12",
+    "M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+    "M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+    "M15 6a9 9 0 0 0-9 9",
+    "M18 15v6",
+    "M21 18h-6",
+  ],
+  /** Lucide FoldVertical — collapse ancestors (pedigree) */
+  foldVertical: [
+    "M12 22v-6",
+    "M12 8V2",
+    "M4 12H2",
+    "M10 12H8",
+    "M16 12h-2",
+    "M22 12h-2",
+    "m15 19-3-3-3 3",
+    "m15 5-3 3-3-3",
+  ],
+  /** Lucide UnfoldVertical — restore collapsed ancestor branch (pedigree) */
+  unfoldVertical: [
+    "M12 22v-6",
+    "M12 8V2",
+    "M4 12H2",
+    "M10 12H8",
+    "M16 12h-2",
+    "M22 12h-2",
+    "m15 19-3 3-3-3",
+    "m15 5-3-3-3 3",
+  ],
+  /** Lucide Baby — show children on root (pedigree; stub) */
+  baby: [
+    "M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5",
+    "M15 12h.01",
+    "M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1",
+    "M9 12h.01",
+  ],
 } as const;
 
 /** Lucide "User" circle (head): cx=12, cy=7, r=4 */
@@ -96,6 +134,22 @@ export function IconChevronUp(props: IconInSvgProps) {
 
 export function IconChevronRight(props: IconInSvgProps) {
   return <IconPaths paths={ICON_PATHS.chevronRight} {...props} />;
+}
+
+export function IconGitBranchPlus(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.gitBranchPlus} {...props} />;
+}
+
+export function IconFoldVertical(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.foldVertical} {...props} />;
+}
+
+export function IconUnfoldVertical(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.unfoldVertical} {...props} />;
+}
+
+export function IconBaby(props: IconInSvgProps) {
+  return <IconPaths paths={ICON_PATHS.baby} {...props} />;
 }
 
 /** Three horizontal dots for overflow / more (centered at x, y). */

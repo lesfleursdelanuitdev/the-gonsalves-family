@@ -16,15 +16,29 @@ export function HeroAndMenu() {
           sizes="100vw"
           aria-hidden
         />
-        <div className="absolute inset-0 bg-bg/52 dark:bg-bg/52" aria-hidden />
+        {/* Lighter wash on small viewports so oldMapBackground reads more clearly. */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 bg-bg/34 dark:bg-bg/34 md:bg-bg/52 md:dark:bg-bg/52"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 pointer-events-none md:hidden"
+          aria-hidden
+          style={{
+            background: "linear-gradient(to top, rgba(0,0,0,0.1) 0%, transparent 48%)",
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none hidden md:block"
           aria-hidden
           style={{
             background: "linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 50%)",
           }}
         />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.10]" aria-hidden>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.05] md:opacity-[0.10]"
+          aria-hidden
+        >
           <Image
             src="/images/agedpaperbg.png"
             alt=""
@@ -34,7 +48,7 @@ export function HeroAndMenu() {
           />
         </div>
         <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 opacity-70 md:opacity-100"
           aria-hidden
           style={{
             background:

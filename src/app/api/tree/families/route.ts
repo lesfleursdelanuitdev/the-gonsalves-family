@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Tree not found" }, { status: 404 });
     }
 
-    const families = await prisma.gedcomFamily.findMany({
+    const familyRows = await prisma.gedcomFamily.findMany({
       where: { fileUuid },
       select: {
         id: true,
@@ -23,8 +23,14 @@ export async function GET() {
         marriagePlaceDisplay: true,
         isDivorced: true,
         childrenCount: true,
+        familyPartners: { select: { individualId: true } },
       },
     });
+
+    const families = familyRows.map(({ familyPartners, ...f }) => ({
+      ...f,
+      partnerIndividualIds: familyPartners.map((p) => p.individualId),
+    }));
 
     return NextResponse.json({ families });
   } catch (err) {

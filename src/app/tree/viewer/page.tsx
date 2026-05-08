@@ -11,11 +11,12 @@ type SearchParams = Promise<{
   depth?: string;
   card?: string;
   partners?: string;
+  famc?: string;
 }>;
 
 /**
  * Main tree viewer route: /tree/viewer. Serves v2 tree.
- * Query: root, chart, depth, card, partners, loadSavedHistory, rootName (see `lib/treeViewerUrl.ts`).
+ * Query: root, chart, depth, card, partners, famc (pedigree family), loadSavedHistory, rootName (see `lib/treeViewerUrl.ts`).
  */
 export default async function TreeViewerPage({
   searchParams,
@@ -30,6 +31,8 @@ export default async function TreeViewerPage({
   const initialChartStrategy: ChartViewStrategyName =
     chartParam === "pedigree"
       ? "pedigree"
+      : chartParam === "fan_chart" || chartParam === "fan-chart" || chartParam === "fanchart"
+        ? "fan_chart"
       : chartParam === "vertical_pedigree" ||
           chartParam === "vertical-pedigree" ||
           chartParam === "verticalpedigree"
@@ -40,10 +43,12 @@ export default async function TreeViewerPage({
     depth: params.depth,
     card: params.card,
     partners: params.partners,
+    famc: params.famc,
   });
   const skipUrlViewOverrides = Boolean(loadSavedHistory && initialRootId != null);
   const initialUrlDepth = skipUrlViewOverrides ? null : parsedUrl.initialUrlDepth;
   const initialPartnersUrl = skipUrlViewOverrides ? null : parsedUrl.initialPartnersUrl;
+  const initialPedigreeFamcFamilyXref = skipUrlViewOverrides ? null : parsedUrl.initialPedigreeFamcFamilyXref;
   const initialPersonCardLayout = parsedUrl.initialPersonCardLayout;
 
   const mountKey = [
@@ -54,6 +59,7 @@ export default async function TreeViewerPage({
     initialUrlDepth ?? "",
     initialPersonCardLayout ?? "",
     initialPartnersUrl ?? "",
+    initialPedigreeFamcFamilyXref ?? "",
   ].join("-");
 
   return (
@@ -104,6 +110,7 @@ export default async function TreeViewerPage({
             initialUrlDepth={initialUrlDepth}
             initialPersonCardLayout={initialPersonCardLayout}
             initialPartnersUrl={initialPartnersUrl}
+            initialPedigreeFamcFamilyXref={initialPedigreeFamcFamilyXref}
           />
         </main>
       </div>

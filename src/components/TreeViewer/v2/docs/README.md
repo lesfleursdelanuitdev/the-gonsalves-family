@@ -5,6 +5,7 @@ Refactored family tree implementation. State and actions live in hooks; the main
 ## Top-level docs
 
 - [FAMILY_TREE_REFACTOR_PLAN.md](../FAMILY_TREE_REFACTOR_PLAN.md) — Refactor plan, constraints, and v2 import map.
+- [CHART_STRATEGY_FAMILY_TREE_REFACTOR_PLAN.md](./CHART_STRATEGY_FAMILY_TREE_REFACTOR_PLAN.md) — Shell refactors (FamilyTree, chart meta, factory/fan) + optional person-display polymorphism (§4).
 - [TREEVIEWER_V1_V2_ANALYSIS.md](../TREEVIEWER_V1_V2_ANALYSIS.md) — Comparison of v1 and v2 (architecture, state, viewport, panels).
 - [STATE.md](./STATE.md) — TreeViewer v2 state: reducer, local UI, panels/drawers, flow diagram, common actions, persistence.
 

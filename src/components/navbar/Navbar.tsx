@@ -10,6 +10,7 @@ import {
   NAV_LEFT,
   NAV_RIGHT,
 } from "./constants";
+import { SITE_ADMIN_LOGIN_HREF } from "@/lib/siteAdminLogin";
 import { NavLogo } from "./NavLogo";
 import { NavDropdown } from "./NavDropdown";
 import { NavLink } from "./NavLink";
@@ -124,6 +125,12 @@ export function Navbar() {
                   isOpen={cultureOpen}
                   onOpenChange={setCultureOpen}
                   isActive={cultureActive}
+                />
+                <NavLink
+                  href={SITE_ADMIN_LOGIN_HREF}
+                  label="Login"
+                  active={false}
+                  showSeparator
                 />
                 {rightItems.map((it) =>
                   it.href === "/tree/viewer/searchDatabase" ? (

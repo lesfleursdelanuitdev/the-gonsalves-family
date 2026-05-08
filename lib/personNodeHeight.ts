@@ -6,7 +6,10 @@
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { PERSON_HEIGHT } from "@/genealogy-visualization-engine";
 import {
+  COMPACT_CARD_HEIGHT_BY_SIZE,
+  DEFAULT_COMPACT_CARD_SIZE,
   DEFAULT_PERSON_CARD_LAYOUT,
+  DEFAULT_PERSON_CARD_VARIANT,
   PERSON_CARD_HEIGHT_BY_LAYOUT,
   resolvePersonCardLayout,
   type PersonCardLayoutSettings,
@@ -82,6 +85,11 @@ export function getEffectivePersonHeight(
   settings: PersonHeightSettings = {},
   context?: PersonHeightLayoutContext
 ): number {
+  const variant = settings.personCardVariant ?? DEFAULT_PERSON_CARD_VARIANT;
+  if (variant === "compact-name" || variant === "compact-avatar") {
+    const sz = settings.compactCardSize ?? DEFAULT_COMPACT_CARD_SIZE;
+    return Math.max(28, COMPACT_CARD_HEIGHT_BY_SIZE[sz]);
+  }
   const showPhotos = settings.showPhotos !== false;
   const showDates = settings.showDates !== false;
   void context?.chartStrategy;

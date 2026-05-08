@@ -9,6 +9,7 @@ type SearchParams = Promise<{
   depth?: string;
   card?: string;
   partners?: string;
+  famc?: string;
 }>;
 
 export default async function TreeV2Page({
@@ -22,6 +23,8 @@ export default async function TreeV2Page({
   const initialChartStrategy: ChartViewStrategyName =
     chartParam === "pedigree"
       ? "pedigree"
+      : chartParam === "fan_chart" || chartParam === "fan-chart" || chartParam === "fanchart"
+        ? "fan_chart"
       : chartParam === "vertical_pedigree" ||
           chartParam === "vertical-pedigree" ||
           chartParam === "verticalpedigree"
@@ -32,6 +35,7 @@ export default async function TreeV2Page({
     depth: params.depth,
     card: params.card,
     partners: params.partners,
+    famc: params.famc,
   });
 
   const mountKey = [
@@ -40,6 +44,7 @@ export default async function TreeV2Page({
     parsedUrl.initialUrlDepth ?? "",
     parsedUrl.initialPersonCardLayout ?? "",
     parsedUrl.initialPartnersUrl ?? "",
+    parsedUrl.initialPedigreeFamcFamilyXref ?? "",
   ].join("-");
 
   return (
@@ -88,6 +93,7 @@ export default async function TreeV2Page({
             initialUrlDepth={parsedUrl.initialUrlDepth}
             initialPersonCardLayout={parsedUrl.initialPersonCardLayout}
             initialPartnersUrl={parsedUrl.initialPartnersUrl}
+            initialPedigreeFamcFamilyXref={parsedUrl.initialPedigreeFamcFamilyXref}
           />
         </main>
       </div>

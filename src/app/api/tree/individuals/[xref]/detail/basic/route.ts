@@ -3,6 +3,7 @@ import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
 import {
   getPersonDetailContext,
+  nlIndividualAddonFromSqlPerson,
   stripSlashesFromName,
   type Row,
 } from "../lib";
@@ -33,6 +34,7 @@ export async function GET(
       prisma.$queryRaw<Row[]>(
         Prisma.sql`
           SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
+                 e.event_label AS event_label,
                  d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                  p.original AS place_original, p.name AS place_name
           FROM gedcom_individual_events_v2 ie
@@ -48,6 +50,7 @@ export async function GET(
       prisma.$queryRaw<Row[]>(
         Prisma.sql`
           SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
+                 e.event_label AS event_label,
                  d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                  p.original AS place_original, p.name AS place_name
           FROM gedcom_individual_events_v2 ie
@@ -75,6 +78,7 @@ export async function GET(
         ? {
             eventType: birthRow.event_type,
             customType: birthRow.custom_type ?? null,
+            eventLabel: (birthRow.event_label as string | null | undefined) ?? null,
             value: birthRow.value ?? null,
             cause: birthRow.cause ?? null,
             dateOriginal: birthRow.date_original ?? null,
@@ -99,6 +103,7 @@ export async function GET(
         ? {
             eventType: deathRow.event_type,
             customType: deathRow.custom_type ?? null,
+            eventLabel: (deathRow.event_label as string | null | undefined) ?? null,
             value: deathRow.value ?? null,
             cause: deathRow.cause ?? null,
             dateOriginal: deathRow.date_original ?? null,
@@ -117,6 +122,7 @@ export async function GET(
       name: stripSlashesFromName(person.full_name as string) ?? null,
       xref: ctx.normalizedXref,
       uuid: person.id,
+      ...nlIndividualAddonFromSqlPerson(person),
       living: !hasDeathEvent,
       gender: formatGender((person.sex as string) ?? null, (person.gender as string) ?? null) ?? null,
       birth,

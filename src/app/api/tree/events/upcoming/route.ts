@@ -55,6 +55,7 @@ export async function GET() {
       select: {
         id: true,
         eventType: true,
+        eventLabel: true,
         date: {
           select: {
             original: true,
@@ -101,7 +102,9 @@ export async function GET() {
         const individual = row.individualEvents[0]?.individual;
         const family = row.familyEvents[0]?.family;
         return {
+          id: row.id,
           eventType: row.eventType,
+          eventLabel: row.eventLabel ?? null,
           date: row.date
             ? {
                 original: row.date.original,

@@ -11,6 +11,9 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import { chartPediByFamilyAndChildId } from "@/lib/tree/parents-label-for-family";
+import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
+import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -21,6 +24,8 @@ const INDIVIDUAL_SELECT = {
   birthYear: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...individualBirthDeathPlaceSelect,
+  ...gedcomIndividualNlDenormSelect,
   deathYear: true,
   isLiving: true,
   sex: true,
@@ -84,7 +89,7 @@ export async function GET(req: NextRequest) {
         }),
         prisma.gedcomParentChild.findMany({
           where: { fileUuid },
-          select: { familyId: true, childId: true },
+          select: { familyId: true, childId: true, pedigree: true, relationshipType: true },
         }),
       ]);
 
@@ -111,6 +116,15 @@ export async function GET(req: NextRequest) {
     }
 
     const idForXref = (xref: string | null) => (xref ? xrefToId.get(xref) : undefined);
+
+    const chartPediMap = chartPediByFamilyAndChildId(
+      parentChildRows.map((r) => ({
+        familyId: r.familyId,
+        childId: r.childId,
+        pedigree: r.pedigree,
+        relationshipType: r.relationshipType,
+      }))
+    );
 
     const includedFamilyIds = new Set<string>();
     for (const fam of families) {
@@ -168,9 +182,10 @@ export async function GET(req: NextRequest) {
         const wifeXref = fam.wifeXref ?? null;
         const children = childIds.map((childId) => {
           const childXref = idToXref.get(childId);
+          const pediKey = `${fam.id}\t${childId}`;
           return {
             id: childXref ?? childId,
-            pedi: "birth" as string,
+            pedi: chartPediMap.get(pediKey) ?? "birth",
           };
         });
         return {

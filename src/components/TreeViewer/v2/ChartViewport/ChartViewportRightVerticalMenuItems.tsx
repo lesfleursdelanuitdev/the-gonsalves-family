@@ -122,12 +122,12 @@ export function getChartViewportRightVerticalMenuItems(
       id: "legend",
       kind: "single",
       show: isMobile && hasSiblingView && Boolean(onToggleLegendPanel),
-      ariaLabel: "Sibling legend",
+      ariaLabel: "Parents & Siblings View legend",
       content: (
         <button
           type="button"
           onClick={onToggleLegendPanel}
-          aria-label="Sibling legend"
+          aria-label="Parents & Siblings View legend"
           style={{
             ...buttonBaseStyle,
             background: showLegendPanel ? "var(--hover-overlay)" : undefined,

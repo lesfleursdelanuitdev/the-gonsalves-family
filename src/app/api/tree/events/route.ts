@@ -18,6 +18,7 @@ export async function GET() {
         id: true,
         eventType: true,
         customType: true,
+        eventLabel: true,
         value: true,
         cause: true,
         sortOrder: true,

@@ -1,9 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { getPeople } from "@/genealogy-visualization-engine";
 import type { HistoryEntry } from "@/genealogy-visualization-engine";
 import { ChartPanel } from "./ChartPanel";
+import { ChartDrawer } from "../ChartDrawers/ChartDrawer";
 import { HistoryPanelItem } from "./HistoryPanelItem";
+import { CHART_VIEWPORT_CHROME_Z_INDEX } from "../ChartViewport/ChartViewportOverlayContext";
 
 function getInitials(rootId: string, people: Map<string, { firstName: string; lastName: string }>): string {
   const person = people.get(rootId);
@@ -102,6 +106,23 @@ const navButtonDisabledStyle: React.CSSProperties = {
   cursor: "not-allowed",
 };
 
+const panelTitleStyle: React.CSSProperties = {
+  color: "var(--tree-text-muted)",
+  fontSize: 10,
+  letterSpacing: "0.15em",
+  textTransform: "uppercase",
+  flexShrink: 0,
+};
+
+function useIsMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
+
+/** Portaled sheet: z-index above viewport right toolbar (see CHART_VIEWPORT_CHROME_Z_INDEX); matches GoToPersonDrawer. */
+const MOBILE_HISTORY_DRAWER_Z = CHART_VIEWPORT_CHROME_Z_INDEX + 89;
+
 export function HistoryPanel({ history, historyIndex, onNavigate, onClearHistory, onClose, isMobile }: HistoryPanelProps) {
   const people = getPeople();
   const canUndo = historyIndex > 0;
@@ -137,31 +158,124 @@ export function HistoryPanel({ history, historyIndex, onNavigate, onClearHistory
     </div>
   );
 
+  const historyList = history.map((entry, i) => {
+    const isCurrent = i === historyIndex;
+    const label = getHistoryEntryLabel(entry, people);
+    return (
+      <HistoryPanelItem
+        key={i}
+        index={i}
+        isCurrent={isCurrent}
+        label={label}
+        onSelect={() => onNavigate(i)}
+      />
+    );
+  });
+
+  const isMounted = useIsMounted();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const id = requestAnimationFrame(() => setDrawerOpen(true));
+    return () => cancelAnimationFrame(id);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || !drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isMobile, drawerOpen, onClose]);
+
+  if (isMobile) {
+    if (!isMounted) return null;
+    return createPortal(
+      <ChartDrawer
+        open={drawerOpen}
+        anchor="bottom"
+        onClose={onClose}
+        showBackdrop
+        zIndex={MOBILE_HISTORY_DRAWER_Z}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          maxHeight: "85dvh",
+          padding: 0,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+        }}
+      >
+        <div
+          style={{
+            flexShrink: 0,
+            padding: "12px 14px 10px",
+            borderBottom: "1px solid var(--tree-panel-border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <span style={panelTitleStyle}>Navigation History</span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--tree-text-subtle)",
+              fontSize: 22,
+              lineHeight: 1,
+              padding: 4,
+            }}
+          >
+            ×
+          </button>
+        </div>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            padding: "8px 12px 10px",
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+          }}
+        >
+          {historyList}
+        </div>
+        <div
+          style={{
+            flexShrink: 0,
+            padding: "10px 12px 14px",
+            borderTop: "1px solid var(--tree-panel-border)",
+          }}
+        >
+          {footer}
+        </div>
+      </ChartDrawer>,
+      document.body
+    );
+  }
+
   return (
     <ChartPanel
       title="Navigation History"
       onClose={onClose}
       placement={{ top: 108, left: 16 }}
-      isMobile={isMobile}
+      isMobile={false}
       minWidth={220}
       maxHeight={360}
       containerStyle={{ padding: "12px 14px 12px 10px" }}
       closeButtonStyle={{ marginTop: 4 }}
       footer={footer}
     >
-      {history.map((entry, i) => {
-        const isCurrent = i === historyIndex;
-        const label = getHistoryEntryLabel(entry, people);
-        return (
-          <HistoryPanelItem
-            key={i}
-            index={i}
-            isCurrent={isCurrent}
-            label={label}
-            onSelect={() => onNavigate(i)}
-          />
-        );
-      })}
+      {historyList}
     </ChartPanel>
   );
 }

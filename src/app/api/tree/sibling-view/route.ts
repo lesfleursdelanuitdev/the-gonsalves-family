@@ -11,6 +11,12 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import {
+  chartPediByFamilyAndChildId,
+  selectBirthFamilyIdForChild,
+} from "@/lib/tree/parents-label-for-family";
+import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
+import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -21,6 +27,8 @@ const INDIVIDUAL_SELECT = {
   birthYear: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...individualBirthDeathPlaceSelect,
+  ...gedcomIndividualNlDenormSelect,
   deathYear: true,
   isLiving: true,
   sex: true,
@@ -40,14 +48,11 @@ function normalizeXref(xref: string): string {
   return s.startsWith("@") ? s : `@${s}@`;
 }
 
-/** Pedigree value for birth family (GEDCOM; case-insensitive). */
-const PEDIGREE_BIRTH = "birth";
-
 /**
  * GET /api/tree/sibling-view?person=@I123@&depth=10
  *
  * Returns the same shape as descendancy (people, unions, rootId, rootUuid) for
- * the "Show siblings" view: birth union, full-sibling trees (recursed), and
+ * the "Show parents & siblings" view: birth union, full-sibling trees (recursed), and
  * other unions where the person is a child (children only, no recursion).
  * Root is the birth father (X) of the birth union.
  */
@@ -83,7 +88,7 @@ export async function GET(req: NextRequest) {
         loadSpouseMap(fileUuid),
         prisma.gedcomParentChild.findMany({
           where: { fileUuid },
-          select: { familyId: true, childId: true },
+          select: { familyId: true, childId: true, pedigree: true, relationshipType: true },
         }),
         prisma.gedcomIndividual.findMany({
           where: { fileUuid },
@@ -101,12 +106,21 @@ export async function GET(req: NextRequest) {
 
     const pAsChildRows = await prisma.gedcomParentChild.findMany({
       where: { fileUuid, childId: p.id },
-      select: { familyId: true, pedigree: true },
+      select: { familyId: true, pedigree: true, relationshipType: true },
     });
 
     const xrefToId = new Map<string, string>(allIndividualsXref.map((r) => [r.xref, r.id]));
     const idToXref = new Map<string, string>(allIndividualsXref.map((r) => [r.id, r.xref]));
     const idForXref = (xref: string | null) => (xref ? xrefToId.get(xref) : undefined);
+
+    const chartPediMap = chartPediByFamilyAndChildId(
+      parentChildRows.map((r) => ({
+        familyId: r.familyId,
+        childId: r.childId,
+        pedigree: r.pedigree,
+        relationshipType: r.relationshipType,
+      }))
+    );
 
     const familyToChildIds = new Map<string, string[]>();
     for (const r of parentChildRows) {
@@ -117,16 +131,30 @@ export async function GET(req: NextRequest) {
     }
 
     const unionsWherePIsChild = new Set<string>();
-    let birthFamilyId: string | null = null;
-    let firstFamilyId: string | null = null;
     for (const r of pAsChildRows) {
       if (!r.familyId) continue;
       unionsWherePIsChild.add(r.familyId);
-      if (firstFamilyId === null) firstFamilyId = r.familyId;
-      if (r.pedigree?.toLowerCase() === PEDIGREE_BIRTH) birthFamilyId = r.familyId;
     }
-    if (birthFamilyId === null && firstFamilyId !== null) birthFamilyId = firstFamilyId;
+    const birthFamilyId = selectBirthFamilyIdForChild(
+      pAsChildRows.map((r) => ({
+        familyId: r.familyId,
+        pedigree: r.pedigree,
+        relationshipType: r.relationshipType,
+      }))
+    );
+    const birthFamilyRow = birthFamilyId ? allFamilies.find((f) => f.id === birthFamilyId) : null;
+    const birthSpouseKey = birthFamilyRow
+      ? `${birthFamilyRow.husbandXref ?? ""}\t${birthFamilyRow.wifeXref ?? ""}`
+      : null;
     const otherUnionFamilyIds = Array.from(unionsWherePIsChild).filter((id) => id !== birthFamilyId);
+    /** Same couple as birth FAM must not appear again as "adoptive" (duplicate FAM records in GEDCOM). */
+    const otherUnionFamilyIdsDeduped = otherUnionFamilyIds.filter((id) => {
+      if (!birthSpouseKey) return true;
+      const fam = allFamilies.find((f) => f.id === id);
+      if (!fam) return false;
+      const key = `${fam.husbandXref ?? ""}\t${fam.wifeXref ?? ""}`;
+      return key !== birthSpouseKey;
+    });
 
     const peopleIds = new Set<string>([p.id]);
     const includedFamilyIds = new Set<string>();
@@ -264,9 +292,10 @@ export async function GET(req: NextRequest) {
         const wifeXref = fam.wifeXref ?? null;
         const children = childIds.map((childId) => {
           const childXref = idToXref.get(childId);
+          const pediKey = `${fam.id}\t${childId}`;
           return {
             id: childXref ?? childId,
-            pedi: "birth" as string,
+            pedi: chartPediMap.get(pediKey) ?? "birth",
           };
         });
         return {
@@ -285,13 +314,13 @@ export async function GET(req: NextRequest) {
     if (xXref && xOtherFamilyIds.some((id) => id !== birthFamilyId)) spouseCatchAlls.push(xXref);
     if (yXref && yOtherFamilyIds.some((id) => id !== birthFamilyId)) spouseCatchAlls.push(yXref);
 
-    const adoptiveUnions = otherUnionFamilyIds
+    const adoptiveUnions = otherUnionFamilyIdsDeduped
       .map((id) => allFamilies.find((f) => f.id === id)?.xref)
       .filter((xref): xref is string => xref != null);
 
     const adoptiveCatchAlls: string[] = [];
     const includedFamilies = allFamilies.filter((f) => includedFamilyIds.has(f.id));
-    for (const famId of otherUnionFamilyIds) {
+    for (const famId of otherUnionFamilyIdsDeduped) {
       const fam = allFamilies.find((f) => f.id === famId);
       if (!fam) continue;
       const husbXref = fam.husbandXref ?? "";
@@ -310,6 +339,8 @@ export async function GET(req: NextRequest) {
       spouseCatchAlls,
       adoptiveUnions,
       adoptiveCatchAlls,
+      birthFatherPersonId: birthFamily?.husbandXref?.trim() || null,
+      birthMotherPersonId: birthFamily?.wifeXref?.trim() || null,
     };
 
     return NextResponse.json({

@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { SettingsPanelDisplay } from "./SettingsPanelDisplay";
+import { SettingsPanelViewOptions } from "./SettingsPanelViewOptions";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsPanelTreeDepth } from "./SettingsPanelTreeDepth";
 
-import type { PersonCardLayout } from "@/lib/person-card-layout";
+import type {
+  PersonCardLayout,
+  PersonCardVariant,
+  PersonCompactCardSize,
+} from "@/lib/person-card-layout";
+import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 
 /** v2 settings: no defaultRootId. */
 export interface ChartSettingsV2 {
@@ -19,6 +26,16 @@ export interface ChartSettingsV2 {
   autoLegendModal: boolean;
   /** Person card visual style across desktop/mobile (mobile auto-falls back to menu variants). */
   personCardLayout: PersonCardLayout;
+  /** `full` = existing rich cards; compact variants for dense trees (see CompactPersonCard). */
+  personCardVariant: PersonCardVariant;
+  /** Row height when `personCardVariant` is compact. */
+  compactCardSize: PersonCompactCardSize;
+  /**
+   * Horizontal pedigree: vertical gap (px) between stacked parent cards (first parent bottom → second parent top).
+   */
+  parentPairGap: number;
+  /** Fan chart: radius (px) for the center/root circle. */
+  fanRootRadius: number;
 }
 
 export interface SettingsPanelProps {
@@ -29,6 +46,7 @@ export interface SettingsPanelProps {
   maxDepth: number;
   displayedDepth?: number;
   onMaxDepthChange: (n: number) => void;
+  chartStrategy: ChartViewStrategyName;
 }
 
 const toggleRowStyle: React.CSSProperties = {
@@ -79,29 +97,75 @@ export function SettingsPanel({
   maxDepth,
   displayedDepth,
   onMaxDepthChange,
+  chartStrategy,
 }: SettingsPanelProps) {
+  const [settingsTab, setSettingsTab] = useState<"display" | "view">("display");
+
+  const tabBtn = (id: "display" | "view", label: string) => {
+    const active = settingsTab === id;
+    return (
+      <button
+        key={id}
+        type="button"
+        role="tab"
+        aria-selected={active}
+        onClick={() => setSettingsTab(id)}
+        style={{
+          flex: 1,
+          padding: "8px 6px",
+          borderRadius: 8,
+          border: active ? "2px solid var(--tree-root, #2f6f4e)" : "1px solid var(--tree-button-border)",
+          background: active ? "var(--hover-overlay)" : "var(--surface-elevated)",
+          color: "var(--tree-text)",
+          fontSize: 11,
+          fontWeight: active ? 600 : 500,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
     <ChartPanel
       title="Settings"
       onClose={onClose}
-      placement={{ top: 108, right: 16 }}
+      drawer
+      drawerWidth={420}
       isMobile={isMobile}
-      minWidth={280}
-      closeButtonStyle={{ marginTop: 4 }}
+      showCloseButton={false}
     >
       <SettingsPanelTreeDepth
         maxDepth={maxDepth}
         displayedDepth={displayedDepth}
         onMaxDepthChange={onMaxDepthChange}
       />
-      <SettingsPanelDisplay
-        settings={settings}
-        onUpdateSetting={(key, value) => onUpdateSetting(key, value as ChartSettingsV2[typeof key])}
-      />
+      <div
+        role="tablist"
+        aria-label="Settings sections"
+        style={{ display: "flex", gap: 8, marginBottom: 12, flexShrink: 0 }}
+      >
+        {tabBtn("display", "Display")}
+        {tabBtn("view", "View options")}
+      </div>
+      {settingsTab === "display" ? (
+        <SettingsPanelDisplay
+          settings={settings}
+          onUpdateSetting={(key, value) => onUpdateSetting(key, value as ChartSettingsV2[typeof key])}
+        />
+      ) : (
+        <SettingsPanelViewOptions
+          chartStrategy={chartStrategy}
+          settings={settings}
+          onUpdateSetting={(key, value) => onUpdateSetting(key, value as ChartSettingsV2[typeof key])}
+        />
+      )}
       <SettingsSection title="Behaviour">
         <div style={toggleRowStyle}>
           <span style={{ color: "var(--tree-text-muted)", fontSize: 12 }}>
-            Auto-show legend on siblings
+            Auto-show legend for Parents & Siblings View
           </span>
           <ToggleButton
             checked={settings.autoLegendModal}

@@ -28,6 +28,15 @@ This app uses the shared `@ligneous/prisma` package to read from the `ligneous_f
 1. Copy `.env.example` to `.env.local` and set `DATABASE_URL`.
 2. Ensure the read-only user exists (see `docs/read-only-db-user.md`).
 
+## Python research API (optional)
+
+`/api/research/[...path]` proxies to `ligneous-python-api` (`PYTHON_API_URL`, default `http://127.0.0.1:5001`).
+
+Because this frontend is anonymous and uses a **read-only** DB role:
+
+- Tree-scoped calls must use the configured public tree only: set **`PUBLIC_RESEARCH_TREE_ID`** or **`PUBLIC_STORY_TREE_ID`**, or the default name-based lookup (`resolveTreeId` → “Gonsalves Family Tree”). Other tree IDs return **403**.
+- The proxy always sends **`X-Research-Persist: false`** so natural-language runs are **not** written to `research.query_runs` / `research.result_sets` on the Python side.
+
 ## Images
 
 - **Local images** stay in `public/images/` (crest, hero, journey photos, etc.).

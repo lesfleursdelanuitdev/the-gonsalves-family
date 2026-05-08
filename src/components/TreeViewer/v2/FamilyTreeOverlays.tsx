@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { getPeople, getUnions, buildLegendItems, countVisibleNodes } from "@/genealogy-visualization-engine";
-import type { ViewState } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName, ViewState } from "@/genealogy-visualization-engine";
 import type { HistoryEntry } from "@/genealogy-visualization-engine";
 import type { ChartNode } from "@/genealogy-visualization-engine";
 import type { TreeState } from "@/genealogy-visualization-engine";
@@ -46,6 +46,8 @@ export interface FamilyTreeOverlaysProps {
   ) => void;
   displayedDepth: number;
   onMaxDepthChange: (n: number) => void;
+  /** Active chart; view-only settings (e.g. pedigree pair spacing) depend on this. */
+  chartStrategy: ChartViewStrategyName;
   viewState: ViewState;
   effectiveRootId: string;
   showLegendPanel: boolean;
@@ -98,6 +100,7 @@ export function FamilyTreeOverlays({
   onUpdateSetting,
   displayedDepth,
   onMaxDepthChange,
+  chartStrategy,
   viewState,
   effectiveRootId,
   showLegendPanel,
@@ -128,7 +131,7 @@ export function FamilyTreeOverlays({
   );
 
   // Current depth = depth actually shown (user-selected max capped by rendered depth). Use displayedDepth
-  // so panels update when the tree re-renders (e.g. after "Show parents", "Show children") and maxDepthRendered changes.
+  // so panels update when the tree re-renders (e.g. after sibling view, "Show children") and maxDepthRendered changes.
   const infoStats = useMemo(
     () => ({
       totalPeople: getPeople().size,
@@ -176,6 +179,7 @@ export function FamilyTreeOverlays({
           maxDepth={effectiveMaxDepth}
           displayedDepth={displayedDepth}
           onMaxDepthChange={onMaxDepthChange}
+          chartStrategy={chartStrategy}
         />
       )}
 

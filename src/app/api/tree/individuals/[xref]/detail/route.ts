@@ -7,6 +7,7 @@ import {
   placeDisplayFromJoinedEventRow,
 } from "@/lib/individual-key-fact-display";
 import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
+import { nlIndividualAddonFromSqlPerson } from "./lib";
 
 function normalizeXref(xref: string): string {
   const s = xref.trim();
@@ -41,7 +42,9 @@ export async function GET(
     const personRows = await prisma.$queryRaw<Row[]>(
       Prisma.sql`
         SELECT id, full_name, birth_date_display, birth_place_display,
-               death_date_display, death_place_display
+               death_date_display, death_place_display,
+               primary_surname_lower, birth_country, birth_country_lower,
+               death_country, death_country_lower, age_at_death, generation_depth
         FROM gedcom_individuals_v2
         WHERE file_uuid = ${fileUuid}::uuid AND xref = ${normalizedXref}
         LIMIT 1
@@ -58,6 +61,7 @@ export async function GET(
         prisma.$queryRaw<Row[]>(
           Prisma.sql`
             SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
+                   e.event_label AS event_label,
                    d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                    p.original AS place_original, p.name AS place_name
             FROM gedcom_individual_events_v2 ie
@@ -73,6 +77,7 @@ export async function GET(
         prisma.$queryRaw<Row[]>(
           Prisma.sql`
             SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
+                   e.event_label AS event_label,
                    d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                    p.original AS place_original, p.name AS place_name
             FROM gedcom_individual_events_v2 ie
@@ -140,6 +145,7 @@ export async function GET(
         prisma.$queryRaw<Row[]>(
           Prisma.sql`
             SELECT e.id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
+                   e.event_label AS event_label,
                    d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                    p.original AS place_original, p.name AS place_name
             FROM gedcom_individual_events_v2 ie
@@ -158,6 +164,7 @@ export async function GET(
         ? await prisma.$queryRaw<Row[]>(
             Prisma.sql`
               SELECT fe.family_id, e.id AS event_id, e.event_type, e.custom_type, e.value, e.cause, e.sort_order,
+                     e.event_label AS event_label,
                      d.original AS date_original, d.date_type AS date_type, d.year, d.month, d.day,
                      p.original AS place_original, p.name AS place_name
               FROM gedcom_family_events_v2 fe
@@ -184,6 +191,7 @@ export async function GET(
         ? {
             eventType: birthRow.event_type,
             customType: birthRow.custom_type ?? null,
+            eventLabel: (birthRow.event_label as string | null | undefined) ?? null,
             value: birthRow.value ?? null,
             cause: birthRow.cause ?? null,
             dateOriginal: birthRow.date_original ?? null,
@@ -208,6 +216,7 @@ export async function GET(
         ? {
             eventType: deathRow.event_type,
             customType: deathRow.custom_type ?? null,
+            eventLabel: (deathRow.event_label as string | null | undefined) ?? null,
             value: deathRow.value ?? null,
             cause: deathRow.cause ?? null,
             dateOriginal: deathRow.date_original ?? null,
@@ -386,6 +395,7 @@ export async function GET(
     ) => ({
       eventType: r.event_type,
       customType: r.custom_type ?? null,
+      eventLabel: (r.event_label as string | null | undefined) ?? null,
       value: r.value ?? null,
       cause: r.cause ?? null,
       dateOriginal: r.date_original ?? null,
@@ -459,6 +469,7 @@ export async function GET(
       name: stripSlashesFromName(person.full_name as string) ?? null,
       xref: normalizedXref,
       uuid: person.id,
+      ...nlIndividualAddonFromSqlPerson(person),
       birth,
       death,
       familiesOfOrigin,

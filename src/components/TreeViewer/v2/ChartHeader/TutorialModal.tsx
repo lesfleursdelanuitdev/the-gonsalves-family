@@ -2,7 +2,6 @@
 
 import {
   Heart,
-  ArrowUp,
   Users,
   ArrowDown,
   Home,
@@ -99,11 +98,10 @@ function TutorialPersonCardSection() {
         <strong style={strongLabelStyle}>Show partners</strong> — open the partner list and pick who to show on the
         tree.
       </TutorialRow>
-      <TutorialRow icon={<ArrowUp size={iconSize} strokeWidth={2} />}>
-        <strong style={strongLabelStyle}>Show parents</strong> — jump to this person’s parents.
-      </TutorialRow>
       <TutorialRow icon={<Users size={iconSize} strokeWidth={2} />}>
-        <strong style={strongLabelStyle}>Show siblings</strong> — view siblings for this person.
+        <strong style={strongLabelStyle}>Show parents & siblings</strong> — on the{" "}
+        <strong style={strongLabelStyle}>root</strong> person only, opens the parents & siblings view (birth line,
+        adoptive unions, and legend when available).
       </TutorialRow>
       <TutorialRow icon={<ArrowDown size={iconSize} strokeWidth={2} />}>
         <strong style={strongLabelStyle}>Display next generation</strong> — reveal the next generation of children when

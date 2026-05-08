@@ -8,7 +8,7 @@ export function HeroV2() {
     <section className="relative w-full min-w-0 max-w-full min-h-[420px] overflow-hidden flex items-center justify-center pt-2 pb-8 md:py-24">
       <div className="absolute inset-0 z-0">
         <div
-          className="absolute inset-0 pointer-events-none opacity-50"
+          className="absolute inset-0 pointer-events-none opacity-40 md:opacity-50"
           aria-hidden
           style={{
             background:
@@ -16,7 +16,7 @@ export function HeroV2() {
           }}
         />
       </div>
-      <div className="relative z-10 flex min-w-0 w-full max-w-full flex-col px-1 gap-0 md:flex-row md:items-center md:justify-center md:px-6 md:gap-0">
+      <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-[min(100%,36rem)] flex-col gap-0 px-3 sm:max-w-[min(100%,40rem)] md:max-w-[min(100%,56rem)] md:flex-row md:items-center md:justify-center md:gap-6 md:px-6 lg:max-w-[min(100%,64rem)]">
         <div className="flex-1 md:flex-[0.9] min-h-[160px] flex items-end md:items-center justify-center md:justify-end pt-4 md:pt-0">
           <div className="relative flex items-center justify-center leading-[0]">
             <div

@@ -31,7 +31,7 @@ export interface ChartMenuProps {
   isMobile: boolean;
   rootDisplayName?: string | null;
   chartStrategy: ChartViewStrategyName;
-  onChartStrategyChange: (next: ChartViewStrategyName) => void;
+  onChartStrategyChange: (next: ChartViewStrategyName) => void | Promise<void>;
   searchGivenName: string;
   searchLastName: string;
   onSearchGivenNameChange: (v: string) => void;
@@ -130,6 +130,7 @@ export function ChartMenu({
     <ChartTypeModal
       open={chartTypeModalOpen}
       value={chartStrategy}
+      isMobile={isMobile}
       onClose={() => onChartTypeModalOpenChange(false)}
       onSelect={(next) => {
         onChartStrategyChange(next);

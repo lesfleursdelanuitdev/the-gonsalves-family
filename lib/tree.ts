@@ -25,3 +25,14 @@ export async function resolveTreeFileUuid(): Promise<string | null> {
   setCachedFileUuid(uuid);
   return uuid;
 }
+
+/**
+ * Resolves the Tree.id for the configured public tree.
+ */
+export async function resolveTreeId(): Promise<string | null> {
+  const tree = await prisma.tree.findFirst({
+    where: { name: TREE_NAME },
+    select: { id: true },
+  });
+  return tree?.id ?? null;
+}

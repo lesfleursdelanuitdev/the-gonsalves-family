@@ -1,33 +1,38 @@
 import { NextResponse } from "next/server";
-import { resolveTreeFileUuid } from "@/lib/tree";
-import { prisma } from "@/lib/database/prisma";
+import { resolveTreeId } from "@/lib/tree";
+
+const PYTHON_API_URL = (process.env.PYTHON_API_URL ?? "http://127.0.0.1:5001").replace(/\/$/, "");
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
-      { error: "Database not configured" },
-      { status: 503 }
-    );
-  }
   try {
-    const fileUuid = await resolveTreeFileUuid();
-    if (!fileUuid) {
+    const treeId = await resolveTreeId();
+    if (!treeId) {
       return NextResponse.json({ error: "Tree not found" }, { status: 404 });
     }
 
-    const givenNames = await prisma.gedcomGivenName.findMany({
-      where: { fileUuid },
-      select: {
-        id: true,
-        givenName: true,
-        frequency: true,
-      },
-      orderBy: { frequency: "desc" },
-    });
+    const res = await fetch(
+      `${PYTHON_API_URL}/api/research/trees/${encodeURIComponent(treeId)}/analytics/given-names?limit=200`,
+    );
+    const data = (await res.json().catch(() => ({}))) as {
+      top_names?: Array<{ id: string; name: string; frequency: number }>;
+      error?: string;
+    };
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: data.error || "Failed to fetch given-name analytics" },
+        { status: res.status },
+      );
+    }
+
+    const givenNames = (data.top_names ?? []).map((name) => ({
+      id: name.id,
+      givenName: name.name,
+      frequency: name.frequency,
+    }));
 
     return NextResponse.json({ givenNames });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Database error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Research API unavailable";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }

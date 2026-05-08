@@ -17,6 +17,7 @@ import type {
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { OnNameClick } from "../../../DescendancyChart/FamilyTreeNodes/TreeNodes";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
+import type { FanMoreClickPayload } from "../fan/fanPeekTypes";
 
 export interface ChartViewportProps {
   isLoading: boolean;
@@ -29,6 +30,8 @@ export interface ChartViewportProps {
   rootId: string;
   onAction: (action: PersonCardAction, personId: string) => void;
   onNameClick?: OnNameClick;
+  /** Fan chart only: more-chip payload. */
+  onFanMoreClick?: (payload: FanMoreClickPayload) => void;
   settings: ChartSettingsV2;
   /** Connectors from builder.getCurrentStrategy()?.connectors. */
   connectors?: ConnectorHelpers;
@@ -51,6 +54,10 @@ export interface ChartViewportProps {
   /** For collapse/expand subtree. */
   viewState?: ViewState;
   chartStrategy?: ChartViewStrategyName;
+  /** Pedigree / vertical pedigree: depth below cap so "Expand ancestors" can apply. */
+  pedigreeHasRoomToExpandDepth?: boolean;
+  /** Pedigree API: xrefs that appear as a child in multiple families (optional "Choose parent family"). */
+  pedigreeMultiFamilyChildXrefs?: string[] | null;
   /** When true, sibling view is active; on mobile show a legend button below the right controls. */
   hasSiblingView?: boolean;
   showLegendPanel?: boolean;
@@ -71,6 +78,7 @@ export function ChartViewport({
   rootId,
   onAction,
   onNameClick,
+  onFanMoreClick,
   settings,
   connectors,
   dragging,
@@ -88,6 +96,8 @@ export function ChartViewport({
   viewState,
   chartStrategy = "descendancy",
   isMobile = false,
+  pedigreeHasRoomToExpandDepth = false,
+  pedigreeMultiFamilyChildXrefs = null,
   hasSiblingView = false,
   showLegendPanel = false,
   onToggleLegendPanel,
@@ -154,11 +164,14 @@ export function ChartViewport({
             rootId={rootId}
             onAction={onAction}
             onNameClick={onNameClick}
+            onFanMoreClick={onFanMoreClick}
             settings={settings}
             connectors={connectors}
             viewState={viewState}
             chartStrategy={chartStrategy}
             isMobile={isMobile}
+            pedigreeHasRoomToExpandDepth={pedigreeHasRoomToExpandDepth}
+            pedigreeMultiFamilyChildXrefs={pedigreeMultiFamilyChildXrefs}
           />
         </g>
       </svg>

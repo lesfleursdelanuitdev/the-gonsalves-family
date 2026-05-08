@@ -25,11 +25,40 @@ export type PersonCardLayout =
   | "avatarTopMobileMenu"
   | "avatarLeftMobileMenu";
 
+/** Full rich cards vs compact dense-tree cards (see `CompactPersonCard`). */
+export type PersonCardVariant = "full" | "compact-name" | "compact-avatar";
+
+/** Vertical size step for compact cards (layout width stays `PERSON_WIDTH`). */
+export type PersonCompactCardSize = "large" | "medium" | "small" | "extra-small";
+
 export const DEFAULT_PERSON_CARD_LAYOUT: PersonCardLayout = "avatarTopActionsBottom";
+export const DEFAULT_PERSON_CARD_VARIANT: PersonCardVariant = "full";
+export const DEFAULT_COMPACT_CARD_SIZE: PersonCompactCardSize = "medium";
+
+/** Row height for compact cards (matches `getEffectivePersonHeight` when variant is compact). */
+export const COMPACT_CARD_HEIGHT_BY_SIZE: Record<PersonCompactCardSize, number> = {
+  large: 46,
+  medium: 40,
+  small: 36,
+  "extra-small": 32,
+};
+
+export const COMPACT_CARD_FONT_PX: Record<PersonCompactCardSize, number> = {
+  large: 15,
+  medium: 14,
+  small: 13,
+  "extra-small": 11,
+};
+
+export const COMPACT_AVATAR_PX = 22;
 export const MOBILE_PERSON_CARD_FALLBACK_LAYOUT: PersonCardLayout = "avatarLeftMobileMenu";
 
 export interface PersonCardLayoutSettings {
   personCardLayout?: PersonCardLayout;
+  /** When not `full`, `PersonCard` renders `CompactPersonCard` (dense views). */
+  personCardVariant?: PersonCardVariant;
+  /** Row height tier for compact variants only. */
+  compactCardSize?: PersonCompactCardSize;
 }
 
 export const PERSON_CARD_LAYOUT_OPTIONS: Array<{

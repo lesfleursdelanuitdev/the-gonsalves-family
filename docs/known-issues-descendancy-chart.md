@@ -8,24 +8,15 @@ This document tracks known limitations and planned work for the descendancy char
 
 **Issue:** If a person is a child in a union but **not a birth child** (e.g. adopted, foster, other pedigree), we do not fully support that for:
 
-- **Show siblings** (`showSiblings`)
-- **Show parents** (`showParents` / `parents`)
+- **Show parents & siblings** (`showSiblings`) on the root person (parents & siblings view from API)
 
-Behavior and data for non-birth children in these flows are incomplete or incorrect.
+Behavior and data for non-birth children in that flow can be incomplete or incorrect.
 
-**Planned:** Extend support for non-birth children in sibling and parent views (data, API, and UI).
-
----
-
-## 2. Show parents endpoint
-
-**Issue:** For the **Show parents** action (`parents`), we will need to add a **new API endpoint** (similar to the sibling-view endpoint). Currently there is no dedicated parents-view endpoint; the action may be using descendancy or other data in a way that doesn’t fully match the desired behavior.
-
-**Planned:** Design and implement a parents-view (or equivalent) endpoint and wire the Show parents action to it.
+**Planned:** Extend support for non-birth children in sibling view (data, API, and UI).
 
 ---
 
-## 3. Centering on spouse after open
+## 2. Centering on spouse after open
 
 **Issue:** Centering the view on a spouse **after opening** that spouse (single-spouse open from the spouse drawer) is **buggy**. Pan/zoom may not land correctly on the newly opened spouse card.
 
@@ -35,7 +26,7 @@ Behavior and data for non-birth children in these flows are incomplete or incorr
 
 ---
 
-## 4. Tutorial option
+## 3. Tutorial option
 
 **Issue:** We need to add a **tutorial option** for the descendancy chart (e.g. first-time or “how to use” guidance).
 
@@ -47,7 +38,6 @@ Behavior and data for non-birth children in these flows are incomplete or incorr
 
 | # | Area | Issue | Status |
 |---|------|--------|--------|
-| 1 | Data / flows | Non–birth children not fully supported for showSiblings / showParents | Known |
-| 2 | API | New endpoint needed for Show parents | Planned |
-| 3 | UX | Centering on spouse after open is buggy | Known |
-| 4 | UX | Tutorial option needed | Planned |
+| 1 | Data / flows | Non–birth children not fully supported for showSiblings (Show parents & siblings) | Known |
+| 2 | UX | Centering on spouse after open is buggy | Known |
+| 3 | UX | Tutorial option needed | Known |

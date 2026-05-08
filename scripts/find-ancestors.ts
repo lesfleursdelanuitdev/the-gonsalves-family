@@ -13,6 +13,7 @@ import {
   loadParentChildMaps,
   getAncestorIds,
 } from "../lib/tree-ancestry";
+import { gedcomIndividualNlDenormSelect } from "../lib/gedcom-individual-nl-select";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -22,6 +23,7 @@ const INDIVIDUAL_SELECT = {
   birthPlaceDisplay: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...gedcomIndividualNlDenormSelect,
   isLiving: true,
   sex: true,
   gender: true,

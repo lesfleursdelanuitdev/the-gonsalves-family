@@ -6,17 +6,22 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { getPeople, getBirthUnionByChild, PERSON_WIDTH } from "@/genealogy-visualization-engine";
 import type { ChartViewStrategyName, DescendancyPerson, PersonCardAction } from "@/genealogy-visualization-engine";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
+import { getNameBackgroundColor, NAME_UNDERLINE_PX } from "@/lib/person-name-accent";
+import { getPedigreeCardActions } from "@/lib/pedigreeCardActions";
 import {
   CARD_CORNER_RX,
   COLORS,
   DEFAULT_PERSON_CARD_LAYOUT,
+  DEFAULT_PERSON_CARD_VARIANT,
   PERSON_CARD_HEIGHT_BY_LAYOUT,
   resolvePersonCardLayout,
   type PersonCardLayout,
+  type PersonCardVariant,
+  type PersonCompactCardSize,
 } from "@/lib/person-card-layout";
+import { CompactPersonCard } from "./CompactPersonCard";
 import {
   IconArrowDown,
-  IconArrowUp,
   IconChevronDown,
   IconChevronUp,
   IconCrown,
@@ -39,26 +44,7 @@ const CARD_W = PERSON_WIDTH;
 /** Extra vertical space for name area (top + bottom padding). */
 const NAME_ROW_EXTRA_HEIGHT = 12;
 
-/** Soft underline colors for names (by sex / GEDCOM SEX). */
-const NAME_BG_MALE = "#AAD7ED";
-const NAME_BG_FEMALE = "#F8BBD0";
-const NAME_BG_OTHER = "#C8E6C9";
-
-const NAME_UNDERLINE_PX = 3;
-
-/** Resolve sex for name underline — supports API labels and GEDCOM letters (case-insensitive). */
-function getNameBackgroundColor(gender: string | null | undefined): string {
-  if (gender == null) return NAME_BG_OTHER;
-  const normalized = `${gender}`
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "");
-  if (normalized === "MALE" || normalized === "M") return NAME_BG_MALE;
-  if (normalized === "FEMALE" || normalized === "F") return NAME_BG_FEMALE;
-  return NAME_BG_OTHER;
-}
-
-type ActionBtn = {
+export type ActionBtn = {
   Icon: typeof IconUsers;
   title: string;
   action: PersonCardAction;
@@ -141,15 +127,14 @@ function buildActionButtons(
   } = opts;
   const buttons: ActionBtn[] = [];
   if (!isSpouse && !isLinkedSpouse && isRoot && hasParents) {
-    buttons.push({ Icon: IconUsers, title: "Show siblings", action: "showSiblings" });
+    buttons.push({ Icon: IconUsers, title: "Show parents & siblings", action: "showSiblings" });
   }
   if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasSpouses) {
     buttons.push({ Icon: IconHeart, title: "Show spouses", action: "showSpouses" });
   }
-  if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasParents) {
-    buttons.push({ Icon: IconArrowUp, title: "Go to parents", action: "parents" });
+  if (!isRoot) {
+    buttons.push({ Icon: IconHome, title: "Set as root", action: "root" });
   }
-  buttons.push({ Icon: IconHome, title: "Set as root", action: "root" });
   if (hasDescendantsInData && !isSpouse && !isLinkedSpouse) {
     if (isSubtreeCollapsed) {
       buttons.push({ Icon: IconChevronDown, title: "Expand subtree", action: "expandSubtree" });
@@ -157,7 +142,7 @@ function buildActionButtons(
       buttons.push({ Icon: IconChevronUp, title: "Collapse subtree", action: "collapseSubtree" });
     }
   }
-  if (isLeaf) {
+  if (isLeaf && hasDescendantsInData) {
     buttons.push({ Icon: IconArrowDown, title: "More", action: "expandDown" });
   }
   return buttons;
@@ -422,6 +407,8 @@ export interface PersonCardSettings {
   showUnknown?: boolean;
   showCardActionIcons?: boolean;
   personCardLayout?: PersonCardLayout;
+  personCardVariant?: PersonCardVariant;
+  compactCardSize?: PersonCompactCardSize;
 }
 
 type LegacyDesktopVariant = "v1" | "v2" | "v3" | "v4";
@@ -466,6 +453,14 @@ export interface PersonCardProps {
   settings?: PersonCardSettings;
   chartStrategy?: ChartViewStrategyName;
   isMobile?: boolean;
+  /** Pedigree / vertical pedigree: generation index (0 = root, −1 = parents, …). */
+  pedigreeGeneration?: number;
+  pedigreeGlobalMinGen?: number;
+  hasMultipleFamiliesAsChild?: boolean;
+  /** Pedigree: show "Expand ancestors" on this node (last column + depth cap). */
+  pedigreeShowExpandAncestorsAction?: boolean;
+  /** Pedigree: this node is where ancestor collapse is applied — offer “Show ancestors”. */
+  pedigreeIsAncestorCollapseTarget?: boolean;
 }
 
 export function PersonCard({
@@ -486,6 +481,11 @@ export function PersonCard({
   settings = {},
   chartStrategy = "descendancy",
   isMobile = false,
+  pedigreeGeneration,
+  pedigreeGlobalMinGen,
+  hasMultipleFamiliesAsChild = false,
+  pedigreeShowExpandAncestorsAction = false,
+  pedigreeIsAncestorCollapseTarget = false,
 }: PersonCardProps) {
   const photoClipId = useId().replace(/:/g, "");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -493,7 +493,6 @@ export function PersonCard({
   const [railOverflowOpenTop, setRailOverflowOpenTop] = useState(false);
   /** Desktop avatar-left / actions-right: overflow actions behind "more" rail slot */
   const [railOverflowOpen, setRailOverflowOpen] = useState(false);
-  void chartStrategy;
   const requestedLayout = settings.personCardLayout ?? DEFAULT_PERSON_CARD_LAYOUT;
   const resolvedLayout = resolvePersonCardLayout(requestedLayout, isMobile);
   const renderLayout = toLegacyRenderVariant(resolvedLayout);
@@ -540,17 +539,32 @@ export function PersonCard({
   const showDates = settings.showDates !== false;
   const showCardActionIcons = settings.showCardActionIcons !== false;
 
-  const actionButtons = buildActionButtons(person, {
-    isRoot,
-    hasParents,
-    hasSpouses,
-    onlyRoot,
-    isSpouse,
-    isLinkedSpouse,
-    isLeaf,
-    hasDescendantsInData,
-    isSubtreeCollapsed,
-  });
+  const isPedigreeChart = chartStrategy === "pedigree" || chartStrategy === "vertical_pedigree";
+  const actionButtons: ActionBtn[] =
+    isPedigreeChart &&
+    pedigreeGeneration != null &&
+    pedigreeGlobalMinGen != null &&
+    !isSpouse &&
+    !isLinkedSpouse
+      ? (getPedigreeCardActions(person, {
+          isRoot,
+          generationIndex: pedigreeGeneration,
+          globalMinGeneration: pedigreeGlobalMinGen,
+          hasMultipleFamiliesAsChild,
+          showExpandAncestors: pedigreeShowExpandAncestorsAction,
+          isAncestorCollapseTarget: pedigreeIsAncestorCollapseTarget,
+        }) as ActionBtn[])
+      : buildActionButtons(person, {
+          isRoot,
+          hasParents,
+          hasSpouses,
+          onlyRoot,
+          isSpouse,
+          isLinkedSpouse,
+          isLeaf,
+          hasDescendantsInData,
+          isSubtreeCollapsed,
+        });
 
   const initials =
     `${(firstName?.[0] ?? "").toUpperCase()}${(lastName?.[0] ?? "").toUpperCase()}`.trim() || "?";
@@ -604,70 +618,91 @@ export function PersonCard({
           borderRadius: 12,
           boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
           border: `1px solid ${COLORS.cardStroke}`,
-          padding: 6,
           fontFamily: "system-ui, sans-serif",
           touchAction: "manipulation",
           maxHeight,
-          overflowY: "auto",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
-        {onNameClick && (
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            padding: 6,
+            paddingBottom: 4,
+          }}
+        >
+          {onNameClick && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                handleNameClick(e as unknown as React.MouseEvent);
+              }}
+              style={mobileMenuRowStyle}
+            >
+              <span style={mobileMenuIcon}>
+                <SvgActionIcon Icon={PersonIcon} />
+              </span>
+              View profile
+            </button>
+          )}
+          {onAction &&
+            actionButtons.map((b) => (
+              <button
+                type="button"
+                key={b.title}
+                role="menuitem"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onAction(b.action, id);
+                }}
+                style={mobileMenuRowStyle}
+              >
+                <span style={mobileMenuIcon}>
+                  <SvgActionIcon Icon={b.Icon} />
+                </span>
+                {b.title}
+              </button>
+            ))}
+        </div>
+        <div
+          style={{
+            flexShrink: 0,
+            borderTop: `1px solid ${COLORS.cardStroke}`,
+            background: COLORS.card,
+            padding: "0 6px 6px",
+          }}
+        >
           <button
             type="button"
             role="menuitem"
             onClick={(e) => {
               e.stopPropagation();
               setMenuOpen(false);
-              handleNameClick(e as unknown as React.MouseEvent);
             }}
-            style={mobileMenuRowStyle}
+            style={{
+              ...mobileMenuRowStyle,
+              width: "100%",
+            }}
           >
             <span style={mobileMenuIcon}>
-              <SvgActionIcon Icon={PersonIcon} />
+              <SvgActionIcon Icon={IconX} />
             </span>
-            View profile
+            Close menu
           </button>
-        )}
-        {onAction &&
-          actionButtons.map((b) => (
-            <button
-              type="button"
-              key={b.title}
-              role="menuitem"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen(false);
-                onAction(b.action, id);
-              }}
-              style={mobileMenuRowStyle}
-            >
-              <span style={mobileMenuIcon}>
-                <SvgActionIcon Icon={b.Icon} />
-              </span>
-              {b.title}
-            </button>
-          ))}
-        <button
-          type="button"
-          role="menuitem"
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuOpen(false);
-          }}
-          style={{
-            ...mobileMenuRowStyle,
-            borderTop: `1px solid ${COLORS.cardStroke}`,
-            marginTop: 4,
-            paddingTop: 12,
-          }}
-        >
-          <span style={mobileMenuIcon}>
-            <SvgActionIcon Icon={IconX} />
-          </span>
-          Close menu
-        </button>
+        </div>
       </div>
     );
   }
@@ -823,27 +858,31 @@ export function PersonCard({
             </span>
           </div>
         </foreignObject>
-        <text
-          x={cx}
-          y={top + 56 + NAME_ROW_EXTRA_HEIGHT}
-          textAnchor="middle"
-          fill={COLORS.date}
-          fontFamily="system-ui, sans-serif"
-          style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.06em" }}
-        >
-          {birthYear ?? "?"} — {deathYear ?? "present"}
-        </text>
-        <text
-          x={cx}
-          y={top + effectiveHeight - 10}
-          textAnchor="middle"
-          fontSize={7.5}
-          fill={COLORS.muted}
-          fontFamily="Georgia, serif"
-          fontStyle="italic"
-        >
-          shown under {primaryLabel}
-        </text>
+        {effectiveHeight >= 92 && (
+          <>
+            <text
+              x={cx}
+              y={top + 56 + NAME_ROW_EXTRA_HEIGHT}
+              textAnchor="middle"
+              fill={COLORS.date}
+              fontFamily="system-ui, sans-serif"
+              style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.06em" }}
+            >
+              {birthYear ?? "?"} — {deathYear ?? "present"}
+            </text>
+            <text
+              x={cx}
+              y={top + effectiveHeight - 10}
+              textAnchor="middle"
+              fontSize={7.5}
+              fill={COLORS.muted}
+              fontFamily="Georgia, serif"
+              fontStyle="italic"
+            >
+              shown under {primaryLabel}
+            </text>
+          </>
+        )}
         {onAction && (
           <g
             style={{ cursor: "pointer" }}
@@ -951,6 +990,40 @@ export function PersonCard({
           </g>
         )}
       </g>
+    );
+  }
+
+  const personCardVariant = settings.personCardVariant ?? DEFAULT_PERSON_CARD_VARIANT;
+  if (
+    (personCardVariant === "compact-name" || personCardVariant === "compact-avatar") &&
+    !_isShadow
+  ) {
+    return (
+      <CompactPersonCard
+        cx={cx}
+        y={y}
+        x={x}
+        top={top}
+        effectiveHeight={effectiveHeight}
+        person={person}
+        isRoot={isRoot}
+        isSpouse={isSpouse}
+        isLinkedSpouse={isLinkedSpouse}
+        hasSpouses={hasSpouses}
+        hasParents={hasParents}
+        onlyRoot={onlyRoot}
+        isLeaf={isLeaf}
+        hasDescendantsInData={hasDescendantsInData}
+        isSubtreeCollapsed={isSubtreeCollapsed}
+        onAction={onAction}
+        onNameClick={onNameClick}
+        settings={settings}
+        actionButtons={actionButtons}
+        handleNameClick={handleNameClick}
+        overlayPerson={overlayPerson}
+        initials={initials}
+        variant={personCardVariant}
+      />
     );
   }
 
@@ -1288,47 +1361,71 @@ export function PersonCard({
                       >
                         <div
                           role="menu"
-                          style={chrome.panel}
+                          style={{
+                            ...chrome.panel,
+                            display: "flex",
+                            flexDirection: "column",
+                            height: "100%",
+                            maxHeight: "100%",
+                            overflow: "hidden",
+                            boxSizing: "border-box",
+                            padding: 0,
+                          }}
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {rest.map((b) => (
+                          <div
+                            style={{
+                              flex: 1,
+                              minHeight: 0,
+                              overflowY: "auto",
+                              WebkitOverflowScrolling: "touch",
+                              padding: 6,
+                              paddingBottom: 4,
+                            }}
+                          >
+                            {rest.map((b) => (
+                              <button
+                                type="button"
+                                key={`${b.action}-${b.title}`}
+                                role="menuitem"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRailOverflowOpenTop(false);
+                                  onAction(b.action, id);
+                                }}
+                                style={chrome.row}
+                              >
+                                <span style={chrome.icon}>
+                                  <SvgActionIcon Icon={b.Icon} />
+                                </span>
+                                {b.title}
+                              </button>
+                            ))}
+                          </div>
+                          <div
+                            style={{
+                              flexShrink: 0,
+                              borderTop: `1px solid ${COLORS.cardStroke}`,
+                              background: COLORS.card,
+                              padding: "0 6px 6px",
+                            }}
+                          >
                             <button
                               type="button"
-                              key={`${b.action}-${b.title}`}
                               role="menuitem"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setRailOverflowOpenTop(false);
-                                onAction(b.action, id);
                               }}
-                              style={chrome.row}
+                              style={{ ...chrome.row, width: "100%" }}
                             >
                               <span style={chrome.icon}>
-                                <SvgActionIcon Icon={b.Icon} />
+                                <SvgActionIcon Icon={IconX} />
                               </span>
-                              {b.title}
+                              Close menu
                             </button>
-                          ))}
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRailOverflowOpenTop(false);
-                            }}
-                            style={{
-                              ...chrome.row,
-                              borderTop: `1px solid ${COLORS.cardStroke}`,
-                              marginTop: 4,
-                              paddingTop: 12,
-                            }}
-                          >
-                            <span style={chrome.icon}>
-                              <SvgActionIcon Icon={IconX} />
-                            </span>
-                            Close menu
-                          </button>
+                          </div>
                         </div>
                       </foreignObject>
                     )}
@@ -1443,47 +1540,71 @@ export function PersonCard({
                     >
                       <div
                         role="menu"
-                        style={chrome.panel}
+                        style={{
+                          ...chrome.panel,
+                          display: "flex",
+                          flexDirection: "column",
+                          height: "100%",
+                          maxHeight: "100%",
+                          overflow: "hidden",
+                          boxSizing: "border-box",
+                          padding: 0,
+                        }}
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {rest.map((b) => (
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 0,
+                            overflowY: "auto",
+                            WebkitOverflowScrolling: "touch",
+                            padding: 6,
+                            paddingBottom: 4,
+                          }}
+                        >
+                          {rest.map((b) => (
+                            <button
+                              type="button"
+                              key={`${b.action}-${b.title}`}
+                              role="menuitem"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRailOverflowOpen(false);
+                                onAction(b.action, id);
+                              }}
+                              style={chrome.row}
+                            >
+                              <span style={chrome.icon}>
+                                <SvgActionIcon Icon={b.Icon} />
+                              </span>
+                              {b.title}
+                            </button>
+                          ))}
+                        </div>
+                        <div
+                          style={{
+                            flexShrink: 0,
+                            borderTop: `1px solid ${COLORS.cardStroke}`,
+                            background: COLORS.card,
+                            padding: "0 6px 6px",
+                          }}
+                        >
                           <button
                             type="button"
-                            key={`${b.action}-${b.title}`}
                             role="menuitem"
                             onClick={(e) => {
                               e.stopPropagation();
                               setRailOverflowOpen(false);
-                              onAction(b.action, id);
                             }}
-                            style={chrome.row}
+                            style={{ ...chrome.row, width: "100%" }}
                           >
                             <span style={chrome.icon}>
-                              <SvgActionIcon Icon={b.Icon} />
+                              <SvgActionIcon Icon={IconX} />
                             </span>
-                            {b.title}
+                            Close menu
                           </button>
-                        ))}
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRailOverflowOpen(false);
-                          }}
-                          style={{
-                            ...chrome.row,
-                            borderTop: `1px solid ${COLORS.cardStroke}`,
-                            marginTop: 4,
-                            paddingTop: 12,
-                          }}
-                        >
-                          <span style={chrome.icon}>
-                            <SvgActionIcon Icon={IconX} />
-                          </span>
-                          Close menu
-                        </button>
+                        </div>
                       </div>
                     </foreignObject>
                   )}

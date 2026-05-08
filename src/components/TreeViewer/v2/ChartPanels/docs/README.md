@@ -16,7 +16,7 @@ Used by the v2 tree when the user opens Settings, Info, History, Legend, or Debu
 - InfoPanelItem.tsx — Label-value row. See InfoPanelItem.md
 - HistoryPanel.tsx — Navigation history list. See HistoryPanel.md
 - HistoryPanelItem.tsx — Single history entry. See HistoryPanelItem.md
-- LegendPanel.tsx — Sibling view legend. See LegendPanel.md
+- LegendPanel.tsx — Parents & Siblings View legend. See LegendPanel.md
 - DebugPanel.tsx — Tree state JSON. See DebugPanel.md
 
 ## Data flow

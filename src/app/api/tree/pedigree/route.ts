@@ -7,6 +7,9 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import { chartPediByFamilyAndChildId } from "@/lib/tree/parents-label-for-family";
+import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
+import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 
 const INDIVIDUAL_SELECT = {
   id: true,
@@ -17,6 +20,8 @@ const INDIVIDUAL_SELECT = {
   birthYear: true,
   deathDateDisplay: true,
   deathPlaceDisplay: true,
+  ...individualBirthDeathPlaceSelect,
+  ...gedcomIndividualNlDenormSelect,
   deathYear: true,
   isLiving: true,
   sex: true,
@@ -37,9 +42,15 @@ function normalizeXref(xref: string): string {
 }
 
 /**
- * GET /api/tree/pedigree?root=@I123@&depth=10
+ * GET /api/tree/pedigree?root=@I123@&depth=10&famc=@F456@&famcOverrides=...
  *
- * Returns people and unions for the ancestor cone (birth parent links) up to `depth` generations.
+ * Returns people and unions for the ancestor cone up to `depth` generations.
+ * Optional `famc` is the GEDCOM family xref in which `root` is a child — use when the person has
+ * multiple families as a child so the first generation of ancestors follows that FAMC only, and other
+ * families where the proband is a child are omitted from the union list (so birth FAMC is not drawn alongside adoptive).
+ *
+ * Optional `famcOverrides` is a JSON object encoded as a query param: individual xref → family xref for **any**
+ * person in the chart who should climb ancestors through a chosen child-family without becoming root (per-person FAMC).
  */
 export async function GET(req: NextRequest) {
   if (!process.env.DATABASE_URL) {
@@ -57,6 +68,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing query parameter: root (individual xref)" }, { status: 400 });
     }
     const rootXref = normalizeXref(rootParam);
+    const famcParam = searchParams.get("famc");
     const depthParam = searchParams.get("depth");
     const maxDepth = depthParam ? Math.min(Math.max(1, parseInt(depthParam, 10) || 10), 20) : 10;
 
@@ -76,7 +88,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.gedcomParentChild.findMany({
         where: { fileUuid },
-        select: { familyId: true, childId: true },
+        select: { familyId: true, childId: true, parentId: true, pedigree: true, relationshipType: true },
       }),
     ]);
 
@@ -87,7 +99,67 @@ export async function GET(req: NextRequest) {
     const xrefToId = new Map<string, string>(allIndividualsXref.map((r) => [r.xref, r.id]));
     const idToXref = new Map<string, string>(allIndividualsXref.map((r) => [r.id, r.xref]));
 
-    const depthToIds = getAncestorIds(root.id, childToParents, maxDepth);
+    const chartPediMap = chartPediByFamilyAndChildId(
+      parentChildRows.map((r) => ({
+        familyId: r.familyId,
+        childId: r.childId,
+        pedigree: r.pedigree,
+        relationshipType: r.relationshipType,
+      }))
+    );
+
+    /** Child DB id → chosen family DB id when that child appears in multiple families (union exclusion + parent list). */
+    const famcChoices = new Map<string, string>();
+    let effectiveChildToParents: Map<string, string[]> = childToParents;
+
+    const ensureMutableChildToParents = (): Map<string, string[]> => {
+      if (effectiveChildToParents === childToParents) {
+        effectiveChildToParents = new Map(childToParents);
+      }
+      return effectiveChildToParents;
+    };
+
+    const applyFamcForChild = (childDbId: string, familyRow: { id: string }): boolean => {
+      const parentIdsForFam = [
+        ...new Set(
+          parentChildRows
+            .filter((r) => r.childId === childDbId && r.familyId === familyRow.id && r.parentId)
+            .map((r) => r.parentId)
+        ),
+      ];
+      if (parentIdsForFam.length === 0) return false;
+      ensureMutableChildToParents().set(childDbId, parentIdsForFam);
+      famcChoices.set(childDbId, familyRow.id);
+      return true;
+    };
+
+    if (famcParam) {
+      const famXref = normalizeXref(famcParam);
+      const familyRow = families.find((f) => f.xref === famXref);
+      if (familyRow?.id) {
+        applyFamcForChild(root.id, familyRow);
+      }
+    }
+
+    const famcOverridesParam = searchParams.get("famcOverrides");
+    if (famcOverridesParam) {
+      try {
+        const raw = JSON.parse(famcOverridesParam) as Record<string, string>;
+        for (const [personXref, famXref] of Object.entries(raw)) {
+          if (typeof personXref !== "string" || typeof famXref !== "string") continue;
+          const ix = normalizeXref(personXref);
+          const childId = xrefToId.get(ix);
+          const familyRow = families.find((f) => f.xref === normalizeXref(famXref));
+          if (childId && familyRow?.id) {
+            applyFamcForChild(childId, familyRow);
+          }
+        }
+      } catch {
+        // ignore invalid JSON
+      }
+    }
+
+    const depthToIds = getAncestorIds(root.id, effectiveChildToParents, maxDepth);
     const ancestorIds = new Set<string>();
     ancestorIds.add(root.id);
     for (const ids of depthToIds.values()) {
@@ -106,9 +178,18 @@ export async function GET(req: NextRequest) {
 
     const includedFamilyIds = new Set<string>();
     for (const fam of families) {
+      const childIds = familyToChildIds.get(fam.id) ?? [];
+      let skipForChosenFamc = false;
+      for (const cid of childIds) {
+        const chosenFamId = famcChoices.get(cid);
+        if (chosenFamId != null && fam.id !== chosenFamId) {
+          skipForChosenFamc = true;
+          break;
+        }
+      }
+      if (skipForChosenFamc) continue;
       const husbId = idForXref(fam.husbandXref);
       const wId = idForXref(fam.wifeXref);
-      const childIds = familyToChildIds.get(fam.id) ?? [];
       const husbIn = husbId != null && ancestorIds.has(husbId);
       const wifeIn = wId != null && ancestorIds.has(wId);
       const anyChildIn = childIds.some((c) => ancestorIds.has(c));
@@ -116,6 +197,23 @@ export async function GET(req: NextRequest) {
     }
 
     const peopleIds = new Set(ancestorIds);
+
+    const distinctFamiliesByChild = new Map<string, Set<string>>();
+    for (const r of parentChildRows) {
+      if (!r.familyId) continue;
+      if (!peopleIds.has(r.childId)) continue;
+      const set = distinctFamiliesByChild.get(r.childId) ?? new Set<string>();
+      set.add(r.familyId);
+      distinctFamiliesByChild.set(r.childId, set);
+    }
+    const multiFamilyChildXrefs: string[] = [];
+    for (const [childId, famSet] of distinctFamiliesByChild) {
+      if (famSet.size > 1) {
+        const x = idToXref.get(childId);
+        if (x) multiFamilyChildXrefs.push(x);
+      }
+    }
+
     for (const famId of includedFamilyIds) {
       const fam = families.find((f) => f.id === famId);
       if (!fam) continue;
@@ -160,9 +258,10 @@ export async function GET(req: NextRequest) {
         const wifeXref = fam.wifeXref ?? null;
         const children = childIds.map((childId) => {
           const childXref = idToXref.get(childId);
+          const pediKey = `${fam.id}\t${childId}`;
           return {
             id: childXref ?? childId,
-            pedi: "birth" as string,
+            pedi: chartPediMap.get(pediKey) ?? "birth",
           };
         });
         return {
@@ -179,6 +278,7 @@ export async function GET(req: NextRequest) {
       rootUuid: root.id,
       people,
       unions,
+      multiFamilyChildXrefs,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database error";
