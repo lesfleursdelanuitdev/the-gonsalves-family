@@ -151,13 +151,13 @@ export function Statistics() {
           <button
             type="button"
             onClick={handleRandomize}
-            className="font-body inline-flex items-center justify-center rounded-lg bg-[#435B35] px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-[#3a5030] hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
+            className="font-body inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
           >
             Randomize
           </button>
           <Link
             href="/tree/statistics"
-            className="font-body inline-flex items-center justify-center rounded-lg bg-[#435B35] px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-[#3a5030] hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
+            className="font-body inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow focus:outline-none focus:ring-2 focus:ring-focus-ring transition-shadow"
           >
             Explore Statistics…
           </Link>

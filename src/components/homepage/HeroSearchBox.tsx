@@ -246,8 +246,7 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
           </div>
           <button
             type="submit"
-            className="hidden min-h-[3rem] w-full shrink-0 items-center justify-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors hover:bg-[#264d34] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C3A45A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F6EFE1] sm:flex sm:min-h-[3rem] sm:w-auto sm:min-w-0 sm:px-5 sm:py-3 sm:text-[11px]"
-            style={{ backgroundColor: H.green }}
+            className="hidden min-h-[3rem] w-full shrink-0 items-center justify-center gap-2 bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-colors hover:bg-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C3A45A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F6EFE1] sm:flex sm:min-h-[3rem] sm:w-auto sm:min-w-0 sm:px-5 sm:py-3 sm:text-[11px]"
           >
             Search
             <GitBranch size={14} strokeWidth={2} className="opacity-95" aria-hidden />
