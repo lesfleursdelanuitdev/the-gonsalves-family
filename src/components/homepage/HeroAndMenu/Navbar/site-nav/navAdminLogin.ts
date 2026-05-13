@@ -13,7 +13,7 @@ export async function submitNavAdminLogin(input: {
   remember: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const res = await fetch(`${SITE_ADMIN_ORIGIN}/api/auth/login`, {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

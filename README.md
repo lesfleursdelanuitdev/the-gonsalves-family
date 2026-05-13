@@ -42,12 +42,24 @@ Because this frontend is anonymous and uses a **read-only** DB role:
 1. Run **ligneous-python-api** on that host and port (same machine as `temp-gonsalvesfamily`), or  
 2. Set **`PYTHON_API_URL`** in **`.env.local`** or **`.env.production`** in this app’s root to the real base URL (no trailing slash), then **`pm2 restart temp-gonsalvesfamily --update-env`**.
 
+When using PM2 with **`deployment/ecosystem.config.cjs`**, **`PYTHON_API_URL`** defaults to **`http://127.0.0.1:5001`** (override via the shell when starting PM2 if needed). First start: `cd …/the-gonsalves-family && npm ci && npm run build && pm2 start deployment/ecosystem.config.cjs`.
+
 `next build` does not need the Python API running; failures happen at runtime when `/api/research/*` proxies upstream.
 
 ## Images
 
 - **Local images** stay in `public/images/` (crest, hero, journey photos, etc.).
 - **`NEXT_PUBLIC_LIGNOUS_FRONTEND_URL`**: base URL for assets not served by this app. Use **`https://admin.gonsalvesfamily.com`** in production so OBJE paths under `/uploads/gedcom-admin/…` resolve correctly (see `resolveGedcomMediaFileRef` in `lib/images.ts`). For ligneous-frontend-only paths, `ligneousImage` / `resolveImageUrl("ligneous:…")` still apply.
+
+## Shared auth cookie config
+
+For shared session behavior across public + admin hosts, configure these identically in both apps:
+
+- `AUTH_COOKIE_NAME`
+- `AUTH_COOKIE_DOMAIN` (example: `.gonsalvesfamily.com` in production)
+- optional `AUTH_COOKIE_SECURE`
+
+This is a hard cutover: sessions from the previous cookie contract are not reused after deploy, so users will need to sign in again.
 
 ## Public stories (`/stories/...`)
 

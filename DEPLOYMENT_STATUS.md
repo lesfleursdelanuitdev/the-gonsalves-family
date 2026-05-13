@@ -29,7 +29,7 @@ The nginx config is correct and does not need changes for deployment. If you add
 - **Cache headers** — `next.config.ts` sets immutable cache headers for `/_next/static/*` so browsers cache hashed assets correctly.
 - **Document no-cache** — `src/proxy.ts` sets `Cache-Control: no-store` on HTML/document responses (not on `/_next/static/*`) so after each deploy clients get fresh HTML with current chunk URLs; old cached HTML would otherwise point at previous build’s assets (404).
 - **Don't run `next dev` on the production server** — Use `next dev` only in a development environment. On the server, run only `npm run build` and `next start` (via PM2).
-- **PM2 cwd** — Start PM2 from the app root (e.g. `cd /apps/gonsalves-genealogy/the-gonsalves-family && pm2 start npm --name temp-gonsalvesfamily -- start`) so the process uses that directory’s `.next` after deploy.
+- **PM2 cwd** — Prefer **`pm2 start deployment/ecosystem.config.cjs`** from the app root (sets **port 3039** to match nginx and defaults **`PYTHON_API_URL=http://127.0.0.1:5001`**). Alternatively: `pm2 start npm --name temp-gonsalvesfamily -- run start:prod` from the same root so `.next` is correct.
 
 ### Recommended deploy command
 
@@ -52,3 +52,18 @@ If not using `npm run deploy`:
 4. Verify `.next/static/chunks` exists and contains files
 5. Restart PM2: `pm2 restart temp-gonsalvesfamily`
 6. Confirm styles load at https://temp.gonsalvesfamily.com
+
+---
+
+## 4. Shared Session Cookie Config
+
+For shared auth/session behavior across public + admin apps, set these identically in both processes:
+
+- `AUTH_COOKIE_NAME`
+- `AUTH_COOKIE_DOMAIN` (example: `.gonsalvesfamily.com` in production)
+- optional `AUTH_COOKIE_SECURE`
+
+Important hard-cutover note:
+
+- Existing sessions issued with the previous cookie contract are not reused after deploy.
+- Users should sign in again once both apps are redeployed with the shared cookie settings.
