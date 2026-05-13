@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { JourneyStrip } from "@/components/homepage/JourneyStrip";
+import { Footer } from "@/components/homepage";
 
 const HeroAndMenu = dynamic(
   () =>
@@ -42,6 +43,7 @@ export default function HomepageTestPage() {
         <Identity />
         <Statistics />
       </main>
+      <Footer />
     </div>
   );
 }

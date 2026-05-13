@@ -8,8 +8,11 @@ type SearchParams = Promise<{
   chart?: string;
   depth?: string;
   card?: string;
+  cardVariant?: string;
+  cardSize?: string;
   partners?: string;
   famc?: string;
+  ppg?: string;
 }>;
 
 export default async function TreeV2Page({
@@ -34,8 +37,11 @@ export default async function TreeV2Page({
   const parsedUrl = parseTreeViewerUrlParams({
     depth: params.depth,
     card: params.card,
+    cardVariant: params.cardVariant,
+    cardSize: params.cardSize,
     partners: params.partners,
     famc: params.famc,
+    ppg: params.ppg,
   });
 
   const mountKey = [
@@ -43,8 +49,11 @@ export default async function TreeV2Page({
     initialChartStrategy,
     parsedUrl.initialUrlDepth ?? "",
     parsedUrl.initialPersonCardLayout ?? "",
+    parsedUrl.initialPersonCardVariant ?? "",
+    parsedUrl.initialCompactCardSize ?? "",
     parsedUrl.initialPartnersUrl ?? "",
     parsedUrl.initialPedigreeFamcFamilyXref ?? "",
+    parsedUrl.initialParentPairGap ?? "",
   ].join("-");
 
   return (
@@ -92,8 +101,11 @@ export default async function TreeV2Page({
             initialChartStrategy={initialChartStrategy}
             initialUrlDepth={parsedUrl.initialUrlDepth}
             initialPersonCardLayout={parsedUrl.initialPersonCardLayout}
+            initialPersonCardVariant={parsedUrl.initialPersonCardVariant}
+            initialCompactCardSize={parsedUrl.initialCompactCardSize}
             initialPartnersUrl={parsedUrl.initialPartnersUrl}
             initialPedigreeFamcFamilyXref={parsedUrl.initialPedigreeFamcFamilyXref}
+            initialParentPairGap={parsedUrl.initialParentPairGap}
           />
         </main>
       </div>

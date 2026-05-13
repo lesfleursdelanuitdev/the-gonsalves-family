@@ -35,6 +35,10 @@ export function getPedigreeCardActions(
     showExpandAncestors: boolean;
     /** True when ancestor collapse is active at this person’s node (undo with “Show ancestors”). */
     isAncestorCollapseTarget: boolean;
+    /** Root-only local expansion state. */
+    rootSiblingsExpanded?: boolean;
+    /** Root-only local expansion state. */
+    rootChildrenExpanded?: boolean;
   }
 ): PedigreeActionBtn[] {
   const {
@@ -44,6 +48,8 @@ export function getPedigreeCardActions(
     hasMultipleFamiliesAsChild,
     showExpandAncestors,
     isAncestorCollapseTarget,
+    rootSiblingsExpanded = false,
+    rootChildrenExpanded = false,
   } = opts;
   const isLastRenderedColumn = generationIndex === globalMinGeneration;
   const isNotLastRenderedColumn = generationIndex > globalMinGeneration;
@@ -75,12 +81,12 @@ export function getPedigreeCardActions(
   if (isRoot) {
     buttons.push({
       Icon: IconUsers,
-      title: "Show siblings",
+      title: rootSiblingsExpanded ? "Close siblings" : "Show siblings",
       action: "pedigreeShowSiblingsRoot",
     });
     buttons.push({
       Icon: IconBaby,
-      title: "Show children",
+      title: rootChildrenExpanded ? "Close children" : "Show children",
       action: "pedigreeShowChildrenRoot",
     });
   }

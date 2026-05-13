@@ -2,6 +2,7 @@
 # Deploy script for temp.gonsalvesfamily.com
 # Ensures production build completes and static files exist before restart.
 # Run from app root so PM2 (started from same root) serves this .next.
+# Prefer PM2 started via deployment/ecosystem.config.cjs (port 3039, PYTHON_API_URL default).
 
 set -e
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

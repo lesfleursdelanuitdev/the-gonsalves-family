@@ -24,7 +24,7 @@ export const TREE_MENU: NavItem[] = [
   { label: "Events", href: "/tree/events", icon: CalendarDays },
   { label: "Families", href: "/tree/families", icon: Home },
   { label: "Given Names", href: "/tree/given-names", icon: FileSignature },
-  { label: "Individuals", href: "/tree/individuals", icon: User },
+  { label: "Individuals", href: "/individuals", icon: User },
   { label: "Maps", href: "/maps", icon: Map },
   { label: "Places", href: "/tree/places", icon: MapPin },
   { label: "Statistics", href: "/tree/statistics", icon: BarChart3 },

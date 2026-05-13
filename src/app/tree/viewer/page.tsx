@@ -10,13 +10,17 @@ type SearchParams = Promise<{
   chart?: string;
   depth?: string;
   card?: string;
+  cardVariant?: string;
+  cardSize?: string;
   partners?: string;
   famc?: string;
+  ppg?: string;
 }>;
 
 /**
  * Main tree viewer route: /tree/viewer. Serves v2 tree.
- * Query: root, chart, depth, card, partners, famc (pedigree family), loadSavedHistory, rootName (see `lib/treeViewerUrl.ts`).
+ * Query: root, chart, depth, card, cardVariant, cardSize, partners, famc, ppg,
+ * loadSavedHistory, rootName (see `lib/treeViewerUrl.ts`).
  */
 export default async function TreeViewerPage({
   searchParams,
@@ -42,14 +46,20 @@ export default async function TreeViewerPage({
   const parsedUrl = parseTreeViewerUrlParams({
     depth: params.depth,
     card: params.card,
+    cardVariant: params.cardVariant,
+    cardSize: params.cardSize,
     partners: params.partners,
     famc: params.famc,
+    ppg: params.ppg,
   });
   const skipUrlViewOverrides = Boolean(loadSavedHistory && initialRootId != null);
   const initialUrlDepth = skipUrlViewOverrides ? null : parsedUrl.initialUrlDepth;
   const initialPartnersUrl = skipUrlViewOverrides ? null : parsedUrl.initialPartnersUrl;
   const initialPedigreeFamcFamilyXref = skipUrlViewOverrides ? null : parsedUrl.initialPedigreeFamcFamilyXref;
   const initialPersonCardLayout = parsedUrl.initialPersonCardLayout;
+  const initialPersonCardVariant = parsedUrl.initialPersonCardVariant;
+  const initialCompactCardSize = parsedUrl.initialCompactCardSize;
+  const initialParentPairGap = skipUrlViewOverrides ? null : parsedUrl.initialParentPairGap;
 
   const mountKey = [
     initialRootId ?? "default",
@@ -58,8 +68,11 @@ export default async function TreeViewerPage({
     initialChartStrategy,
     initialUrlDepth ?? "",
     initialPersonCardLayout ?? "",
+    initialPersonCardVariant ?? "",
+    initialCompactCardSize ?? "",
     initialPartnersUrl ?? "",
     initialPedigreeFamcFamilyXref ?? "",
+    initialParentPairGap ?? "",
   ].join("-");
 
   return (
@@ -109,8 +122,11 @@ export default async function TreeViewerPage({
             initialChartStrategy={initialChartStrategy}
             initialUrlDepth={initialUrlDepth}
             initialPersonCardLayout={initialPersonCardLayout}
+            initialPersonCardVariant={initialPersonCardVariant}
+            initialCompactCardSize={initialCompactCardSize}
             initialPartnersUrl={initialPartnersUrl}
             initialPedigreeFamcFamilyXref={initialPedigreeFamcFamilyXref}
+            initialParentPairGap={initialParentPairGap}
           />
         </main>
       </div>

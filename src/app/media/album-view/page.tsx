@@ -1,10 +1,21 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AlbumViewModel } from "@ligneous/album-view";
 import { PublicAlbumLayout } from "@/components/album/PublicAlbumLayout";
+import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { readJsonResponse } from "@/lib/read-json-response";
+
+function AlbumRouteShell({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <Navbar />
+      {children}
+    </>
+  );
+}
 
 function Inner() {
   const sp = useSearchParams();
@@ -50,21 +61,23 @@ function Inner() {
 
   if (!type || !id) {
     return (
-      <p className="px-4 py-8 text-sm text-muted-foreground">
+      <p className="px-4 pb-8 pt-28 text-sm text-muted-foreground">
         Add <span className="font-mono">?type=individual&amp;id=…</span> (family, event, place, note, date, tag).
       </p>
     );
   }
-  if (loading) return <p className="px-4 py-8 text-sm text-muted-foreground">Loading…</p>;
-  if (err || !model) return <p className="px-4 py-8 text-sm text-destructive">{err ?? "Not found."}</p>;
+  if (loading) return <p className="px-4 pb-8 pt-28 text-sm text-muted-foreground">Loading…</p>;
+  if (err || !model) return <p className="px-4 pb-8 pt-28 text-sm text-destructive">{err ?? "Not found."}</p>;
 
   return <PublicAlbumLayout model={model} />;
 }
 
 export default function PublicMediaAlbumViewPage() {
   return (
-    <Suspense fallback={<p className="px-4 py-8 text-sm text-muted-foreground">Loading…</p>}>
-      <Inner />
-    </Suspense>
+    <AlbumRouteShell>
+      <Suspense fallback={<p className="px-4 pb-8 pt-28 text-sm text-muted-foreground">Loading…</p>}>
+        <Inner />
+      </Suspense>
+    </AlbumRouteShell>
   );
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
 import { getPersonDetailContext, stripSlashesFromName, type Row } from "../lib";
+import type { TimelineSubject } from "@ligneous/timeline-view";
 
 export async function GET(
   req: NextRequest,
@@ -188,6 +189,7 @@ export async function GET(
       source: string,
       opts?: { familyId?: string; childXref?: string; childName?: string | null; spouseName?: string | null; spouseXref?: string }
     ) => ({
+      eventId: (r.id as string | null | undefined) ?? (r.event_id as string | null | undefined) ?? null,
       eventType: r.event_type,
       customType: r.custom_type ?? null,
       eventLabel: (r.event_label as string | null | undefined) ?? null,
@@ -645,7 +647,13 @@ export async function GET(
       return Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0);
     });
 
-    return NextResponse.json({ events });
+    const timelineSubject: TimelineSubject = {
+      kind: "individual",
+      displayName: stripSlashesFromName(ctx.person.full_name as string | null) ?? "Individual",
+      sex: (ctx.person.sex as string | null) ?? null,
+    };
+
+    return NextResponse.json({ events, timelineSubject });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database error";
     return NextResponse.json({ error: message }, { status: 500 });

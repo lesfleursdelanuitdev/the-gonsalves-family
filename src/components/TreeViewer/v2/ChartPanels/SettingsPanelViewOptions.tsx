@@ -39,9 +39,10 @@ export function SettingsPanelViewOptions({
   onUpdateSetting,
 }: SettingsPanelViewOptionsProps) {
   const showPedigreePairSpacing = chartStrategy === "pedigree";
+  const showPedigreeConnectorStyle = chartStrategy === "pedigree" || chartStrategy === "vertical_pedigree";
   const showFanRootRadius = isFanChartStrategy(chartStrategy);
 
-  if (!showPedigreePairSpacing && !showFanRootRadius) {
+  if (!showPedigreePairSpacing && !showPedigreeConnectorStyle && !showFanRootRadius) {
     return (
       <SettingsSection title="Layout">
         <p style={{ color: "var(--tree-text-muted)", fontSize: 13, margin: 0 }}>None</p>
@@ -55,6 +56,7 @@ export function SettingsPanelViewOptions({
   const fanRootRadius = clampFanRootRadius(
     Number.isFinite(settings.fanRootRadius) ? settings.fanRootRadius : FAN_ROOT_RADIUS_DEFAULT
   );
+  const connectorStyle = settings.pedigreeConnectorStyle ?? "classic";
 
   return (
     <SettingsSection title="Layout">
@@ -110,6 +112,61 @@ export function SettingsPanelViewOptions({
           >
             Reset to default ({DEFAULT_PEDIGREE_PARENT_PAIR_GAP}px)
           </button>
+        </div>
+      ) : null}
+      {showPedigreeConnectorStyle ? (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ color: "var(--tree-text)", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+            Connector style
+          </div>
+          <p style={{ color: "var(--tree-text-subtle)", fontSize: 11, lineHeight: 1.45, margin: "0 0 10px" }}>
+            Midline sends internal pedigree connectors through node centers and stops terminal ancestors at card
+            edges. Classic keeps current routing.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => onUpdateSetting("pedigreeConnectorStyle", "classic")}
+              style={{
+                flex: 1,
+                padding: "7px 10px",
+                fontSize: 11,
+                borderRadius: 8,
+                border:
+                  connectorStyle === "classic"
+                    ? "2px solid var(--tree-root, #2f6f4e)"
+                    : "1px solid var(--tree-button-border)",
+                background: connectorStyle === "classic" ? "var(--hover-overlay)" : "var(--surface-elevated)",
+                color: "var(--tree-text)",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: connectorStyle === "classic" ? 600 : 500,
+              }}
+            >
+              Classic
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdateSetting("pedigreeConnectorStyle", "midline")}
+              style={{
+                flex: 1,
+                padding: "7px 10px",
+                fontSize: 11,
+                borderRadius: 8,
+                border:
+                  connectorStyle === "midline"
+                    ? "2px solid var(--tree-root, #2f6f4e)"
+                    : "1px solid var(--tree-button-border)",
+                background: connectorStyle === "midline" ? "var(--hover-overlay)" : "var(--surface-elevated)",
+                color: "var(--tree-text)",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: connectorStyle === "midline" ? 600 : 500,
+              }}
+            >
+              Midline
+            </button>
+          </div>
         </div>
       ) : null}
       {showFanRootRadius ? (

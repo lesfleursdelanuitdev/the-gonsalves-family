@@ -22,7 +22,7 @@ function encodeGeneratedSource(source: Exclude<AlbumViewSource, { type: "album" 
 }
 
 export function sourceToAlbumPath(source: AlbumViewSource): string {
-  if (source.type === "album") return `/albums/${encodeURIComponent(source.albumId)}`;
+  if (source.type === "album") return `/media/album/${encodeURIComponent(source.albumId)}`;
   const q = encodeGeneratedSource(source);
   return `/media/album-view?kind=generated&${q}`;
 }

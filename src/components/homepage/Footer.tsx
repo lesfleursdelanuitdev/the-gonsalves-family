@@ -1,11 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Camera,
-  Heart,
-  Mail,
-  MessageCircle,
-} from "lucide-react";
+import { Heart } from "lucide-react";
 import { PageContainer, Crest } from "@/components/wireframe";
 
 const FOOTER_COLUMNS = [
@@ -33,18 +28,10 @@ const FOOTER_COLUMNS = [
   {
     title: "Connect",
     links: [
-      { label: "Messages", href: "/messages" },
-      { label: "Contact Us", href: "mailto:family@gonsalvesfamily.com" },
-      { label: "Support", href: "/support" },
-      { label: "Submit a Memory", href: "/submit-memory" },
+      { label: "Contact Us", href: "/contact" },
+      { label: "Contribute", href: "/contribute" },
     ],
   },
-] as const;
-
-const SOCIAL_LINKS = [
-  { label: "Family photos", href: "/media", icon: Camera },
-  { label: "Messages", href: "/messages", icon: MessageCircle },
-  { label: "Email", href: "mailto:family@gonsalvesfamily.com", icon: Mail },
 ] as const;
 
 export function Footer() {
@@ -86,18 +73,6 @@ export function Footer() {
                 <p className="mt-6 text-sm leading-loose text-text/90">
                   Documenting our family&apos;s journey through generations with love, memories, and a shared legacy.
                 </p>
-                <nav aria-label="Social links" className="mt-6 flex flex-wrap gap-3">
-                  {SOCIAL_LINKS.map(({ label, href, icon: Icon }) => (
-                    <Link
-                      key={label}
-                      href={href}
-                      aria-label={label}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-border-subtle bg-surface-elevated text-link shadow-sm transition hover:-translate-y-0.5 hover:border-link/30 hover:bg-link-soft-bg hover:text-link-soft-fg"
-                    >
-                      <Icon className="h-4 w-4" aria-hidden />
-                    </Link>
-                  ))}
-                </nav>
               </section>
 
               <nav
@@ -159,11 +134,11 @@ export function Footer() {
 
         <PageContainer narrow>
           <div className="relative grid gap-8 py-8 lg:grid-cols-[1fr_1.15fr_1fr] lg:items-center">
-            <section className="relative z-10">
-              <p className="max-w-xs font-heading text-lg italic leading-loose text-heading">
+            <section className="relative z-10 text-center lg:text-left">
+              <p className="mx-auto max-w-xs font-heading text-lg italic leading-loose text-heading lg:mx-0">
                 &quot;A family&apos;s story is a legacy that lives on in the hearts of those who remember.&quot;
               </p>
-              <div className="mt-4 flex items-center gap-3 text-sm italic text-muted">
+              <div className="mt-4 flex items-center justify-center gap-3 text-sm italic text-muted lg:justify-start">
                 <span className="h-px w-10 bg-border-subtle" />
                 The Gonsalves Family
               </div>

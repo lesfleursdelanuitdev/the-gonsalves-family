@@ -8,6 +8,7 @@ Primary goals:
 - Fewer scattered `chartStrategy` checks.
 - A consistent strategy registration story.
 - A clear, chart-only `PersonDisplay` boundary for tree nodes and fan cells.
+- Make `PersonDisplay` the decision driver for refactors (not an afterthought).
 
 Unless noted, these changes should avoid user-visible behavior changes (except incidental bug fixes).
 
@@ -40,6 +41,15 @@ These are agreed constraints and should drive implementation choices:
    - Given strategy, layout, person data, and actions, render the person display for the chart surface.
    - Rendering should be pure with respect to supplied inputs.
 
+6. **PersonDisplay-first planning rule (new, explicit).**
+   - When there is a design choice, prefer the option that improves `PersonDisplay` contract clarity and strategy-scoped rendering boundaries.
+   - `FamilyTree` decomposition, chart-strategy registry shape, and connector policy must all be explainable in terms of:
+     - `PersonDisplay` data contract,
+     - `PersonDisplay` variant policy (strategy-scoped),
+     - `PersonDisplay` action contract,
+     - strategy capabilities (`tree` vs `fan`, explicit connectors vs none).
+   - If a proposed extraction adds indirection but does not improve PersonDisplay boundaries, defer it.
+
 ---
 
 ## 1. Decompose `FamilyTree.tsx`
@@ -65,6 +75,7 @@ Extract **cohesive units** into colocated hooks and small modules under `v2/hook
 ### Constraints
 
 - **No behavior change** in phase 1: move code, preserve call order and dependency arrays.
+- **PersonDisplay-driven extraction rule:** prioritize extracting units that reduce chart-strategy branching in rendering and action wiring first; defer purely mechanical extraction that does not improve strategy/display boundaries.
 - After each extraction, run `npx tsc --noEmit` and smoke-test: descendancy, horizontal pedigree, vertical pedigree, fan; FAMC picker; fan peek “choose parent family” if applicable.
 - Prefer **one PR per extraction** (or two small ones) so review stays tractable.
 
@@ -85,6 +96,13 @@ The same facts appear in many places: `isAncestorChart`, which strategies use pe
 ### Approach
 
 Add a **single module** that describes each `ChartViewStrategyName` the app supports. Consumers import helpers or the table row instead of open-coding triple ORs.
+
+This registry is the upstream source for PersonDisplay capability decisions:
+
+- Which `personDisplayFamily` applies (`tree` vs `fan`)
+- Which display variants are allowed/mobile
+- Whether relationship rendering is explicit connectors (`tree`) or `none` (`fan`)
+- Whether pedigree FAMC semantics apply
 
 ### Suggested file
 
@@ -126,6 +144,7 @@ export function isAncestorChartStrategy(name: ChartViewStrategyName): boolean;
 - No remaining `state.strategyName === "pedigree" || ... || "fan_chart"` triplets for “ancestor chart” (use helper or meta flag).
 - New strategy (hypothetical) would require **one row** in the registry plus strategy-specific UI—not N scattered edits.
 - Registry is also the source of truth for strategy-to-PersonDisplay wiring (family + variant policy).
+- `personDisplay/*` consumes strategy metadata from `chartStrategy/*` rather than redefining strategy capability tables.
 
 ### Risks
 
@@ -162,9 +181,11 @@ export function isAncestorChartStrategy(name: ChartViewStrategyName): boolean;
 
 ### Recommended plan for §3 (pragmatic)
 
-1. **Short term (this refactor track):** Implement **Option D** or **Option C**:
-   - **D:** Provider gets a **resolved** view key (`fan_chart` → `descendancy` for node-view purposes only). Document in `TreeNodeViewContext.tsx` and `ChartContent.tsx`.
-   - **C:** Explicit `registerTreeNodeViewSet("fan_chart", descendancySet)` in `TreeNodeViewFactory/index.ts` after descendancy registers, with a one-line comment: “Fan renders via `FanChartContent`; this entry exists so lookups are explicit.”
+1. **Short term (this refactor track):** Implement **Option D** (preferred for PersonDisplay clarity):
+   - Provider gets a **resolved** view key (`fan_chart` → `descendancy` for node-view purposes only). Document in `TreeNodeViewContext.tsx` and `ChartContent.tsx`.
+   - Rationale: avoids implying fan is part of tree-node connector pipeline while still keeping lookups deterministic.
+2. **Do not implement Option C** unless there is a specific migration blocker.
+   - Explicitly mapping `fan_chart` to descendancy in the factory can blur the boundary between fan surface and tree surface.
 2. **Do not** force fan through `ConnectorLines` / `TreeNodes` unless product asks for unified rendering.
 3. If later fan shares more with node tree, revisit **Option A**.
 
@@ -345,6 +366,21 @@ src/components/TreeViewer/v2/
 
 Keep old entry points as temporary wrappers during migration to minimize churn and preserve behavior.
 
+### PersonDisplay as solution director (implementation rule)
+
+When evaluating implementation alternatives across §1-§4, use this priority:
+
+1. Preserve chart-surface boundary (`tree` node surface vs `fan` cell surface).
+2. Keep strategy capability and variant policy single-sourced (`chartStrategy/*`).
+3. Keep rendering contracts pure and composable (`personDisplay/*`).
+4. Minimize incidental churn in orchestration (`FamilyTree`) that does not improve 1-3.
+
+This means:
+
+- `FamilyTree` should become orchestration glue for factories/contracts, not a holder of display logic policy.
+- Strategy checks in UI should collapse into capability queries.
+- Connector rendering should be policy-driven (mode/capability), not ad-hoc strategy branching.
+
 ### What this does not imply
 
 - It does **not** force fan through `TreeNodeViewFactory`, `TreeNodes`, or tree connector pipelines.
@@ -381,10 +417,10 @@ Non-negotiable constraint:
 
 ## Suggested execution order
 
-1. **§2 (registry)** in a small PR first: low churn, high clarity for the next steps.  
-2. **§3 (factory / context)** in a tiny PR: depends on naming from §2 (`treeNodeViewStrategyKey` may subsume §3).  
-3. **§1 (FamilyTree decomposition)** in a series of PRs, using §2 helpers as you touch each block.
-4. **§4 (PersonDisplay architecture)** after §2 starts: introduce registry/factory skeleton with no UI behavior change, then migrate call sites incrementally.
+1. **§2 (registry)** in a small PR first: establish strategy capabilities that PersonDisplay consumes.  
+2. **§4 skeleton (PersonDisplay contracts + minimal factory wiring)** in a small PR: no behavior change, just contract boundaries.
+3. **§3 (fan factory/context clarity via Option D)** in a tiny PR: make fan story explicit without forcing tree pipeline.
+4. **§1 (FamilyTree decomposition)** in a series of PRs, guided by PersonDisplay boundaries (extract policy-bearing logic first).
 
 Alternative: **§1 first** if `FamilyTree` is actively blocking other work—then §2 while touching branches, then §3 last.
 
@@ -405,6 +441,8 @@ Alternative: **§1 first** if `FamilyTree` is actively blocking other work—the
 - [ ] Pedigree + vertical: FAMC picker, choose parent family, collapse ancestors, depth expand, home centering.
 - [ ] Fan: render, peek modal, make root, choose parent family when multi-FAMC.
 - [ ] URL: `chart=`, `famc=`, `depth=` where applicable.
+- [ ] URL: compact card deep-link state (`cardVariant`, `cardSize`) round-trips.
+- [ ] URL: pedigree/vertical pair spacing deep-link (`ppg` or agreed key) round-trips.
 - [ ] `npx tsc --noEmit` in `the-gonsalves-family`.
 
 **After §4 (when attempted)**

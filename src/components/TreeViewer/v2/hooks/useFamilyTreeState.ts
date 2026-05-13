@@ -12,6 +12,8 @@ import {
   DEFAULT_PERSON_CARD_LAYOUT,
   DEFAULT_PERSON_CARD_VARIANT,
   type PersonCardLayout,
+  type PersonCardVariant,
+  type PersonCompactCardSize,
 } from "@/lib/person-card-layout";
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import type { ViewState } from "@/genealogy-visualization-engine";
@@ -51,6 +53,7 @@ const defaultSettings: ChartSettingsV2 = {
   personCardVariant: DEFAULT_PERSON_CARD_VARIANT,
   compactCardSize: DEFAULT_COMPACT_CARD_SIZE,
   parentPairGap: DEFAULT_PEDIGREE_PARENT_PAIR_GAP,
+  pedigreeConnectorStyle: "classic",
   fanRootRadius: FAN_CHART_DEFAULTS.rootRadius,
 };
 
@@ -66,8 +69,14 @@ export interface UseFamilyTreeStateOptions {
   initialUrlDepth?: number | null;
   /** `card` query — person card layout preset. */
   initialPersonCardLayout?: PersonCardLayout | null;
+  /** `cardVariant` query — full vs compact card variant. */
+  initialPersonCardVariant?: PersonCardVariant | null;
+  /** `cardSize` query — compact card row height tier. */
+  initialCompactCardSize?: PersonCompactCardSize | null;
   /** `famc` query — pedigree family xref when opening in pedigree mode. */
   initialPedigreeFamcFamilyXref?: string | null;
+  /** `ppg` query — pedigree parent pair gap in px. */
+  initialParentPairGap?: number | null;
 }
 
 export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
@@ -78,7 +87,10 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
     initialChartStrategy = null,
     initialUrlDepth = null,
     initialPersonCardLayout = null,
+    initialPersonCardVariant = null,
+    initialCompactCardSize = null,
     initialPedigreeFamcFamilyXref = null,
+    initialParentPairGap = null,
   } = options;
 
   const resolvedStrategy: ChartViewStrategyName = resolveChartStrategyName(initialChartStrategy);
@@ -216,6 +228,11 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
   const [settings, setSettingsState] = useState<ChartSettingsV2>(() => ({
     ...defaultSettings,
     ...(initialPersonCardLayout ? { personCardLayout: initialPersonCardLayout } : {}),
+    ...(initialPersonCardVariant ? { personCardVariant: initialPersonCardVariant } : {}),
+    ...(initialCompactCardSize ? { compactCardSize: initialCompactCardSize } : {}),
+    ...(typeof initialParentPairGap === "number" && Number.isFinite(initialParentPairGap)
+      ? { parentPairGap: initialParentPairGap }
+      : {}),
   }));
   const [toast, setToast] = useState<ToastState>(null);
   const [blinkBack, setBlinkBack] = useState(false);

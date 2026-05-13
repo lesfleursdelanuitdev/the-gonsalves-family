@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Heart, Home } from "lucide-react";
+import type { ReactNode } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Heart, Home, Leaf } from "lucide-react";
 import { useState } from "react";
 import type { PublicIndividualFamilyGroup, PublicIndividualRelation } from "./types";
 
@@ -36,6 +37,94 @@ function MiniPortrait({ relation }: { relation: PublicIndividualRelation }) {
         </span>
       )}
     </span>
+  );
+}
+
+function MobilePersonRow({ relation }: { relation: PublicIndividualRelation }) {
+  return (
+    <Link
+      href={`/individuals/${encodeURIComponent(relation.id)}`}
+      className="group flex min-w-0 items-center gap-3 py-2.5"
+    >
+      <MiniPortrait relation={relation} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-heading text-base font-semibold leading-snug text-heading group-hover:text-link">
+          {relation.fullName}
+        </span>
+        <span className="mt-0.5 block text-sm text-muted">{lifeLabel(relation.birthYear, relation.deathYear)}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted/70 transition group-hover:translate-x-0.5 group-hover:text-link" aria-hidden />
+    </Link>
+  );
+}
+
+function MobilePeopleSection({
+  label,
+  items,
+  initialCount = 4,
+}: {
+  label: string;
+  items: PublicIndividualRelation[];
+  initialCount?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (items.length === 0) return null;
+
+  const visibleItems = expanded ? items : items.slice(0, initialCount);
+  const hasMore = items.length > initialCount;
+
+  return (
+    <section className="border-t border-border-subtle/70 pt-4 first:border-t-0 first:pt-0">
+      <p className="mb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
+      <div className="divide-y divide-border-subtle/55">
+        {visibleItems.map((relation) => (
+          <MobilePersonRow key={`${label}-${relation.id}`} relation={relation} />
+        ))}
+      </div>
+      {hasMore ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="mx-auto mt-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-link transition hover:bg-link-soft-bg"
+          aria-expanded={expanded}
+        >
+          {expanded ? "Show less" : `Show ${items.length - initialCount} more`}
+          <ChevronDown className={`h-3.5 w-3.5 transition ${expanded ? "rotate-180" : ""}`} aria-hidden />
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+function MobileFamilyCard({
+  title,
+  metadata,
+  children,
+}: {
+  title: string;
+  metadata: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <article className="rounded-2xl border border-border-subtle/75 bg-surface-elevated/90 shadow-[0_10px_24px_rgba(60,45,25,0.08)]">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left"
+        aria-expanded={open}
+      >
+        <span className="min-w-0">
+          <span className="block font-heading text-xl font-semibold leading-tight text-heading">{title}</span>
+          <span className="mt-1.5 block text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-link">
+            {metadata}
+          </span>
+        </span>
+        <ChevronDown className={`mt-1 h-4 w-4 shrink-0 text-link transition ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {open ? <div className="space-y-4 px-4 pb-4">{children}</div> : null}
+    </article>
   );
 }
 
@@ -177,6 +266,90 @@ function FamilyGroupCard({
   );
 }
 
+function readableMetadata(value: string | null | undefined): string {
+  return value
+    ?.split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ") || "Recorded";
+}
+
+function partnerNames(family: PublicIndividualFamilyGroup): string {
+  const names = family.partners.map((partner) => partner.fullName).filter(Boolean);
+  if (names.length === 0) return "Recorded family";
+  const visible = names.slice(0, 2);
+  return names.length > 2 ? `With ${visible.join(" & ")} +${names.length - visible.length}` : `With ${visible.join(" & ")}`;
+}
+
+function withoutProfilePerson(items: PublicIndividualRelation[]): PublicIndividualRelation[] {
+  return items.filter((item) => item.relationship !== "Profile person");
+}
+
+function MobileFamilyRelations({
+  tab,
+  parents,
+  siblings,
+  partners,
+  childRelations,
+  familiesAsChild,
+  familiesAsPartner,
+}: {
+  tab: FamilyTab;
+  parents: PublicIndividualRelation[];
+  siblings: PublicIndividualRelation[];
+  partners: PublicIndividualRelation[];
+  childRelations: PublicIndividualRelation[];
+  familiesAsChild: PublicIndividualFamilyGroup[];
+  familiesAsPartner: PublicIndividualFamilyGroup[];
+}) {
+  return (
+    <div className="space-y-4 md:hidden">
+      {tab === "origin" ? (
+        familiesAsChild.length > 0 ? (
+          familiesAsChild.map((family, index) => (
+            <MobileFamilyCard
+              key={family.id}
+              title={familiesAsChild.length > 1 ? `Family as child #${index + 1}` : "Family as child"}
+              metadata={`${readableMetadata(family.pedigreeLabel)} • Birth`}
+            >
+              <MobilePeopleSection label="Parents" items={family.parents} initialCount={4} />
+              <MobilePeopleSection label="Siblings" items={withoutProfilePerson(family.children)} initialCount={4} />
+            </MobileFamilyCard>
+          ))
+        ) : (
+          <MobileFamilyCard title="Family as child" metadata="Recorded • Birth">
+            <MobilePeopleSection label="Parents" items={parents} initialCount={4} />
+            <MobilePeopleSection label="Siblings" items={siblings} initialCount={4} />
+          </MobileFamilyCard>
+        )
+      ) : familiesAsPartner.length > 0 ? (
+        familiesAsPartner.map((family, index) => (
+          <MobileFamilyCard
+            key={family.id}
+            title={familiesAsPartner.length > 1 ? `Family as parent #${index + 1}` : "Family as parent"}
+            metadata={partnerNames(family)}
+          >
+            <MobilePeopleSection label="Partners" items={family.partners} initialCount={3} />
+            <MobilePeopleSection label="Children" items={family.children} initialCount={4} />
+          </MobileFamilyCard>
+        ))
+      ) : (
+        <MobileFamilyCard title="Family as parent" metadata="Recorded family">
+          <MobilePeopleSection label="Partners" items={partners} initialCount={3} />
+          <MobilePeopleSection label="Children" items={childRelations} initialCount={4} />
+        </MobileFamilyCard>
+      )}
+
+      <p className="flex items-start gap-3 rounded-2xl bg-link-soft-bg/45 px-4 py-3 text-xs leading-relaxed text-muted">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-link/15 bg-surface/70 text-link">
+          <Leaf className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <span>Family information is contributed by relatives and may be updated over time.</span>
+      </p>
+    </div>
+  );
+}
+
 export function FamilyRelationsTabs({
   parents = [],
   siblings = [],
@@ -196,12 +369,12 @@ export function FamilyRelationsTabs({
 
   return (
     <div className="mt-5 min-w-0">
-      <div className="mb-4 grid gap-2 rounded-xl border border-border-subtle bg-bg/60 p-1 sm:inline-grid sm:grid-cols-2">
+      <div className="mb-4 grid grid-cols-2 gap-1.5 rounded-full bg-bg/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.64)] sm:inline-grid sm:gap-2 sm:rounded-xl sm:border sm:border-border-subtle sm:bg-bg/60">
         <button
           type="button"
           onClick={() => setTab("origin")}
           aria-pressed={tab === "origin"}
-          className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+          className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.11em] transition sm:gap-2 sm:rounded-lg sm:text-xs sm:tracking-[0.12em] ${
             tab === "origin"
               ? "bg-link text-primary-foreground shadow-[0_6px_16px_rgba(31,90,56,0.18)]"
               : "text-link hover:bg-link-soft-bg hover:text-link-soft-fg"
@@ -214,7 +387,7 @@ export function FamilyRelationsTabs({
           type="button"
           onClick={() => setTab("descendants")}
           aria-pressed={tab === "descendants"}
-          className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+          className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.11em] transition sm:gap-2 sm:rounded-lg sm:text-xs sm:tracking-[0.12em] ${
             tab === "descendants"
               ? "bg-link text-primary-foreground shadow-[0_6px_16px_rgba(31,90,56,0.18)]"
               : "text-link hover:bg-link-soft-bg hover:text-link-soft-fg"
@@ -225,24 +398,34 @@ export function FamilyRelationsTabs({
         </button>
       </div>
 
-      {tab === "origin" ? (
-        familiesAsChild.length > 0 ? (
-          <div className="grid gap-4">
-            {familiesAsChild.map((family, index) => (
-              <FamilyGroupCard key={family.id} title={`Family as child ${index + 1}`} family={family} kind="origin" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <RelationList title="Parents" items={parents} empty="No parents are recorded for this person." />
-            <RelationList title="Siblings" items={siblings} empty="No siblings are recorded for this person." />
-          </div>
-        )
-      ) : (
-        familiesAsPartner.length > 0 ? (
+      <MobileFamilyRelations
+        tab={tab}
+        parents={parents}
+        siblings={siblings}
+        partners={partners}
+        childRelations={childRelations}
+        familiesAsChild={familiesAsChild}
+        familiesAsPartner={familiesAsPartner}
+      />
+
+      <div className="hidden md:block">
+        {tab === "origin" ? (
+          familiesAsChild.length > 0 ? (
+            <div className="grid gap-4">
+              {familiesAsChild.map((family, index) => (
+                <FamilyGroupCard key={family.id} title={`Family as child #${index + 1}`} family={family} kind="origin" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              <RelationList title="Parents" items={parents} empty="No parents are recorded for this person." />
+              <RelationList title="Siblings" items={siblings} empty="No siblings are recorded for this person." />
+            </div>
+          )
+        ) : familiesAsPartner.length > 0 ? (
           <div className="grid gap-4">
             {familiesAsPartner.map((family, index) => (
-              <FamilyGroupCard key={family.id} title={`Partner family ${index + 1}`} family={family} kind="partner" />
+              <FamilyGroupCard key={family.id} title={`Family as parent #${index + 1}`} family={family} kind="partner" />
             ))}
           </div>
         ) : (
@@ -250,8 +433,8 @@ export function FamilyRelationsTabs({
             <RelationList title="Partners" items={partners} empty="No partners are recorded for this person." maxVisible={2} />
             <RelationList title="Children" items={childRelations} empty="No children are recorded for this person." pageSize={5} />
           </div>
-        )
-      )}
+        )}
+      </div>
     </div>
   );
 }

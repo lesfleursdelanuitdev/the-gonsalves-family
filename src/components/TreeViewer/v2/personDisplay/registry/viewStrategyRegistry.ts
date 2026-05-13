@@ -1,8 +1,10 @@
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
+import { CHART_STRATEGY_META } from "../../chartStrategy";
+import type { PersonDisplayFamily as ChartPersonDisplayFamily } from "../../chartStrategy";
 import type { PersonDisplayVariantId } from "../variants";
 import { FAN_VARIANTS, TREE_VARIANTS } from "../variants";
 
-export type PersonDisplayFamily = "tree" | "fan";
+export type PersonDisplayFamily = ChartPersonDisplayFamily;
 
 export interface PersonDisplayStrategyRegistration {
   strategy: ChartViewStrategyName;
@@ -30,25 +32,25 @@ export const PERSON_DISPLAY_STRATEGY_REGISTRY: Record<
 > = {
   descendancy: {
     strategy: "descendancy",
-    family: "tree",
+    family: CHART_STRATEGY_META.descendancy.personDisplayFamily,
     allowedVariants: TREE_VARIANTS,
     mobileVariants: TREE_MOBILE_VARIANTS,
   },
   pedigree: {
     strategy: "pedigree",
-    family: "tree",
+    family: CHART_STRATEGY_META.pedigree.personDisplayFamily,
     allowedVariants: TREE_VARIANTS,
     mobileVariants: TREE_MOBILE_VARIANTS,
   },
   vertical_pedigree: {
     strategy: "vertical_pedigree",
-    family: "tree",
+    family: CHART_STRATEGY_META.vertical_pedigree.personDisplayFamily,
     allowedVariants: TREE_VARIANTS,
     mobileVariants: TREE_MOBILE_VARIANTS,
   },
   fan_chart: {
     strategy: "fan_chart",
-    family: "fan",
+    family: CHART_STRATEGY_META.fan_chart.personDisplayFamily,
     allowedVariants: FAN_VARIANTS,
     mobileVariants: FAN_VARIANTS,
   },

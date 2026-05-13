@@ -1,5 +1,4 @@
 import type { LucideIcon } from "lucide-react";
-import { SITE_ADMIN_LOGIN_HREF } from "@/lib/siteAdminLogin";
 import {
   BookOpen,
   CalendarDays,
@@ -7,11 +6,13 @@ import {
   Home,
   Images,
   Languages,
+  LayoutGrid,
   MapPin,
   Music,
   Newspaper,
   Route,
   Search,
+  Sparkles,
   User,
   UtensilsCrossed,
   Video,
@@ -50,7 +51,7 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
       },
       {
         label: "Individuals",
-        href: "/tree/individuals",
+        href: "/individuals",
         description: "Browse documented people",
         icon: User,
       },
@@ -99,6 +100,18 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
         href: "/stories",
         description: "Family memories and histories",
         icon: BookOpen,
+      },
+      {
+        label: "Media",
+        href: "/media",
+        description: "Curated albums and tree-linked photo collections",
+        icon: LayoutGrid,
+      },
+      {
+        label: "Scrapbook Generator",
+        href: "/scrapbook-generator",
+        description: "Create a shareable scrapbook from people, places, events, and tags",
+        icon: Sparkles,
       },
       {
         label: "Photos",
@@ -157,4 +170,5 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
 
 export const SITE_NAV_SEARCH_HREF = "/tree/viewer/searchDatabase";
 
-export const SITE_NAV_LOGIN_HREF = SITE_ADMIN_LOGIN_HREF;
+/** Public site sign-in (append `?returnTo=` from client where needed). */
+export const SITE_NAV_LOGIN_HREF = "/login";

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Search, X } from "lucide-react";
 import { Crest } from "@/components/wireframe";
@@ -42,16 +43,24 @@ export function MobileNavDrawer({
   const router = useRouter();
   const panelRef = React.useRef<HTMLDivElement>(null);
   const closeBtnRef = React.useRef<HTMLButtonElement>(null);
+  const [mounted, setMounted] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
     };
   }, [open]);
 
@@ -116,7 +125,9 @@ export function MobileNavDrawer({
     culture: onCultureToggle,
   } as const;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -138,7 +149,7 @@ export function MobileNavDrawer({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="fixed top-0 right-0 bottom-0 z-[10001] flex w-[min(360px,92vw)] min-h-0 flex-col overflow-hidden border-l border-[#E1D5BB] bg-[#F8EFE1] shadow-[-8px_0_40px_rgba(45,32,18,0.12)] md:hidden"
+            className="fixed inset-y-0 right-0 z-[10001] flex h-[100dvh] max-h-[100dvh] w-[min(360px,92vw)] min-h-0 flex-col overflow-hidden border-l border-[#E1D5BB] bg-[#F8EFE1] shadow-[-8px_0_40px_rgba(45,32,18,0.12)] md:hidden"
           >
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pb-4 pt-5">
               <div className="relative shrink-0">
@@ -224,6 +235,7 @@ export function MobileNavDrawer({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

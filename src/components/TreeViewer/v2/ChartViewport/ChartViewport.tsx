@@ -16,6 +16,7 @@ import type {
 } from "@/genealogy-visualization-engine";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { OnNameClick } from "../../../DescendancyChart/FamilyTreeNodes/TreeNodes";
+import type { PedigreeRootSiblingNode } from "../../../DescendancyChart/FamilyTreeNodes/TreeNodes";
 import type { ChartSettingsV2 } from "../ChartPanels/SettingsPanel";
 import type { FanMoreClickPayload } from "../fan/fanPeekTypes";
 
@@ -58,6 +59,10 @@ export interface ChartViewportProps {
   pedigreeHasRoomToExpandDepth?: boolean;
   /** Pedigree API: xrefs that appear as a child in multiple families (optional "Choose parent family"). */
   pedigreeMultiFamilyChildXrefs?: string[] | null;
+  /** Pedigree-only root sibling cards shown around proband. */
+  pedigreeRootSiblings?: PedigreeRootSiblingNode[] | null;
+  /** Pedigree-only root children cards shown as local descendants peek. */
+  pedigreeRootChildren?: PedigreeRootSiblingNode[] | null;
   /** When true, sibling view is active; on mobile show a legend button below the right controls. */
   hasSiblingView?: boolean;
   showLegendPanel?: boolean;
@@ -98,6 +103,8 @@ export function ChartViewport({
   isMobile = false,
   pedigreeHasRoomToExpandDepth = false,
   pedigreeMultiFamilyChildXrefs = null,
+  pedigreeRootSiblings = null,
+  pedigreeRootChildren = null,
   hasSiblingView = false,
   showLegendPanel = false,
   onToggleLegendPanel,
@@ -172,6 +179,8 @@ export function ChartViewport({
             isMobile={isMobile}
             pedigreeHasRoomToExpandDepth={pedigreeHasRoomToExpandDepth}
             pedigreeMultiFamilyChildXrefs={pedigreeMultiFamilyChildXrefs}
+            pedigreeRootSiblings={pedigreeRootSiblings}
+            pedigreeRootChildren={pedigreeRootChildren}
           />
         </g>
       </svg>

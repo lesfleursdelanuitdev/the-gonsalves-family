@@ -13,14 +13,24 @@ export function isSiteNavItemActive(pathname: string, href: string): boolean {
 
 export function isSiteNavGroupActive(pathname: string, group: SiteNavGroup): boolean {
   if (group.id === "tree") {
-    return pathname === "/tree" || pathname.startsWith("/tree/");
+    return (
+      pathname === "/tree" ||
+      pathname.startsWith("/tree/") ||
+      pathname === "/individuals" ||
+      pathname.startsWith("/individuals/")
+    );
   }
   if (group.id === "archive") {
     return (
       pathname === "/archive" ||
       pathname.startsWith("/archive/") ||
       pathname === "/stories" ||
-      pathname.startsWith("/stories/")
+      pathname.startsWith("/stories/") ||
+      pathname === "/media" ||
+      pathname.startsWith("/media/") ||
+      pathname === "/scrapbook-generator" ||
+      pathname === "/collection-generator" ||
+      pathname === "/album-generator"
     );
   }
   if (group.id === "culture") {

@@ -2,24 +2,25 @@
 
 import { createContext, useContext, useMemo } from "react";
 import { getTreeNodeViewSet } from "@/components/TreeViewer/TreeNodeViewFactory";
+import type { TreeNodeViewStrategyKey } from "@/components/TreeViewer/v2/chartStrategy";
 
 type TreeNodeViewSet = import("@/components/TreeViewer/TreeNodeViewFactory").TreeNodeViewSet;
 
 const TreeNodeViewSetContext = createContext<TreeNodeViewSet | null>(null);
 
 export interface TreeNodeViewProviderProps {
-  strategyName: string;
+  strategyName: TreeNodeViewStrategyKey;
   children: React.ReactNode;
 }
 
 /**
  * Provides the current strategy's view set (ConnectorLines, SpouseJoinLines, PersonNodeView, UnionNodeView).
- * When strategyName is not registered, falls back to "descendancy".
+ * Option D (chart refactor): caller resolves chart strategy -> node-view strategy key
+ * before entering this provider, so there is no implicit fallback policy here.
  */
 export function TreeNodeViewProvider({ strategyName, children }: TreeNodeViewProviderProps) {
   const viewSet = useMemo(() => {
-    const set = getTreeNodeViewSet(strategyName) ?? getTreeNodeViewSet("descendancy");
-    return set ?? null;
+    return getTreeNodeViewSet(strategyName) ?? null;
   }, [strategyName]);
 
   return (

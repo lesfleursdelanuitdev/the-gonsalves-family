@@ -2,6 +2,8 @@
 
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { CHART_STRATEGY_META } from "./chartStrategyMeta";
+import type { TreeNodeViewStrategyKey } from "./chartStrategyMeta";
+import type { PersonDisplayFamily } from "./chartStrategyMeta";
 
 export function resolveChartStrategyName(
   value: ChartViewStrategyName | string | null | undefined
@@ -26,7 +28,7 @@ export function usesPedigreeFamcStrategy(name: ChartViewStrategyName): boolean {
 }
 
 export function usesPedigreeActionSet(name: ChartViewStrategyName): boolean {
-  return name === "pedigree" || name === "vertical_pedigree" || name === "fan_chart";
+  return CHART_STRATEGY_META[name].capabilities.actionSet === "pedigree";
 }
 
 export function isPedigreeTreeStrategy(name: ChartViewStrategyName): boolean {
@@ -43,6 +45,22 @@ export function isDescendancyStrategy(name: ChartViewStrategyName): boolean {
 
 export function getChartStrategyLabel(name: ChartViewStrategyName): string {
   return CHART_STRATEGY_META[name].displayLabel;
+}
+
+export function getPersonDisplayFamilyForStrategy(
+  name: ChartViewStrategyName
+): PersonDisplayFamily {
+  return CHART_STRATEGY_META[name].personDisplayFamily;
+}
+
+export function getChartStrategyCapabilities(name: ChartViewStrategyName) {
+  return CHART_STRATEGY_META[name].capabilities;
+}
+
+export function resolveTreeNodeViewStrategyKey(
+  name: ChartViewStrategyName
+): TreeNodeViewStrategyKey {
+  return CHART_STRATEGY_META[name].treeNodeViewStrategyKey;
 }
 
 export function resolvePedigreeActionStrategy(

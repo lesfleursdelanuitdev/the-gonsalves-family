@@ -9,6 +9,15 @@ export type ReaderStoryBlock = {
     dateDisplay: string;
     endDate?: string;
   };
+  dateAnnotations?: Array<{
+    date: string;
+    dateDisplay: string;
+    endDate?: string;
+  }>;
+  placeAnnotations?: Array<{
+    placeId?: string;
+    label: string;
+  }>;
   [key: string]: unknown;
 };
 
@@ -202,15 +211,22 @@ export function extractTimelineBlocks(story: StoryPublicPayload): TimelineBlock[
   const hits: TimelineBlock[] = [];
   for (const sec of flat) {
     walkBlocks(sec.blocks, (b) => {
-      const ann = b.dateAnnotation;
-      if (!ann?.date?.trim() || !ann.dateDisplay?.trim()) return;
-      hits.push({
-        sectionId: sec.id,
-        blockId: b.id,
-        date: ann.date.trim(),
-        dateDisplay: ann.dateDisplay.trim(),
-        endDate: ann.endDate?.trim() || undefined,
-      });
+      const list =
+        Array.isArray(b.dateAnnotations) && b.dateAnnotations.length > 0
+          ? b.dateAnnotations
+          : b.dateAnnotation
+            ? [b.dateAnnotation]
+            : [];
+      for (const ann of list) {
+        if (!ann?.date?.trim() || !ann.dateDisplay?.trim()) continue;
+        hits.push({
+          sectionId: sec.id,
+          blockId: b.id,
+          date: ann.date.trim(),
+          dateDisplay: ann.dateDisplay.trim(),
+          endDate: ann.endDate?.trim() || undefined,
+        });
+      }
     });
   }
   hits.sort((a, b) => a.date.localeCompare(b.date));

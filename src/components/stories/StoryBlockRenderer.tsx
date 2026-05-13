@@ -2,6 +2,7 @@
 
 import { useMemo, type ReactNode } from "react";
 import type { JSONContent } from "@tiptap/core";
+import { PublicStoryTimelineEmbed } from "@/components/stories/PublicStoryTimelineEmbed";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
 import { renderStoryRichTextToHtml } from "@/lib/stories/render-story-rich-text";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
@@ -64,6 +65,9 @@ export function StoryBlockRenderer({
 
   if (block.type === "embed") {
     const k = String((block as { embedKind?: string }).embedKind ?? "document");
+    if (k === "timeline") {
+      return wrap(<PublicStoryTimelineEmbed block={block} />);
+    }
     return wrap(<EmbedPlaceholder label={EMBED_LABELS[k] ?? "Embed"} />);
   }
 

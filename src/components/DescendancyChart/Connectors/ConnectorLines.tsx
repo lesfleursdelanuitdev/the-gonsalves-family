@@ -30,6 +30,9 @@ interface ConnectorLinesProps {
   /** When provided (e.g. from builder.getCurrentStrategy()?.connectors), use for geometry. Else use default (descendancy). */
   connectors?: ConnectorHelpers;
   personHeight?: number;
+  connectorStyle?: "classic" | "midline";
+  hasPedigreeRootSiblings?: boolean;
+  hasPedigreeRootChildren?: boolean;
 }
 
 export function ConnectorLines({ root, connectors: connectorsProp }: ConnectorLinesProps) {

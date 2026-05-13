@@ -110,6 +110,14 @@ function treeViewerRootHref(person: PublicIndividualProfile): string {
   return `/tree/viewer?${params.toString()}`;
 }
 
+function contributionHref(person: PublicIndividualProfile): string {
+  const params = new URLSearchParams({
+    individualXref: person.xref,
+    individualName: person.fullName,
+  });
+  return `/contribute?${params.toString()}`;
+}
+
 export function IndividualProfilePage({ person }: { person: PublicIndividualProfile }) {
   const parents = person.parents ?? [];
   const siblings = person.siblings ?? [];
@@ -129,6 +137,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
   const partnerLabel = summarizePartners(partners);
   const childrenLabel = children.length > 0 ? `${children.length} recorded` : null;
   const treeHref = treeViewerRootHref(person);
+  const contributeHref = contributionHref(person);
   const profileTabs = [
     "Overview",
     "Family",
@@ -225,12 +234,19 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                   {tab}
                 </a>
               ))}
+              <Link
+                href={contributeHref}
+                className="ml-auto rounded-lg bg-link px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground transition hover:bg-link-hover"
+              >
+                Contribute
+              </Link>
             </nav>
           </PageContainer>
         </div>
 
         <ProfileMobileNav
           treeHref={treeHref}
+          contributionHref={contributeHref}
           personName={person.fullName}
           showMedia={hasMedia}
           showNotes={hasNotes}
@@ -255,7 +271,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                   <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Family</p>
                   <h2 className="mt-1 font-heading text-2xl font-semibold text-heading">Closest Relations</h2>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-                    Click a tab below to reveal this person&apos;s birth family, parents, and siblings, or switch to partner and children families.
+                    These are the people who shaped this person&apos;s life and the families connected to them.
                   </p>
                 </div>
                 <Link

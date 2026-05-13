@@ -5,13 +5,16 @@ import type { ChartNode, ChartViewStrategyName, ConnectorHelpers, ViewState } fr
 import type { PersonCardLayoutSettings } from "@/lib/person-card-layout";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import { useTreeNodeViewSet } from "@/providers/TreeNodeViewContext";
-import { getTreeNodeViewSet } from "../TreeNodeViewFactory";
-import { TreeNodes, type OnNameClick } from "../../DescendancyChart/FamilyTreeNodes";
+import { TreeNodes, type OnNameClick, type PedigreeRootSiblingNode } from "../../DescendancyChart/FamilyTreeNodes";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
 import { PersonNode, UnionNode } from "@/genealogy-visualization-engine";
 import { FanChartContent } from "./fan/FanChartContent";
 import type { FanMoreClickPayload } from "./fan/fanPeekTypes";
-import { isFanChartStrategy, shouldRenderConnectorsForStrategy } from "./chartStrategy";
+import { shouldRenderConnectorsForStrategy } from "./chartStrategy";
+import {
+  resolvePersonDisplayVariant,
+  resolveRequestedVariantFromCardSettings,
+} from "./personDisplay";
 
 /** Minimal settings shape used by chart content (compatible with v1 ChartSettings and v2 ChartSettingsV2). */
 export type ChartContentSettings = {
@@ -20,6 +23,7 @@ export type ChartContentSettings = {
   showUnknown?: boolean;
   showCardActionIcons?: boolean;
   autoLegendModal?: boolean;
+  pedigreeConnectorStyle?: "classic" | "midline";
   fanRootRadius?: number;
 } & PersonCardLayoutSettings;
 
@@ -37,6 +41,8 @@ export interface ChartContentProps {
   isMobile?: boolean;
   pedigreeHasRoomToExpandDepth?: boolean;
   pedigreeMultiFamilyChildXrefs?: string[] | null;
+  pedigreeRootSiblings?: PedigreeRootSiblingNode[] | null;
+  pedigreeRootChildren?: PedigreeRootSiblingNode[] | null;
 }
 
 /**
@@ -56,8 +62,23 @@ export const ChartContent = memo(function ChartContent({
   isMobile = false,
   pedigreeHasRoomToExpandDepth = false,
   pedigreeMultiFamilyChildXrefs = null,
+  pedigreeRootSiblings = null,
+  pedigreeRootChildren = null,
 }: ChartContentProps) {
-  const viewSet = useTreeNodeViewSet() ?? getTreeNodeViewSet("descendancy");
+  const viewSet = useTreeNodeViewSet();
+  const requestedDisplayVariant = resolveRequestedVariantFromCardSettings({
+    strategy: chartStrategy,
+    personCardLayout: settings?.personCardLayout,
+    personCardVariant: settings?.personCardVariant,
+    compactCardSize: settings?.compactCardSize,
+    isMobile,
+  });
+  const personDisplayVariant = resolvePersonDisplayVariant({
+    strategy: chartStrategy,
+    requestedVariant: requestedDisplayVariant,
+    isMobile,
+  });
+  const isFanDisplay = personDisplayVariant.startsWith("fan.");
 
   const fanDepthFromRoot = (node: ChartNode): number => {
     if (!(node instanceof PersonNode)) return 0;
@@ -73,7 +94,7 @@ export const ChartContent = memo(function ChartContent({
     return walk(node, 0);
   };
 
-  if (isFanChartStrategy(chartStrategy)) {
+  if (isFanDisplay) {
     return (
       <FanChartContent
         root={root}
@@ -95,7 +116,14 @@ export const ChartContent = memo(function ChartContent({
     <>
       {showTreeConnectors ? (
         <>
-          <ConnectorLines root={root} connectors={connectors} personHeight={personHeight} />
+          <ConnectorLines
+            root={root}
+            connectors={connectors}
+            personHeight={personHeight}
+            connectorStyle={settings?.pedigreeConnectorStyle}
+            hasPedigreeRootSiblings={Boolean(pedigreeRootSiblings?.length)}
+            hasPedigreeRootChildren={Boolean(pedigreeRootChildren?.length)}
+          />
           <SpouseJoinLines root={root} />
         </>
       ) : null}
@@ -112,6 +140,9 @@ export const ChartContent = memo(function ChartContent({
         isMobile={isMobile}
         pedigreeHasRoomToExpandDepth={pedigreeHasRoomToExpandDepth}
         pedigreeMultiFamilyChildXrefs={pedigreeMultiFamilyChildXrefs}
+        personHeight={personHeight}
+        pedigreeRootSiblings={pedigreeRootSiblings}
+        pedigreeRootChildren={pedigreeRootChildren}
       />
     </>
   );

@@ -41,7 +41,11 @@ export function Navbar() {
     () => TREE_MENU.map((it) => ({ ...it, active: pathname === it.href })),
     [pathname]
   );
-  const treeActive = pathname === "/tree" || pathname.startsWith("/tree/");
+  const treeActive =
+    pathname === "/tree" ||
+    pathname.startsWith("/tree/") ||
+    pathname === "/individuals" ||
+    pathname.startsWith("/individuals/");
   const archiveItems = useMemo(
     () => ARCHIVE_MENU.map((it) => ({ ...it, active: pathname === it.href })),
     [pathname]

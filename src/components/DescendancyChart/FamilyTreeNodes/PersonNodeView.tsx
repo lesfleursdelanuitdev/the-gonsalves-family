@@ -461,6 +461,10 @@ export interface PersonCardProps {
   pedigreeShowExpandAncestorsAction?: boolean;
   /** Pedigree: this node is where ancestor collapse is applied — offer “Show ancestors”. */
   pedigreeIsAncestorCollapseTarget?: boolean;
+  /** Pedigree root-only: siblings expansion currently shown. */
+  pedigreeRootSiblingsExpanded?: boolean;
+  /** Pedigree root-only: children expansion currently shown. */
+  pedigreeRootChildrenExpanded?: boolean;
 }
 
 export function PersonCard({
@@ -486,6 +490,8 @@ export function PersonCard({
   hasMultipleFamiliesAsChild = false,
   pedigreeShowExpandAncestorsAction = false,
   pedigreeIsAncestorCollapseTarget = false,
+  pedigreeRootSiblingsExpanded = false,
+  pedigreeRootChildrenExpanded = false,
 }: PersonCardProps) {
   const photoClipId = useId().replace(/:/g, "");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -553,6 +559,8 @@ export function PersonCard({
           hasMultipleFamiliesAsChild,
           showExpandAncestors: pedigreeShowExpandAncestorsAction,
           isAncestorCollapseTarget: pedigreeIsAncestorCollapseTarget,
+          rootSiblingsExpanded: pedigreeRootSiblingsExpanded,
+          rootChildrenExpanded: pedigreeRootChildrenExpanded,
         }) as ActionBtn[])
       : buildActionButtons(person, {
           isRoot,

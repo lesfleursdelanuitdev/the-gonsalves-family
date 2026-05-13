@@ -13,6 +13,9 @@ interface VerticalPedigreeConnectorLinesProps {
   root: ChartNode;
   connectors?: ConnectorHelpers;
   personHeight?: number;
+  connectorStyle?: "classic" | "midline";
+  hasPedigreeRootSiblings?: boolean;
+  hasPedigreeRootChildren?: boolean;
 }
 
 function getParentUnion(p: PersonNode): NormalUnionNode | null {
@@ -28,6 +31,9 @@ function getParentUnion(p: PersonNode): NormalUnionNode | null {
 export function VerticalPedigreeConnectorLines({
   root,
   personHeight: personHeightProp,
+  connectorStyle = "classic",
+  hasPedigreeRootSiblings = false,
+  hasPedigreeRootChildren = false,
 }: VerticalPedigreeConnectorLinesProps) {
   const ph = personHeightProp ?? PERSON_HEIGHT;
   const stroke = "var(--tree-connector, " + FALLBACK_CONNECTOR + ")";
@@ -54,8 +60,11 @@ export function VerticalPedigreeConnectorLines({
     const u = getParentUnion(child);
     if (!u) return;
 
-    const topMidX = child.x;
-    const topMidY = child.y - ph / 2;
+    const startX = child.x;
+    const useMidlineAtThisNode =
+      connectorStyle === "midline" &&
+      !((hasPedigreeRootSiblings || hasPedigreeRootChildren) && child === root);
+    const startY = useMidlineAtThisNode ? child.y : child.y - ph / 2;
 
     const leftBottom = u.left.y + ph / 2;
     const rightBottom = u.right ? u.right.y + ph / 2 : leftBottom;
@@ -65,24 +74,25 @@ export function VerticalPedigreeConnectorLines({
     const rightTop = u.right ? u.right.y - ph / 2 : leftTop;
     const minParentTop = Math.min(leftTop, rightTop);
 
-    let busY = topMidY - STUB;
+    let busY = startY - STUB;
     busY = Math.min(busY, minParentTop - BUS_MARGIN);
     busY = Math.max(busY, maxParentBottom + BUS_MARGIN);
-    if (busY >= topMidY - 2) busY = topMidY - 4;
+    if (busY >= startY - 2) busY = startY - 4;
 
     const xs = [child.x, u.left.x, ...(u.right ? [u.right.x] : [])];
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     // Child trunk + horizontal bus: one polyline so the T-junction gets rounded joins.
     if (minX !== maxX) {
-      addPolyline([topMidX, topMidY, topMidX, busY, minX, busY, maxX, busY]);
+      addPolyline([startX, startY, startX, busY, minX, busY, maxX, busY]);
     } else {
-      addPolyline([topMidX, topMidY, topMidX, busY, minX, busY]);
+      addPolyline([startX, startY, startX, busY, minX, busY]);
     }
 
     function toParent(p: PersonNode): void {
-      const bottomY = p.y + ph / 2;
-      addPolyline([p.x, busY, p.x, bottomY, p.x, p.y]);
+      const hasParents = getParentUnion(p) != null;
+      const targetY = connectorStyle === "midline" && hasParents ? p.y : p.y + ph / 2;
+      addPolyline([p.x, busY, p.x, targetY]);
     }
     toParent(u.left);
     if (u.right) toParent(u.right);

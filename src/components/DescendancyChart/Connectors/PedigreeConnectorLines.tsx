@@ -13,6 +13,9 @@ interface PedigreeConnectorLinesProps {
   root: ChartNode;
   connectors?: ConnectorHelpers;
   personHeight?: number;
+  connectorStyle?: "classic" | "midline";
+  hasPedigreeRootSiblings?: boolean;
+  hasPedigreeRootChildren?: boolean;
 }
 
 function getParentUnion(p: PersonNode): NormalUnionNode | null {
@@ -35,11 +38,20 @@ function cardCenter(p: PersonNode): { x: number; y: number } {
   return { x: p.x, y: p.y };
 }
 
+function hasParentUnion(p: PersonNode): boolean {
+  return getParentUnion(p) != null;
+}
+
 /**
  * LTR pedigree elbows: exit child at right-edge midpoint → vertical bus **left of**
  * both parent cards → horizontal into each parent’s **left-edge midpoint**, then to center.
  */
-export function PedigreeConnectorLines({ root }: PedigreeConnectorLinesProps) {
+export function PedigreeConnectorLines({
+  root,
+  connectorStyle = "classic",
+  hasPedigreeRootSiblings = false,
+  hasPedigreeRootChildren = false,
+}: PedigreeConnectorLinesProps) {
   const stroke = "var(--tree-connector, " + FALLBACK_CONNECTOR + ")";
   const lines: React.ReactNode[] = [];
   let key = 0;
@@ -64,7 +76,10 @@ export function PedigreeConnectorLines({ root }: PedigreeConnectorLinesProps) {
     const u = getParentUnion(child);
     if (!u) return;
 
-    const { x: rx, y: ry } = rightCenter(child);
+    const useMidlineAtThisNode =
+      connectorStyle === "midline" &&
+      !((hasPedigreeRootSiblings || hasPedigreeRootChildren) && child === root);
+    const { x: rx, y: ry } = useMidlineAtThisNode ? cardCenter(child) : rightCenter(child);
     const leftA = u.left.x - PERSON_WIDTH / 2;
     const leftB = u.right ? u.right.x - PERSON_WIDTH / 2 : leftA;
     const minParentLeft = Math.min(leftA, leftB);
@@ -74,15 +89,21 @@ export function PedigreeConnectorLines({ root }: PedigreeConnectorLinesProps) {
     const busX = junctionX < rx ? rx : junctionX;
 
     const leftEdge = leftEdgeMid(u.left);
-    const leftCenterPt = cardCenter(u.left);
+    const leftTarget =
+      connectorStyle === "midline" && hasParentUnion(u.left)
+        ? cardCenter(u.left)
+        : leftEdge;
     // Child → bus → left parent: one polyline for rounded elbows.
-    addPolyline([rx, ry, busX, ry, busX, leftEdge.y, leftCenterPt.x, leftCenterPt.y]);
+    addPolyline([rx, ry, busX, ry, busX, leftTarget.y, leftTarget.x, leftTarget.y]);
 
     if (u.right) {
       const re = leftEdgeMid(u.right);
-      const rc = cardCenter(u.right);
+      const rightTarget =
+        connectorStyle === "midline" && hasParentUnion(u.right)
+          ? cardCenter(u.right)
+          : re;
       // End exactly at the trunk intersection so the branch does not overshoot past the vertical line.
-      addPolyline([busX, ry, busX, re.y, rc.x, rc.y]);
+      addPolyline([busX, ry, busX, rightTarget.y, rightTarget.x, rightTarget.y]);
     }
 
     drawFromChild(u.left);

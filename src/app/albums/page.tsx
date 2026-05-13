@@ -1,11 +1,6 @@
-import { Navbar } from "@/components/navbar";
-import { PublicAlbumsPage } from "@/components/albums/PublicAlbumsPage";
+import { permanentRedirect } from "next/navigation";
 
-export default function AlbumsPage() {
-  return (
-    <div className="flex min-h-screen flex-col bg-bg">
-      <Navbar />
-      <PublicAlbumsPage />
-    </div>
-  );
+/** Legacy URL: public hub lives at `/media`. */
+export default function LegacyAlbumsIndexRedirect() {
+  permanentRedirect("/media");
 }

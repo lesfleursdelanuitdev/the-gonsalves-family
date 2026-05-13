@@ -660,7 +660,7 @@ function Inner() {
               {media.albums.length > 0 ? (
                 <section className="rounded-xl border border-border bg-surface-elevated p-4">
                   <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted"><Users size={14} className="shrink-0" aria-hidden />Albums</p>
-                  <ul className="space-y-1 text-sm">{media.albums.map((a) => <li key={a.id}><Link href={`/albums/${encodeURIComponent(a.id)}`} className="text-link hover:text-link-hover hover:underline">{a.name}</Link></li>)}</ul>
+                  <ul className="space-y-1 text-sm">{media.albums.map((a) => <li key={a.id}><Link href={`/media/album/${encodeURIComponent(a.id)}`} className="text-link hover:text-link-hover hover:underline">{a.name}</Link></li>)}</ul>
                 </section>
               ) : null}
             </div>

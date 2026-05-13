@@ -1,4 +1,12 @@
-export { CHART_STRATEGY_META, type ChartStrategyMeta, type PersonDisplayFamily } from "./chartStrategyMeta";
+export {
+  CHART_STRATEGY_META,
+  type ChartStrategyMeta,
+  type PersonDisplayFamily,
+  type ChartStrategyCapabilities,
+  type ChartActionSet,
+  type ChartRelationshipMode,
+} from "./chartStrategyMeta";
+export type { TreeNodeViewStrategyKey } from "./chartStrategyMeta";
 export {
   resolveConnectorsForStrategy,
   shouldRenderConnectorsForStrategy,
@@ -11,11 +19,14 @@ export {
 } from "./connectorRegistry";
 export {
   getChartStrategyLabel,
+  getPersonDisplayFamilyForStrategy,
+  getChartStrategyCapabilities,
   isDescendancyStrategy,
   isAncestorChartStrategy,
   isFanChartStrategy,
   isPedigreeTreeStrategy,
   resolveChartStrategyName,
+  resolveTreeNodeViewStrategyKey,
   resolvePedigreeActionStrategy,
   usesPedigreeActionSet,
   usesPedigreeFamcStrategy,

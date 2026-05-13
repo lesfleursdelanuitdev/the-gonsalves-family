@@ -36,12 +36,43 @@ export interface PersonDetailContext {
   normalizedXref: string;
 }
 
+function looksLikeIndividualUuid(raw: string): boolean {
+  const s = raw.trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+}
+
 export async function getPersonDetailContext(
   xref: string
 ): Promise<PersonDetailContext | null> {
   if (!process.env.DATABASE_URL) return null;
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return null;
+
+  const trimmed = xref.trim();
+
+  if (looksLikeIndividualUuid(trimmed)) {
+    const personRows = await prisma.$queryRaw<Row[]>(
+      Prisma.sql`
+        SELECT id, xref, full_name, birth_date_display, birth_place_display,
+               death_date_display, death_place_display, sex, gender,
+               primary_surname_lower, birth_country, birth_country_lower,
+               death_country, death_country_lower, age_at_death, generation_depth
+        FROM gedcom_individuals_v2
+        WHERE file_uuid = ${fileUuid}::uuid AND id = ${trimmed}::uuid
+        LIMIT 1
+      `
+    );
+    const person = personRows[0];
+    if (!person) return null;
+    const xr = (person.xref as string | null | undefined)?.trim();
+    const normalizedXref = xr ? normalizeXref(xr) : normalizeXref(trimmed);
+    return {
+      fileUuid,
+      personId: person.id as string,
+      person,
+      normalizedXref,
+    };
+  }
 
   const normalizedXref = normalizeXref(xref);
   const personRows = await prisma.$queryRaw<Row[]>(

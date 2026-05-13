@@ -1,9 +1,13 @@
 /**
- * Read-only Prisma client for the-gonsalves-family.
- * Connects to ligneous_frontend using a read-only database user.
+ * Limited Prisma client for the-gonsalves-family.
+ * Connects to ligneous_frontend using a public-site database user.
+ *
+ * The database role should be read-only for genealogy/core tables and write-only
+ * for public intake tables (`registration_requests`, `contact_messages`,
+ * `contributions`, and `contribution_attachments`).
  *
  * Uses the shared @ligneous/prisma schema.
- * Set DATABASE_URL in .env.local to the read-only connection string:
+ * Set DATABASE_URL in .env.local to the public-site connection string:
  *   postgresql://gonsalves_readonly:PASSWORD@HOST:5432/ligneous_frontend?sslmode=disable
  */
 
@@ -13,15 +17,25 @@ import pg from "pg";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
+function databasePoolMax(): number {
+  const raw = Number.parseInt(process.env.DATABASE_POOL_MAX ?? "3", 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 3;
+}
+
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      "DATABASE_URL is not set. Add it to .env.local for read-only access to the ligneous_frontend database."
+      "DATABASE_URL is not set. Add it to .env.local for limited public-site access to the ligneous_frontend database."
     );
   }
 
-  const pool = new pg.Pool({ connectionString: url });
+  const pool = new pg.Pool({
+    connectionString: url,
+    max: databasePoolMax(),
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+  });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({
     adapter,
@@ -32,9 +46,7 @@ function createPrismaClient(): PrismaClient {
 function getPrisma(): PrismaClient {
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
   const client = createPrismaClient();
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client;
-  }
+  globalForPrisma.prisma = client;
   return client;
 }
 

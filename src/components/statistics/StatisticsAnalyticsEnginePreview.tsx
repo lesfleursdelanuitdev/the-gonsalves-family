@@ -405,6 +405,49 @@ function truncateChartLabel(raw: string, maxLen = 52): string {
   return `${s.slice(0, maxLen - 1)}…`;
 }
 
+/**
+ * Short y-axis label for person names (horizontal bars). Prefer first initial + surname
+ * when there are three or more tokens so bars are not squeezed by long margins.
+ */
+function abbreviateDisplayNameForChart(name: string, maxLen = 22): string {
+  const s = name.replace(/\s+/g, " ").trim();
+  if (!s) return "—";
+  if (s.length <= maxLen) return s;
+  const parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return truncateChartLabel(parts[0]!, maxLen);
+  if (parts.length === 2) return truncateChartLabel(`${parts[0]} ${parts[1]}`, maxLen);
+  const first = parts[0]!;
+  const last = parts[parts.length - 1]!;
+  const letter = first.slice(0, 1).toUpperCase();
+  const compact = `${letter}. ${last}`;
+  return truncateChartLabel(compact, maxLen);
+}
+
+/**
+ * Compact family label for horizontal bars (card title already says “families”).
+ * Drops the long “Family of … and …” wording in favor of abbreviated partner names.
+ */
+function formatFamilyOfPartnerLabelChart(label: string | undefined, fallbackId: string): string {
+  const raw = (label ?? "").trim();
+  if (!raw) return truncateChartLabel(`Fam ${fallbackId}`, 28);
+  const prefix = "Family of ";
+  if (!raw.toLowerCase().startsWith(prefix.toLowerCase())) {
+    return truncateChartLabel(raw, 34);
+  }
+  const body = raw.slice(prefix.length).trim();
+  const joint = /\s+and\s+/i;
+  if (joint.test(body)) {
+    const idx = body.search(joint);
+    const a = formatGedcomFullNameForDisplay(body.slice(0, idx).trim()) || body.slice(0, idx).trim();
+    const b = formatGedcomFullNameForDisplay(body.slice(idx).replace(/^\s+and\s+/i, "").trim()) || "";
+    const sa = abbreviateDisplayNameForChart(a, 15);
+    const sb = abbreviateDisplayNameForChart(b, 15);
+    return truncateChartLabel(`${sa} · ${sb}`, 34);
+  }
+  const one = abbreviateDisplayNameForChart(formatGedcomFullNameForDisplay(body) || body, 30);
+  return truncateChartLabel(one, 34);
+}
+
 /** API returns `Family of …` using raw gedcom full_name; normalize slashes like elsewhere. */
 function formatFamilyOfPartnerLabel(label: string | undefined, fallbackId: string, maxLen = 52): string {
   const raw = (label ?? "").trim();
@@ -495,8 +538,9 @@ function horizontalBar(labels: string[], values: number[], title: string): { dat
   const pairs = labels.map((l, i) => ({ l, v: values[i] ?? 0 }));
   pairs.sort((a, b) => a.v - b.v);
   const maxLabelLen = pairs.reduce((m, p) => Math.max(m, String(p.l).length), 8);
-  /** Reserve space for y-axis name labels (horizontal bars); Plotly automargin adds more if needed. */
-  const leftMargin = Math.min(340, 64 + maxLabelLen * 8);
+  /** Cap width so long labels do not dominate the chart; labels should be pre-shortened where needed. */
+  const capped = Math.min(maxLabelLen, 38);
+  const leftMargin = Math.min(220, 40 + capped * 5);
   return {
     data: [
       {
@@ -1104,31 +1148,33 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
 
       {given && surnames && individuals && families && events && places && dates && media && openQuestions && notes ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryPill label="Unique given names" value={given.summary?.total_unique_names} />
-            <SummaryPill label="Individuals w/ names" value={given.summary?.total_individuals_with_names} />
-            <SummaryPill label="Unique surnames" value={surnames.summary?.total_unique_surnames} />
-            <SummaryPill label="Surname occurrences" value={surnames.summary?.total_occurrences} />
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ChartCard title="Top given names" description="From gedcom_given_names_v2 aggregates.">
-              <PlotlyFromPayload
-                given={given}
-                type="given-top"
-              />
-            </ChartCard>
-            <ChartCard title="Given names — frequency buckets" description="Distinct names per occurrence bucket.">
-              <PlotlyFromPayload given={given} type="given-freq" />
-            </ChartCard>
-            <ChartCard title="Top surnames" description="From gedcom_surnames_v2.">
-              <PlotlyFromPayload surnames={surnames} type="sur-top" />
-            </ChartCard>
-            <ChartCard title="Surnames — frequency buckets" description="Distinct surnames per bucket.">
-              <PlotlyFromPayload surnames={surnames} type="sur-freq" />
-            </ChartCard>
+          <div id="stats-given-surnames" className="scroll-mt-24 space-y-6">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryPill label="Unique given names" value={given.summary?.total_unique_names} />
+              <SummaryPill label="Individuals w/ names" value={given.summary?.total_individuals_with_names} />
+              <SummaryPill label="Unique surnames" value={surnames.summary?.total_unique_surnames} />
+              <SummaryPill label="Surname occurrences" value={surnames.summary?.total_occurrences} />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ChartCard title="Top given names" description="From gedcom_given_names_v2 aggregates.">
+                <PlotlyFromPayload
+                  given={given}
+                  type="given-top"
+                />
+              </ChartCard>
+              <ChartCard title="Given names — frequency buckets" description="Distinct names per occurrence bucket.">
+                <PlotlyFromPayload given={given} type="given-freq" />
+              </ChartCard>
+              <ChartCard title="Top surnames" description="From gedcom_surnames_v2.">
+                <PlotlyFromPayload surnames={surnames} type="sur-top" />
+              </ChartCard>
+              <ChartCard title="Surnames — frequency buckets" description="Distinct surnames per bucket.">
+                <PlotlyFromPayload surnames={surnames} type="sur-freq" />
+              </ChartCard>
+            </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-individuals" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Individuals</h3>
             <p className="text-muted mb-4 font-body text-sm">
               Row-level fields from <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_individuals_v2</code>; family roles use{" "}
@@ -1220,7 +1266,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-families" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Families</h3>
             <p className="text-muted mb-4 font-body text-sm">
               Summary counts from couple and family records, children links, marriage events, and where marriages took place.
@@ -1293,7 +1339,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-events" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Events</h3>
             <p className="text-muted mb-4 font-body text-sm">
               Births, deaths, marriages, and other life events from your tree: event records, dates, places, and links to
@@ -1375,7 +1421,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-places" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Places</h3>
             <p className="text-muted mb-4 font-body text-sm">
               Canonical place rows in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_places_v2</code>{" "}
@@ -1418,7 +1464,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-dates" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Dates</h3>
             <p className="text-muted mb-4 font-body text-sm">
               Canonical date rows in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_dates_v2</code>{" "}
@@ -1477,7 +1523,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-media" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">GEDCOM media</h3>
             <p className="text-muted mb-4 font-body text-sm">
               OBJE rows in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_media_v2</code>, junction links to people,
@@ -1545,7 +1591,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               </ChartCard>
               <ChartCard
                 title="Families with the most media"
-                description="Families ranked by media link count; labels use spouse names (Family of X and Y) when both partners are linked."
+                description="Families ranked by media link count. Y-axis uses short partner labels (e.g. initials + surname) so bars are readable; summary pills keep full text."
               >
                 <PlotlyFromMedia media={media} type="top-families" />
               </ChartCard>
@@ -1555,7 +1601,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-open-questions" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Open questions</h3>
             <p className="text-muted mb-4 font-body text-sm">
               Research and verification items in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">open_questions</code> for this
@@ -1618,7 +1664,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               </ChartCard>
               <ChartCard
                 title="Top 10 families by question links"
-                description="Families linked from the most open questions; labels use spouse names when available."
+                description="Families linked from the most open questions; chart labels are shortened for readability."
               >
                 <PlotlyFromOpenQuestions data={openQuestions} type="top-families" />
               </ChartCard>
@@ -1631,7 +1677,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
           </div>
 
-          <div className="border-border-subtle mt-2 border-t pt-8">
+          <div id="stats-notes" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
             <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">GEDCOM notes</h3>
             <p className="text-muted mb-4 font-body text-sm">
               NOTE records in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_notes_v2</code> and junction rows to individuals,
@@ -1699,7 +1745,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               </ChartCard>
               <ChartCard
                 title="Top 10 families by note links"
-                description="Families ranked by note link count; labels use spouse names when available."
+                description="Families ranked by note link count; chart labels are shortened for readability."
               >
                 <PlotlyFromNotes data={notes} type="top-families" />
               </ChartCard>
@@ -1966,9 +2012,9 @@ function PlotlyFromDates({
     case "top-dates": {
       const rows = (dates.top_dates ?? []).slice(0, 22);
       const labels = rows.map((r) => {
-        const base = String(r.label ?? r.date_id ?? "—");
+        const base = truncateChartLabel(String(r.label ?? r.date_id ?? "—"), 22);
         const q = formatDateTypeLabel(r.date_type);
-        return `${base} (${q})`;
+        return truncateChartLabel(`${base} (${q})`, 36);
       });
       spec = horizontalBar(labels, rows.map((r) => Number(r.reference_count) || 0), "References");
       break;
@@ -2036,9 +2082,9 @@ function PlotlyFromMedia({
     case "top-places": {
       const rows = media.top_places_for_media ?? [];
       const labels = rows.map((r) => {
-        const base = truncateChartLabel(String(r.label ?? r.place_id ?? "—"));
+        const base = truncateChartLabel(String(r.label ?? r.place_id ?? "—"), 26);
         const c = (r.country ?? "").trim();
-        return c ? `${base} (${c})` : base;
+        return c ? truncateChartLabel(`${base} (${c})`, 36) : base;
       });
       spec = horizontalBar(labels, rows.map((r) => Number(r.link_count) || 0), "Media ↔ place links");
       break;
@@ -2046,9 +2092,9 @@ function PlotlyFromMedia({
     case "top-dates": {
       const rows = media.top_dates_for_media ?? [];
       const labels = rows.map((r) => {
-        const base = truncateChartLabel(String(r.label ?? r.date_id ?? "—"));
+        const base = truncateChartLabel(String(r.label ?? r.date_id ?? "—"), 22);
         const q = formatDateTypeLabel(r.date_type);
-        return `${base} (${q})`;
+        return truncateChartLabel(`${base} (${q})`, 36);
       });
       spec = horizontalBar(labels, rows.map((r) => Number(r.link_count) || 0), "Media ↔ date links");
       break;
@@ -2057,8 +2103,9 @@ function PlotlyFromMedia({
       const rows = media.top_individuals_by_media ?? [];
       spec = horizontalBar(
         rows.map((r) =>
-          truncateChartLabel(
+          abbreviateDisplayNameForChart(
             String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"),
+            22,
           ),
         ),
         rows.map((r) => Number(r.media_link_count) || 0),
@@ -2069,9 +2116,7 @@ function PlotlyFromMedia({
     case "top-families": {
       const rows = media.top_families_by_media ?? [];
       spec = horizontalBar(
-        rows.map((r) =>
-          formatFamilyOfPartnerLabel(r.label, String(r.xref ?? r.family_id ?? "—")),
-        ),
+        rows.map((r) => formatFamilyOfPartnerLabelChart(r.label, String(r.xref ?? r.family_id ?? "—"))),
         rows.map((r) => Number(r.media_link_count) || 0),
         "Links per family",
       );
@@ -2080,7 +2125,7 @@ function PlotlyFromMedia({
     case "top-events": {
       const rows = media.top_events_by_media ?? [];
       spec = horizontalBar(
-        rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"))),
+        rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"), 34)),
         rows.map((r) => Number(r.media_link_count) || 0),
         "Links per event",
       );
@@ -2101,9 +2146,9 @@ function PlotlyFromMedia({
 function noteBarLabel(row: NonNullable<NotesPayload["top_notes"]>[number]): string {
   const preview = (row.preview ?? "").trim() || "(empty)";
   const xr = (row.xref ?? "").trim();
-  const base = truncateChartLabel(preview, 44);
-  if (xr) return truncateChartLabel(`${base} (${xr})`, 52);
-  return truncateChartLabel(base, 52);
+  const base = truncateChartLabel(preview, 28);
+  if (xr) return truncateChartLabel(`${base} (${xr})`, 36);
+  return truncateChartLabel(base, 36);
 }
 
 function PlotlyFromNotes({
@@ -2138,7 +2183,10 @@ function PlotlyFromNotes({
       const rows = data.top_individuals ?? [];
       spec = horizontalBar(
         rows.map((r) =>
-          truncateChartLabel(String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—")),
+          abbreviateDisplayNameForChart(
+            String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"),
+            22,
+          ),
         ),
         rows.map((r) => Number(r.note_link_count) || 0),
         "Note links per person",
@@ -2148,7 +2196,7 @@ function PlotlyFromNotes({
     case "top-families": {
       const rows = data.top_families ?? [];
       spec = horizontalBar(
-        rows.map((r) => formatFamilyOfPartnerLabel(r.label, String(r.xref ?? r.family_id ?? "—"))),
+        rows.map((r) => formatFamilyOfPartnerLabelChart(r.label, String(r.xref ?? r.family_id ?? "—"))),
         rows.map((r) => Number(r.note_link_count) || 0),
         "Note links per family",
       );
@@ -2157,7 +2205,7 @@ function PlotlyFromNotes({
     case "top-events": {
       const rows = data.top_events ?? [];
       spec = horizontalBar(
-        rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"))),
+        rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"), 34)),
         rows.map((r) => Number(r.note_link_count) || 0),
         "Note links per event",
       );
@@ -2166,7 +2214,7 @@ function PlotlyFromNotes({
     case "top-sources": {
       const rows = data.top_sources ?? [];
       spec = horizontalBar(
-        rows.map((r) => truncateChartLabel(String(r.label ?? r.source_id ?? "—"))),
+        rows.map((r) => truncateChartLabel(String(r.label ?? r.source_id ?? "—"), 34)),
         rows.map((r) => Number(r.note_link_count) || 0),
         "Note links per source",
       );
@@ -2201,7 +2249,10 @@ function PlotlyFromOpenQuestions({
       const rows = data.top_individuals ?? [];
       spec = horizontalBar(
         rows.map((r) =>
-          truncateChartLabel(String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—")),
+          abbreviateDisplayNameForChart(
+            String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"),
+            22,
+          ),
         ),
         rows.map((r) => Number(r.question_link_count) || 0),
         "Question links per person",
@@ -2211,7 +2262,7 @@ function PlotlyFromOpenQuestions({
     case "top-media": {
       const rows = data.top_media ?? [];
       spec = horizontalBar(
-        rows.map((r) => truncateChartLabel(String(r.label ?? r.media_id ?? "—"))),
+        rows.map((r) => truncateChartLabel(String(r.label ?? r.media_id ?? "—"), 34)),
         rows.map((r) => Number(r.question_link_count) || 0),
         "Question links per media",
       );
@@ -2220,9 +2271,7 @@ function PlotlyFromOpenQuestions({
     case "top-families": {
       const rows = data.top_families ?? [];
       spec = horizontalBar(
-        rows.map((r) =>
-          formatFamilyOfPartnerLabel(r.label, String(r.xref ?? r.family_id ?? "—")),
-        ),
+        rows.map((r) => formatFamilyOfPartnerLabelChart(r.label, String(r.xref ?? r.family_id ?? "—"))),
         rows.map((r) => Number(r.question_link_count) || 0),
         "Question links per family",
       );
@@ -2231,7 +2280,7 @@ function PlotlyFromOpenQuestions({
     case "top-events": {
       const rows = data.top_events ?? [];
       spec = horizontalBar(
-        rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"))),
+        rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"), 34)),
         rows.map((r) => Number(r.question_link_count) || 0),
         "Question links per event",
       );
@@ -2310,9 +2359,9 @@ function PlotlyFromPlaces({
     case "top-places": {
       const rows = (places.top_places ?? []).slice(0, 22);
       const labels = rows.map((r) => {
-        const base = String(r.label ?? r.place_id ?? "—");
+        const base = truncateChartLabel(String(r.label ?? r.place_id ?? "—"), 26);
         const c = (r.country ?? "").trim();
-        return c ? `${base} (${c})` : base;
+        return c ? truncateChartLabel(`${base} (${c})`, 36) : base;
       });
       spec = horizontalBar(labels, rows.map((r) => Number(r.reference_count) || 0), "References");
       break;
@@ -2359,7 +2408,7 @@ function PlotlyFromEvents({
     case "event-types": {
       const rows = (events.by_event_type ?? []).slice(0, 22);
       spec = horizontalBar(
-        rows.map((r) => String(r.label ?? r.tag ?? "—")),
+        rows.map((r) => truncateChartLabel(String(r.label ?? r.tag ?? "—"), 36)),
         rows.map((r) => Number(r.count) || 0),
         "Event types",
       );

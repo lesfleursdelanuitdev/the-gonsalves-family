@@ -64,6 +64,10 @@ export interface UseFamilyTreeActionsParams {
   >;
   /** Cached loader (shared with chart switch); speeds up "Choose parent family". */
   loadFamiliesAsChild: LoadFamiliesAsChildFn;
+  /** Pedigree: toggles showing root siblings in-row around the proband. */
+  togglePedigreeRootSiblings: (personId: string) => void | Promise<void>;
+  /** Pedigree: toggles showing root children in local descendants peek. */
+  togglePedigreeRootChildren: (personId: string) => void | Promise<void>;
 }
 
 export interface RootActionDeps {
@@ -101,6 +105,8 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
     openPanToPartnerModal,
     setPedigreeFamcPicker,
     loadFamiliesAsChild,
+    togglePedigreeRootSiblings,
+    togglePedigreeRootChildren,
   } = params;
 
   const openChooseParentFamily = useCallback(
@@ -132,6 +138,8 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
       viewState,
       displayedDepth,
       openChooseParentFamily,
+      toggleRootSiblings: togglePedigreeRootSiblings,
+      toggleRootChildren: togglePedigreeRootChildren,
     }),
     [
       dispatch,
@@ -141,6 +149,8 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
       viewState,
       displayedDepth,
       openChooseParentFamily,
+      togglePedigreeRootSiblings,
+      togglePedigreeRootChildren,
     ]
   );
 

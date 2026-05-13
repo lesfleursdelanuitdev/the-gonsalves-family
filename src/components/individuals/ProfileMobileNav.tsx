@@ -9,6 +9,7 @@ import {
   FileText,
   GitBranch,
   Image as ImageIcon,
+  MessageSquarePlus,
   MoreHorizontal,
   Network,
   Search,
@@ -41,6 +42,7 @@ const DRAWER_ITEMS: NavItem[] = [
 
 type ProfileMobileNavProps = {
   treeHref: string;
+  contributionHref: string;
   personName: string;
   showMedia: boolean;
   showNotes: boolean;
@@ -50,6 +52,7 @@ type ProfileMobileNavProps = {
 
 export function ProfileMobileNav({
   treeHref,
+  contributionHref,
   personName,
   showMedia,
   showNotes,
@@ -138,8 +141,18 @@ export function ProfileMobileNav({
                     onClick={handleShare}
                   />
                   <DrawerLink
-                    item={{ label: "View in Tree", href: treeHref, description: "Open in the family tree", icon: GitBranch }}
+                    item={{
+                      label: "Contribute",
+                      href: contributionHref,
+                      description: "Share a memory, information, or media",
+                      icon: MessageSquarePlus,
+                    }}
                     index={drawerItems.length + 1}
+                    onNavigate={handleNavigate}
+                  />
+                  <DrawerLink
+                    item={{ label: "View in Tree", href: treeHref, description: "Open in the family tree", icon: GitBranch }}
+                    index={drawerItems.length + 2}
                     onNavigate={handleNavigate}
                   />
                 </div>

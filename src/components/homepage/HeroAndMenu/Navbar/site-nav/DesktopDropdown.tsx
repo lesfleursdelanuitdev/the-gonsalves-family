@@ -92,15 +92,6 @@ export function DesktopDropdown({ group, isOpen, onOpenChange, pathname }: Deskt
             <div className="relative">
               <div
                 className={cx(
-                  "pointer-events-none absolute top-0 z-10 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border border-[#E1D5BB] bg-[#F8EFE1]",
-                  group.alignDropdownRight
-                    ? "right-10 left-auto translate-x-0"
-                    : "left-1/2 -translate-x-1/2"
-                )}
-                aria-hidden
-              />
-              <div
-                className={cx(
                   "relative overflow-hidden rounded-lg border border-[#E1D5BB]",
                   "bg-[color-mix(in_srgb,#F8EFE1_94%,transparent)] shadow-[0_12px_40px_rgba(45,32,18,0.12)]",
                   "backdrop-blur-md supports-[backdrop-filter]:bg-[color-mix(in_srgb,#F8EFE1_88%,transparent)]"

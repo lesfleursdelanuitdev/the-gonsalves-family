@@ -15,6 +15,8 @@ import type {
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 
 /** v2 settings: no defaultRootId. */
+export type PedigreeConnectorStyle = "classic" | "midline";
+
 export interface ChartSettingsV2 {
   showDates: boolean;
   showPhotos: boolean;
@@ -34,6 +36,8 @@ export interface ChartSettingsV2 {
    * Horizontal pedigree: vertical gap (px) between stacked parent cards (first parent bottom → second parent top).
    */
   parentPairGap: number;
+  /** Pedigree connector rendering mode (`midline` mimics RM-style internal trunk routing). */
+  pedigreeConnectorStyle: PedigreeConnectorStyle;
   /** Fan chart: radius (px) for the center/root circle. */
   fanRootRadius: number;
 }

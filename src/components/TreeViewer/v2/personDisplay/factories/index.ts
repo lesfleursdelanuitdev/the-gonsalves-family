@@ -4,7 +4,9 @@ export {
 } from "./personDisplayFactory";
 export {
   resolvePersonDisplayVariant,
+  resolveRequestedVariantFromCardSettings,
   type ResolvePersonDisplayVariantParams,
+  type ResolveRequestedVariantFromCardSettingsParams,
 } from "./personDisplayVariantFactory";
 export {
   buildPersonDisplayData,

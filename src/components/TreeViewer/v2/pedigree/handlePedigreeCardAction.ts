@@ -13,6 +13,10 @@ export interface HandlePedigreeCardActionContext {
   displayedDepth: number;
   /** Opens the multi-family picker (fetches families-as-child for `personId`). */
   openChooseParentFamily: (personId: string) => void | Promise<void>;
+  /** Toggles root sibling expansion (pedigree-only local UI state). */
+  toggleRootSiblings: (personId: string) => void | Promise<void>;
+  /** Toggles root children expansion (pedigree-only local UI state). */
+  toggleRootChildren: (personId: string) => void | Promise<void>;
 }
 
 export function handlePedigreeCardAction(
@@ -28,6 +32,8 @@ export function handlePedigreeCardAction(
     viewState,
     displayedDepth,
     openChooseParentFamily,
+    toggleRootSiblings,
+    toggleRootChildren,
   } = ctx;
 
   switch (action) {
@@ -64,7 +70,10 @@ export function handlePedigreeCardAction(
       break;
     }
     case "pedigreeShowSiblingsRoot":
+      void toggleRootSiblings(personId);
+      break;
     case "pedigreeShowChildrenRoot":
+      void toggleRootChildren(personId);
       break;
     default:
       break;
