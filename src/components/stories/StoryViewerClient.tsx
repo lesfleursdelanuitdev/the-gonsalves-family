@@ -9,7 +9,14 @@ import { StoryViewerNav } from "@/components/stories/StoryViewerNav";
 import { sectionToBlocks, type TimelineBlock } from "@/lib/stories/story-reader-utils";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 
-type SectionRow = { id: string; title: string; contentJson: unknown };
+type SectionRow = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  hideTitle?: boolean;
+  hideSubtitle?: boolean;
+  contentJson: unknown;
+};
 
 export function StoryViewerClient({
   slug,
@@ -116,8 +123,9 @@ export function StoryViewerClient({
         canonicalUrl={canonicalUrl}
       />
       <article className="mx-auto max-w-3xl px-4 py-8">
-        <h2 className="font-display text-2xl font-semibold text-text">{current?.title}</h2>
-        <div className="mt-6 space-y-6">
+        {current && !current.hideTitle ? <h2 className="font-display text-2xl font-semibold text-text">{current.title}</h2> : null}
+        {current?.subtitle && !current.hideSubtitle ? <p className="mt-2 text-sm uppercase tracking-[0.22em] text-text/55">{current.subtitle}</p> : null}
+        <div className={current && (current.hideTitle && (!current.subtitle || current.hideSubtitle)) ? "space-y-6" : "mt-6 space-y-6"}>
           {blocks.map((b) => (
             <StoryBlockRenderer
               key={b.id}

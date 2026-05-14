@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Timeline, sortEventsChronologically, timelineUrlDefaults } from "@ligneous/timeline-view";
 import type { IndividualDetailEvent, TimelineChromeOnly, TimelineSubject } from "@ligneous/timeline-view";
@@ -8,6 +8,7 @@ import { resolveGedcomMediaFileRef } from "@/lib/images";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
 
 type Block = ReaderStoryBlock & Record<string, unknown>;
+type TimelineCardWidth = 200 | 260 | 320;
 
 function publicResolveImageSrc(fileRef: string): string | null {
   const url = resolveGedcomMediaFileRef(fileRef)?.trim();
@@ -51,21 +52,26 @@ export function PublicStoryTimelineEmbed({ block }: { block: ReaderStoryBlock })
   const embedWidthPct = isVerticalSingle ? (typeof b.embedWidthPct === "number" ? b.embedWidthPct : 100) : 100;
   const embedAlign = (b.embedAlign as "left" | "center" | "right" | undefined) ?? "center";
 
-  const [currentPage, setCurrentPage] = useState(0);
+  const pageResetKey = `${paginationActive}:${String(b.perPage ?? "")}`;
+  const [pageState, setPageState] = useState<{ resetKey: string; page: number }>(() => ({ resetKey: pageResetKey, page: 0 }));
+  const currentPage = pageState.resetKey === pageResetKey ? pageState.page : 0;
+  const setCurrentPage = useCallback(
+    (next: number) => setPageState({ resetKey: pageResetKey, page: next }),
+    [pageResetKey],
+  );
   const [activeView, setActiveView] = useState<"vertical" | "horizontal">(
     (b.activeView as "vertical" | "horizontal" | undefined) ?? "vertical",
   );
-  const [cardWidthPx, setCardWidthPx] = useState<200 | 260 | 320>(
-    (b.cardWidthPx as 200 | 260 | 320 | undefined) ?? 260,
+  const cardWidthSource = (b.cardWidthPx as TimelineCardWidth | undefined) ?? 260;
+  const [cardWidthState, setCardWidthState] = useState<{ source: TimelineCardWidth; value: TimelineCardWidth }>(() => ({
+    source: cardWidthSource,
+    value: cardWidthSource,
+  }));
+  const cardWidthPx = cardWidthState.source === cardWidthSource ? cardWidthState.value : cardWidthSource;
+  const setCardWidthPx = useCallback(
+    (value: TimelineCardWidth) => setCardWidthState({ source: cardWidthSource, value }),
+    [cardWidthSource],
   );
-
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [paginationActive, b.perPage]);
-
-  useEffect(() => {
-    setCardWidthPx((b.cardWidthPx as 200 | 260 | 320 | undefined) ?? 260);
-  }, [b.cardWidthPx]);
 
   const showPlaybackOnEmbed = Boolean(b.timelineShowPlaybackControls) && !paginationActive;
   const playbackChromePad = showPlaybackOnEmbed ? 72 : 0;
@@ -127,7 +133,7 @@ export function PublicStoryTimelineEmbed({ block }: { block: ReaderStoryBlock })
       cardWidthPx,
       b.gapPx,
       b.showArrows,
-      showPlaybackOnEmbed,
+      d,
     ],
   );
 
@@ -135,7 +141,7 @@ export function PublicStoryTimelineEmbed({ block }: { block: ReaderStoryBlock })
     if (patch.page !== undefined) setCurrentPage(patch.page);
     if (patch.activeView !== undefined) setActiveView(patch.activeView);
     if (patch.cardWidthPx !== undefined) setCardWidthPx(patch.cardWidthPx);
-  }, []);
+  }, [setCardWidthPx, setCurrentPage]);
 
   const containerStyle: React.CSSProperties = {
     width: `${embedWidthPct}%`,
@@ -143,9 +149,9 @@ export function PublicStoryTimelineEmbed({ block }: { block: ReaderStoryBlock })
     marginRight: embedAlign === "right" ? 0 : "auto",
   };
 
-  const label = typeof b.label === "string" ? b.label.trim() : "";
+  const label = typeof b.label === "string" && b.hideTitle !== true ? b.label.trim() : "";
   const titlePlacement = (b.titlePlacement as string | undefined) ?? "above";
-  const caption = typeof b.caption === "string" ? b.caption.trim() : "";
+  const caption = typeof b.caption === "string" && b.hideCaption !== true ? b.caption.trim() : "";
 
   if (scope !== "individual" || !entityId) {
     return (

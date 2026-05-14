@@ -128,6 +128,14 @@ function MobileFamilyCard({
   );
 }
 
+function EmptyFamilyState() {
+  return (
+    <p className="rounded-2xl border border-border-subtle/75 bg-surface-elevated/80 px-4 py-5 text-center text-sm font-semibold text-muted shadow-[0_8px_20px_rgba(60,45,25,0.05)]">
+      No Families to Show
+    </p>
+  );
+}
+
 function RelationList({
   title,
   items = [],
@@ -287,18 +295,10 @@ function withoutProfilePerson(items: PublicIndividualRelation[]): PublicIndividu
 
 function MobileFamilyRelations({
   tab,
-  parents,
-  siblings,
-  partners,
-  childRelations,
   familiesAsChild,
   familiesAsPartner,
 }: {
   tab: FamilyTab;
-  parents: PublicIndividualRelation[];
-  siblings: PublicIndividualRelation[];
-  partners: PublicIndividualRelation[];
-  childRelations: PublicIndividualRelation[];
   familiesAsChild: PublicIndividualFamilyGroup[];
   familiesAsPartner: PublicIndividualFamilyGroup[];
 }) {
@@ -317,10 +317,7 @@ function MobileFamilyRelations({
             </MobileFamilyCard>
           ))
         ) : (
-          <MobileFamilyCard title="Family as child" metadata="Recorded • Birth">
-            <MobilePeopleSection label="Parents" items={parents} initialCount={4} />
-            <MobilePeopleSection label="Siblings" items={siblings} initialCount={4} />
-          </MobileFamilyCard>
+          <EmptyFamilyState />
         )
       ) : familiesAsPartner.length > 0 ? (
         familiesAsPartner.map((family, index) => (
@@ -334,10 +331,7 @@ function MobileFamilyRelations({
           </MobileFamilyCard>
         ))
       ) : (
-        <MobileFamilyCard title="Family as parent" metadata="Recorded family">
-          <MobilePeopleSection label="Partners" items={partners} initialCount={3} />
-          <MobilePeopleSection label="Children" items={childRelations} initialCount={4} />
-        </MobileFamilyCard>
+        <EmptyFamilyState />
       )}
 
       <p className="flex items-start gap-3 rounded-2xl bg-link-soft-bg/45 px-4 py-3 text-xs leading-relaxed text-muted">
@@ -351,10 +345,6 @@ function MobileFamilyRelations({
 }
 
 export function FamilyRelationsTabs({
-  parents = [],
-  siblings = [],
-  partners = [],
-  childRelations = [],
   familiesAsChild = [],
   familiesAsPartner = [],
 }: {
@@ -400,10 +390,6 @@ export function FamilyRelationsTabs({
 
       <MobileFamilyRelations
         tab={tab}
-        parents={parents}
-        siblings={siblings}
-        partners={partners}
-        childRelations={childRelations}
         familiesAsChild={familiesAsChild}
         familiesAsPartner={familiesAsPartner}
       />
@@ -417,10 +403,7 @@ export function FamilyRelationsTabs({
               ))}
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              <RelationList title="Parents" items={parents} empty="No parents are recorded for this person." />
-              <RelationList title="Siblings" items={siblings} empty="No siblings are recorded for this person." />
-            </div>
+            <EmptyFamilyState />
           )
         ) : familiesAsPartner.length > 0 ? (
           <div className="grid gap-4">
@@ -429,10 +412,7 @@ export function FamilyRelationsTabs({
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <RelationList title="Partners" items={partners} empty="No partners are recorded for this person." maxVisible={2} />
-            <RelationList title="Children" items={childRelations} empty="No children are recorded for this person." pageSize={5} />
-          </div>
+          <EmptyFamilyState />
         )}
       </div>
     </div>

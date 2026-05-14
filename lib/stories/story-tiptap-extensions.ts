@@ -7,6 +7,8 @@ import { TableKit } from "@tiptap/extension-table";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 import { StoryField } from "@/lib/stories/tiptap/story-field-extension";
 import { StoryTable } from "@/lib/stories/tiptap/story-table";
+import { StoryLink } from "@/lib/stories/tiptap/story-link-extension";
+import { PublicStoryFlowEmbed, PublicStoryFlowMedia } from "@/lib/stories/story-flow-node-extensions";
 
 export type CreateStoryTipTapExtensionsOptions = {
   storyFieldHtml?: (field: StoryFieldKey) => string;
@@ -17,18 +19,19 @@ export function createStoryTipTapReadExtensions(opts?: CreateStoryTipTapExtensio
   return [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
-      link: {
-        openOnClick: false,
-        autolink: true,
-        defaultProtocol: "https",
-        HTMLAttributes: {
-          class: "text-link underline underline-offset-2",
-        },
-      },
+      link: false,
       codeBlock: {
         HTMLAttributes: {
           class: "rounded-lg bg-surface-2 p-3 font-mono text-sm",
         },
+      },
+    }),
+    StoryLink.configure({
+      openOnClick: false,
+      autolink: true,
+      defaultProtocol: "https",
+      HTMLAttributes: {
+        class: "text-link underline underline-offset-2",
       },
     }),
     Highlight.configure({
@@ -68,5 +71,7 @@ export function createStoryTipTapReadExtensions(opts?: CreateStoryTipTapExtensio
     StoryField.configure({
       resolveFieldForHtml: opts?.storyFieldHtml ?? (() => ""),
     }),
+    PublicStoryFlowMedia,
+    PublicStoryFlowEmbed,
   ];
 }

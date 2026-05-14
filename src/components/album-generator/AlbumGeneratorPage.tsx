@@ -286,7 +286,7 @@ export function AlbumGeneratorPage() {
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg text-text">
       <main className="min-w-0 flex-1 overflow-x-hidden">
-        <Section className="relative min-w-0 overflow-x-hidden pb-20 pt-28 md:pb-24 md:pt-32">
+        <Section className="relative min-w-0 overflow-x-hidden pb-20 pt-14 md:pb-24 md:pt-32">
           <div className="absolute inset-0 min-w-0 max-w-full">
             <Image
               src={HERO_MOBILE}

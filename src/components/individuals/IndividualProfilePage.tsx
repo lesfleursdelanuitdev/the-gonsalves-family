@@ -153,7 +153,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
     <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg pb-24 text-text md:pb-0">
       <Navbar />
       <main className="min-w-0 flex-1 overflow-x-hidden">
-        <Section noPadding className="relative min-w-0 overflow-hidden pb-2 pt-28 md:pb-12 md:pt-32">
+        <Section noPadding className="relative min-w-0 overflow-hidden pb-2 pt-[66px] md:pb-12 md:pt-32">
           <div className="absolute inset-0 min-w-0 max-w-full">
             {person.portraitSrc ? (
               <Image
@@ -161,14 +161,21 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                 alt=""
                 fill
                 priority
-                className="scale-110 object-cover opacity-55 blur-3xl sepia-[0.35]"
+                className="scale-105 object-cover opacity-85 blur-xl sepia-[0.28] saturate-[0.9]"
                 sizes="100vw"
               />
             ) : (
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,rgba(129,89,58,0.22),transparent_42%),linear-gradient(180deg,rgba(221,201,170,0.42),rgba(244,238,225,0.72))]" />
+              <Image
+                src={PERSON_CARD_FALLBACK_BG}
+                alt=""
+                fill
+                priority
+                className="scale-105 object-cover object-center opacity-85 blur-xl sepia-[0.28] saturate-[0.72]"
+                sizes="100vw"
+              />
             )}
-            <div className="absolute inset-0 bg-gradient-to-r from-bg/96 via-bg/82 to-bg/55" />
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-bg/66 via-bg/44 to-bg/18 md:from-bg/82 md:via-bg/64 md:to-bg/36" />
+            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-bg/90 to-transparent" />
           </div>
 
           <div className="relative z-10 min-w-0 max-w-full">

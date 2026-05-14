@@ -36,8 +36,8 @@ const FOOTER_COLUMNS = [
 
 export function Footer() {
   return (
-    <footer className="relative overflow-hidden border-t border-border-subtle bg-surface font-body text-text">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.124] mix-blend-multiply" aria-hidden>
+    <footer className="relative overflow-hidden border-t border-border-subtle bg-[#f3ecd9] font-body text-text">
+      <div className="pointer-events-none absolute inset-0 opacity-30 mix-blend-multiply md:opacity-[0.12]" aria-hidden>
         <Image src="/images/agedpaperbg.png" alt="" fill className="object-cover" sizes="100vw" />
       </div>
       <div
@@ -45,16 +45,16 @@ export function Footer() {
         aria-hidden
         style={{
           background:
-            "radial-gradient(circle at 12% 20%, rgba(195,164,90,0.12), transparent 34%), radial-gradient(circle at 86% 18%, rgba(31,90,56,0.07), transparent 32%), linear-gradient(180deg, rgba(247,241,228,0.52), rgba(239,231,214,0.74))",
+            "radial-gradient(circle at 12% 20%, rgba(195,164,90,0.1), transparent 34%), radial-gradient(circle at 86% 18%, rgba(31,90,56,0.06), transparent 32%), linear-gradient(180deg, rgba(247,241,228,0.18), rgba(239,231,214,0.32))",
         }}
       />
 
       <div className="relative z-10">
-        <div className="border-y border-border-subtle/80">
+        <div className="border-y border-border-subtle/80 bg-[#f3ecd9]/20 lg:bg-transparent">
           <PageContainer narrow>
             <div className="grid gap-10 py-10 lg:grid-cols-[1.25fr_1.55fr_1.2fr] lg:items-start">
-              <section className="max-w-sm">
-                <div className="flex items-center gap-4">
+              <section className="mx-auto max-w-sm text-center lg:mx-0 lg:text-left">
+                <div className="flex items-center justify-center gap-4 lg:justify-start">
                   <Crest size="md" />
                   <div>
                     <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted">
@@ -63,7 +63,7 @@ export function Footer() {
                     <h2 className="font-heading text-2xl font-semibold tracking-tight text-heading">
                       Gonsalves Family
                     </h2>
-                    <div className="mt-1 flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.16em] text-accent-muted">
+                    <div className="mt-1 flex items-center justify-center gap-2 text-[0.65rem] uppercase tracking-[0.16em] text-accent-muted lg:justify-start">
                       <span className="h-px w-8 bg-accent-muted/55" />
                       Est. 1890
                       <span className="h-px w-8 bg-accent-muted/55" />

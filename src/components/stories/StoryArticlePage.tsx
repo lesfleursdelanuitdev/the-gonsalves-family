@@ -67,8 +67,9 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
         <main className="min-w-0">
           {flatSections.map((sec) => (
             <section key={sec.id} id={`section-${sec.id}`} className="mb-14 scroll-mt-28">
-              <h2 className="font-display text-2xl font-semibold text-text">{sec.title}</h2>
-              <div className="mt-4 space-y-6">
+              {!sec.hideTitle ? <h2 className="font-display text-2xl font-semibold text-text">{sec.title}</h2> : null}
+              {sec.subtitle && !sec.hideSubtitle ? <p className="mt-2 text-sm uppercase tracking-[0.22em] text-text/55">{sec.subtitle}</p> : null}
+              <div className={sec.hideTitle && (!sec.subtitle || sec.hideSubtitle) ? "space-y-6" : "mt-4 space-y-6"}>
                 {sectionToBlocks(sec).map((b) => (
                   <StoryBlockRenderer key={b.id} block={b} storyFieldHtml={storyFieldHtml} />
                 ))}

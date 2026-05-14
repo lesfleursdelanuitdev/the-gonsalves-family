@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Filter, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Filter, Search } from "lucide-react";
 import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
@@ -64,7 +64,6 @@ function matchesRange(value: number | null, min: number | null, max: number | nu
 }
 
 function IndividualsMobileControls({
-  count,
   searchQuery,
   onSearchQueryChange,
   filterLabel,
@@ -73,7 +72,6 @@ function IndividualsMobileControls({
   sortMode,
   onSortModeChange,
 }: {
-  count: number;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   filterLabel: string;
@@ -83,22 +81,39 @@ function IndividualsMobileControls({
   onSortModeChange: (value: SortMode) => void;
 }) {
   const filterIsActive = filterLabel !== "Filter individuals";
+  const [expanded, setExpanded] = useState(true);
 
   return (
-    <aside className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] px-4 pb-[calc(0.65rem+env(safe-area-inset-bottom))] sm:hidden">
+    <aside className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] sm:hidden">
       <div
-        className="pointer-events-auto mx-auto max-w-md rounded-[1.5rem] border border-border-subtle/90 bg-surface-elevated/95 p-2.5 shadow-[0_18px_46px_rgba(60,45,25,0.18)] backdrop-blur-md"
+        className={`pointer-events-auto w-full border-t border-border-subtle/90 bg-surface-elevated/95 px-4 shadow-[0_-14px_42px_rgba(60,45,25,0.16)] backdrop-blur-md ${
+          expanded ? "py-3" : "py-1.5"
+        }`}
         style={{
           WebkitBackdropFilter: "blur(16px)",
           backgroundImage:
             "linear-gradient(180deg, rgba(255,248,232,0.96), rgba(247,241,228,0.93)), radial-gradient(circle at 84% 12%, rgba(195,164,90,0.12), transparent 34%)",
         }}
       >
-        <div className="mb-1.5 flex items-center justify-between gap-3 px-1">
-          <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#8b2e2e]">Individuals</p>
-          <p className="text-xs font-medium text-muted">{count} shown</p>
+        <div className={`${expanded ? "mb-1.5" : ""} flex items-center justify-between gap-3`}>
+          <button
+            type="button"
+            className="flex min-h-9 min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            aria-expanded={expanded}
+            aria-controls="individuals-mobile-controls-panel"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            <span className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#8b2e2e]">
+              Search Individuals
+            </span>
+            {expanded ? (
+              <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted" aria-hidden />
+            ) : (
+              <ChevronUp className="ml-auto h-4 w-4 shrink-0 text-muted" aria-hidden />
+            )}
+          </button>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div id="individuals-mobile-controls-panel" className={expanded ? "flex items-center gap-1.5" : "hidden"}>
           <label className="relative block min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-link/80" aria-hidden />
             <input
@@ -207,10 +222,12 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
   const pageItems = useMemo(() => paginate(filtered, safePage, PAGE_SIZE), [filtered, safePage]);
 
   const pageNumbers = useMemo(() => {
-    const start = Math.max(1, safePage - 2);
-    const end = Math.min(totalPages, start + 4);
+    const visibleCount = isNarrow ? 3 : 5;
+    const halfWindow = Math.floor(visibleCount / 2);
+    const start = Math.max(1, Math.min(safePage - halfWindow, totalPages - visibleCount + 1));
+    const end = Math.min(totalPages, start + visibleCount - 1);
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [safePage, totalPages]);
+  }, [isNarrow, safePage, totalPages]);
 
   const openFilters = () => {
     setDraftFilters(filters);
@@ -233,7 +250,7 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
     <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg pb-32 text-text sm:pb-0">
       <Navbar />
       <main className="min-w-0 flex-1 overflow-x-hidden">
-        <Section noPadding className="relative min-w-0 overflow-x-hidden pb-4 pt-28 sm:pb-10 md:pb-14 md:pt-32">
+        <Section noPadding className="relative min-w-0 overflow-x-hidden pb-4 pt-14 sm:pb-10 md:pb-14 md:pt-32">
           <div className="absolute inset-0 min-w-0 max-w-full">
             <Image src="/images/albumsCoverImageMobile.png" alt="" fill priority className="object-cover md:hidden" sizes="100vw" />
             <Image src="/images/albumsCoverImage.png" alt="" fill priority className="hidden object-cover md:block" sizes="100vw" />
@@ -372,14 +389,14 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage === 1}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-xs font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg disabled:cursor-not-allowed disabled:opacity-45 sm:px-3 sm:py-2 sm:text-sm"
                 >
-                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
                   Previous
                 </button>
 
@@ -388,7 +405,7 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
                     key={n}
                     type="button"
                     onClick={() => setPage(n)}
-                    className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition ${
+                    className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2.5 text-xs font-semibold transition sm:h-9 sm:min-w-9 sm:px-3 sm:text-sm ${
                       n === safePage
                         ? "border-link/60 bg-link text-primary-foreground"
                         : "border-border-subtle bg-surface text-link hover:bg-link-soft-bg hover:text-link-soft-fg"
@@ -402,10 +419,10 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage === totalPages}
-                  className="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-xs font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg disabled:cursor-not-allowed disabled:opacity-45 sm:px-3 sm:py-2 sm:text-sm"
                 >
                   Next
-                  <ChevronRight className="h-4 w-4" aria-hidden />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
                 </button>
               </div>
             </div>
@@ -442,7 +459,6 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
           )
         : null}
       <IndividualsMobileControls
-        count={filtered.length}
         searchQuery={searchQuery}
         onSearchQueryChange={(value) => {
           setSearchQuery(value);

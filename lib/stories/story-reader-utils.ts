@@ -24,6 +24,9 @@ export type ReaderStoryBlock = {
 export type ReaderSection = {
   id: string;
   title: string;
+  subtitle?: string | null;
+  hideTitle?: boolean;
+  hideSubtitle?: boolean;
   isChapter?: boolean;
   isPage?: boolean;
   blocks: ReaderStoryBlock[];
@@ -62,6 +65,9 @@ export function prismaStoryToReaderSections(story: StoryPublicPayload): ReaderSe
       roots.push({
         id: s0.id,
         title: s0.title,
+        subtitle: s0.subtitle,
+        hideTitle: s0.hideTitle ?? false,
+        hideSubtitle: s0.hideSubtitle ?? false,
         isChapter: s0.isChapter ?? false,
         isPage: s0.isPage ?? false,
         blocks: parseBlocks(s0.contentJson),
@@ -78,6 +84,9 @@ export function prismaStoryToReaderSections(story: StoryPublicPayload): ReaderSe
         children: secs.map((s) => ({
           id: s.id,
           title: s.title,
+          subtitle: s.subtitle,
+          hideTitle: s.hideTitle ?? false,
+          hideSubtitle: s.hideSubtitle ?? false,
           blocks: parseBlocks(s.contentJson),
         })),
       });
@@ -127,11 +136,23 @@ function flattenReaderSections(sections: ReaderSection[]): ReaderSection[] {
 export function flattenDbSectionRows(story: StoryPublicPayload): Array<{
   id: string;
   title: string;
+  subtitle: string | null;
+  hideTitle: boolean;
+  hideSubtitle: boolean;
   contentJson: unknown;
   isChapter: boolean;
   isPage: boolean;
 }> {
-  const rows: Array<{ id: string; title: string; contentJson: unknown; isChapter: boolean; isPage: boolean }> = [];
+  const rows: Array<{
+    id: string;
+    title: string;
+    subtitle: string | null;
+    hideTitle: boolean;
+    hideSubtitle: boolean;
+    contentJson: unknown;
+    isChapter: boolean;
+    isPage: boolean;
+  }> = [];
   const chapters = [...story.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
   for (const ch of chapters) {
     const secs = [...ch.sections].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -139,6 +160,9 @@ export function flattenDbSectionRows(story: StoryPublicPayload): Array<{
       rows.push({
         id: s.id,
         title: s.title,
+        subtitle: s.subtitle,
+        hideTitle: s.hideTitle ?? false,
+        hideSubtitle: s.hideSubtitle ?? false,
         contentJson: s.contentJson,
         isChapter: s.isChapter ?? false,
         isPage: s.isPage ?? false,

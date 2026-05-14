@@ -1,0 +1,85 @@
+.story-flow-object {
+  box-sizing: border-box;
+}
+
+.story-flow-object--block {
+  clear: both;
+  float: none;
+  margin-block: 1rem;
+}
+
+.story-flow-object--block.story-flow-object--left {
+  margin-right: auto;
+}
+
+.story-flow-object--block.story-flow-object--center {
+  margin-inline: auto;
+}
+
+.story-flow-object--block.story-flow-object--right {
+  margin-left: auto;
+}
+
+.story-flow-object--wrapped.story-flow-object--left {
+  float: left;
+  margin-bottom: 0.75rem;
+  margin-right: 1rem;
+}
+
+.story-flow-object--wrapped.story-flow-object--right {
+  float: right;
+  margin-bottom: 0.75rem;
+  margin-left: 1rem;
+}
+
+.story-flow-object--small {
+  max-width: 14rem;
+}
+
+.story-flow-object--medium {
+  max-width: 20rem;
+}
+
+.story-flow-object--large {
+  max-width: 28rem;
+}
+
+.story-flow-object--full {
+  width: 100%;
+  max-width: 100%;
+}
+
+.story-flow-object__inner {
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-border-rgb, 229 231 235));
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 0.72);
+}
+
+.story-flow-object__placeholder {
+  display: flex;
+  min-height: 7rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgb(71 85 105 / 0.78);
+  background: rgb(241 245 249 / 0.78);
+}
+
+.story-flow-object figcaption {
+  padding: 0.55rem 0.75rem 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgb(75 85 99);
+}
+
+@media (max-width: 640px) {
+  .story-flow-object--wrapped {
+    float: none;
+    width: 100%;
+    margin-inline: 0;
+  }
+}

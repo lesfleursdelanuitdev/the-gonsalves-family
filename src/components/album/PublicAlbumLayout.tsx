@@ -1181,7 +1181,7 @@ export function PublicAlbumLayout({
           aria-hidden
         />
 
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-10 pt-28 md:px-8 md:pb-12 md:pt-32">
+        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-10 pt-14 md:px-8 md:pb-12 md:pt-32">
           <div className="grid items-end gap-8 pt-6 lg:grid-cols-[minmax(0,280px)_1fr] lg:gap-12 lg:pt-2">
             <div className="mx-auto w-full max-w-[220px] sm:max-w-[260px] lg:mx-0 lg:max-w-none">
               <div className="relative">
