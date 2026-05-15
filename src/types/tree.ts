@@ -122,3 +122,57 @@ export interface UpcomingEventsResponse {
   window: { start: { month: number; day: number }; end: { month: number; day: number } };
   events: UpcomingEvent[];
 }
+
+export type HomeStatisticsDistributionLabel =
+  | "Guyana"
+  | "North America"
+  | "Portugal"
+  | "UK / Europe"
+  | "Elsewhere";
+
+/** One segment for homepage stat-card donut charts. */
+export interface HomeStatSlice {
+  label: string;
+  value: number;
+}
+
+/** Plotly presentation for a stat card (defaults come from card key in `Statistics.tsx`). */
+export type HomeStatChartVariant = "donut" | "line" | "bar" | "staggered";
+
+/** Donut metadata + slices (counts; client may derive percentages). */
+export interface HomeStatDonutChart {
+  titleLine1: string;
+  titleLine2?: string;
+  slices: HomeStatSlice[];
+  variant?: HomeStatChartVariant;
+  /** For `line` + non–children-bucket X axis (e.g. decades from analytics). */
+  lineSeriesMode?: "childrenBuckets" | "sliceOrder";
+  lineYAxisTitle?: string;
+  lineHoverCountsLabel?: string;
+  barXAxisTitle?: string;
+  barHoverCountsLabel?: string;
+}
+
+/** Response from GET /api/tree/home-statistics (homepage “By the numbers” block). */
+export interface HomeStatisticsPayload {
+  counts: {
+    individuals: number;
+    families: number;
+    surnames: number;
+    places: number;
+  };
+  distribution: { label: HomeStatisticsDistributionLabel; count: number; percent: number }[];
+  examples: {
+    individual: { displayName: string; xref: string } | null;
+    family: { displayName: string; xref: string } | null;
+    surname: { surname: string } | null;
+    place: { displayLabel: string } | null;
+  };
+  meetIndividual: { displayName: string; xref: string } | null;
+  charts: {
+    individuals: HomeStatDonutChart;
+    surnames: HomeStatDonutChart;
+    families: HomeStatDonutChart;
+    places: HomeStatDonutChart;
+  };
+}

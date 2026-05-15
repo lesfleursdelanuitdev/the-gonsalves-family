@@ -7,6 +7,8 @@ export type PublicIndividualRole =
 
 export type PublicIndividual = {
   id: string;
+  /** GEDCOM xref for tree viewer deep links (`root=…`). */
+  xref: string;
   fullName: string;
   birthYear: number | null;
   deathYear: number | null;
@@ -83,7 +85,6 @@ export type PublicIndividualLinkedAccount = {
 };
 
 export type PublicIndividualProfile = PublicIndividual & {
-  xref: string;
   biography: string;
   birthDateLabel: string | null;
   birthPlace: string | null;

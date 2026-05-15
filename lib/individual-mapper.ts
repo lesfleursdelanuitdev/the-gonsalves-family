@@ -127,9 +127,11 @@ export function mapIndividualRow(row: IndividualRowForMapping): MappedIndividual
 
   if (primaryForm) {
     givenNames = primaryForm.givenNames
-      .map((g) => g.givenName.givenName)
-      .filter(Boolean);
-    const surnameParts = primaryForm.surnames.map((s) => s.surname.surname).filter(Boolean);
+      .map((g) => g?.givenName?.givenName)
+      .filter((s): s is string => typeof s === "string" && s.length > 0);
+    const surnameParts = primaryForm.surnames
+      .map((s) => s?.surname?.surname)
+      .filter((s): s is string => typeof s === "string" && s.length > 0);
     firstName = givenNames.length > 0 ? givenNames.join(" ") : null;
     lastName = surnameParts.length > 0 ? surnameParts.join(" ") : null;
   }

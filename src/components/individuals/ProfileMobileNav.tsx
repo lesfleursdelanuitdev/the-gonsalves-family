@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  CalendarDays,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   FileText,
   GitBranch,
   Image as ImageIcon,
@@ -18,6 +20,8 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 
 type NavItem = {
   label: string;
@@ -26,53 +30,103 @@ type NavItem = {
   icon: typeof UserRound;
 };
 
-const PRIMARY_ITEMS: NavItem[] = [
+const PRIMARY_LINKS: NavItem[] = [
   { label: "Overview", href: "#overview", description: "Quick facts and key details", icon: UserRound },
   { label: "Family", href: "#family", description: "Relationships and relatives", icon: UsersRound },
-  { label: "Events", href: "#events", description: "Key life events and milestones", icon: CalendarDays },
 ];
 
+function profileNavInitials(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
+}
+
+function ProfileNavAvatar({ src, name }: { src: string | null; name: string }) {
+  const initials = profileNavInitials(name);
+  if (src) {
+    return (
+      <span
+        className="relative aspect-square h-6 w-6 shrink-0 overflow-hidden rounded-full border border-border-subtle/90 bg-surface object-cover shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35),0_1px_4px_rgba(40,28,18,0.12)] ring-1 ring-black/[0.04]"
+        aria-hidden
+      >
+        <Image
+          src={src}
+          alt=""
+          width={24}
+          height={24}
+          className="h-full w-full object-cover object-[50%_20%] sepia-[0.12]"
+          sizes="24px"
+        />
+      </span>
+    );
+  }
+  return (
+    <span
+      className="flex aspect-square h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-subtle/90 bg-surface-elevated/95 font-heading text-[0.55rem] font-semibold leading-none tracking-[0.03em] text-link shadow-[inset_0_0_0_1px_rgba(255,255,255,0.25),0_1px_4px_rgba(40,28,18,0.08)] ring-1 ring-black/[0.04]"
+      aria-hidden
+    >
+      {initials}
+    </span>
+  );
+}
+
 const DRAWER_ITEMS: NavItem[] = [
+  { label: "Associates", href: "#associates", description: "Connected people and organizations", icon: Network },
+  { label: "Notes", href: "#notes", description: "Private notes and observations", icon: FileText },
+  { label: "Linked Accounts", href: "#linked-accounts", description: "Connected family accounts", icon: UsersRound },
   { label: "Media", href: "#media", description: "Photos, documents, audio and more", icon: ImageIcon },
   { label: "Timeline", href: "#events", description: "Life story in chronological order", icon: SlidersHorizontal },
-  { label: "Notes", href: "#notes", description: "Private notes and observations", icon: FileText },
-  { label: "Associates", href: "#associates", description: "Connected people and organizations", icon: Network },
   { label: "Research", href: "#open-questions", description: "Questions and research log", icon: Search },
 ];
 
 type ProfileMobileNavProps = {
-  treeHref: string;
   contributionHref: string;
+  personId: string;
+  xref: string;
   personName: string;
+  /** Portrait or first gallery image; initials shown when absent. */
+  avatarSrc: string | null;
   showMedia: boolean;
   showNotes: boolean;
   showAssociates: boolean;
+  showLinkedAccounts: boolean;
   showResearch: boolean;
 };
 
 export function ProfileMobileNav({
-  treeHref,
   contributionHref,
+  personId,
+  xref,
   personName,
+  avatarSrc,
   showMedia,
   showNotes,
   showAssociates,
+  showLinkedAccounts,
   showResearch,
 }: ProfileMobileNavProps) {
-  const [open, setOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [navExpanded, setNavExpanded] = useState(true);
   const [active, setActive] = useState("Overview");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const drawerItems = DRAWER_ITEMS.filter((item) => {
     if (item.label === "Media") return showMedia;
     if (item.label === "Notes") return showNotes;
     if (item.label === "Associates") return showAssociates;
+    if (item.label === "Linked Accounts") return showLinkedAccounts;
     if (item.label === "Research") return showResearch;
     return true;
   });
 
   const handleNavigate = (label: string) => {
-    setActive(label === "Timeline" ? "Events" : label);
-    setOpen(false);
+    setActive(label);
+    setDrawerOpen(false);
   };
 
   const handleShare = async () => {
@@ -92,6 +146,15 @@ export function ProfileMobileNav({
     }
   };
 
+  const collapseNav = () => {
+    setNavExpanded(false);
+    setDrawerOpen(false);
+  };
+
+  const expandNav = () => {
+    setNavExpanded(true);
+  };
+
   return (
     <nav
       aria-label="Profile sections"
@@ -108,7 +171,7 @@ export function ProfileMobileNav({
         }}
       >
         <AnimatePresence initial={false}>
-          {open ? (
+          {drawerOpen ? (
             <motion.div
               key="drawer"
               initial={{ height: 0, opacity: 0, y: 16, filter: "blur(6px)" }}
@@ -150,41 +213,98 @@ export function ProfileMobileNav({
                     index={drawerItems.length + 1}
                     onNavigate={handleNavigate}
                   />
-                  <DrawerLink
-                    item={{ label: "View in Tree", href: treeHref, description: "Open in the family tree", icon: GitBranch }}
-                    index={drawerItems.length + 2}
-                    onNavigate={handleNavigate}
-                  />
                 </div>
               </div>
             </motion.div>
           ) : null}
         </AnimatePresence>
 
-        <div className="grid grid-cols-4 gap-1 border-t border-border-subtle/70 bg-[rgba(255,250,240,0.5)] p-1.5">
-          {PRIMARY_ITEMS.map((item) => (
-            <CapsuleLink
-              key={item.label}
-              item={item}
-              active={active === item.label}
-              onNavigate={handleNavigate}
-            />
-          ))}
+        {navExpanded ? (
+          <>
+            <div className="flex items-center justify-between gap-2 border-b border-border-subtle/70 px-3.5 py-2.5">
+              <div className="flex min-w-0 flex-1 items-center justify-start gap-1.5">
+                <ProfileNavAvatar src={avatarSrc} name={personName} />
+                <p
+                  className="min-w-0 flex-1 truncate text-left font-heading text-sm font-semibold leading-snug text-heading"
+                  title={personName}
+                >
+                  {personName}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Collapse profile menu"
+                onClick={collapseNav}
+                className="shrink-0 rounded-xl p-2 text-link transition hover:bg-link-soft-bg"
+              >
+                <ChevronDown className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-1 border-t border-border-subtle/70 bg-[rgba(255,250,240,0.5)] p-1.5">
+              {PRIMARY_LINKS.map((item) => (
+                <CapsuleLink
+                  key={item.label}
+                  item={item}
+                  active={active === item.label}
+                  onNavigate={handleNavigate}
+                />
+              ))}
+              <PersonCardTreeModalTrigger
+                personId={personId}
+                xref={xref}
+                fullName={personName}
+                showActiveDot
+                active={active === "In Tree"}
+                onOpenChange={(isOpen) => {
+                  if (isOpen) setActive("In Tree");
+                }}
+                triggerClassName={cn(
+                  "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-[0.64rem] font-semibold tracking-[0.03em] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                  active === "In Tree"
+                    ? "bg-link-soft-bg text-link shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_6px_14px_rgba(60,45,25,0.06)]"
+                    : "text-link/85 hover:bg-link-soft-bg hover:text-link",
+                )}
+                triggerChildren={
+                  <>
+                    <GitBranch className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                    <span>In Tree</span>
+                  </>
+                }
+              />
+              <button
+                type="button"
+                aria-expanded={drawerOpen}
+                onClick={() => {
+                  setNavExpanded(true);
+                  setDrawerOpen((current) => !current);
+                }}
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-[0.64rem] font-semibold tracking-[0.03em] transition ${
+                  drawerOpen
+                    ? "bg-link-soft-bg text-link shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_14px_rgba(60,45,25,0.06)]"
+                    : "text-link hover:bg-link-soft-bg"
+                }`}
+              >
+                <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                <span>More</span>
+                {drawerOpen ? <span className="absolute bottom-1.5 h-0.5 w-1.5 rounded-full bg-link/70" aria-hidden /> : null}
+              </button>
+            </div>
+          </>
+        ) : (
           <button
             type="button"
-            aria-expanded={open}
-            onClick={() => setOpen((current) => !current)}
-            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-[0.64rem] font-semibold tracking-[0.03em] transition ${
-              open
-                ? "bg-link-soft-bg text-link shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_14px_rgba(60,45,25,0.06)]"
-                : "text-link hover:bg-link-soft-bg"
-            }`}
+            onClick={expandNav}
+            className="flex w-full items-center gap-1.5 border-t border-border-subtle/70 bg-[rgba(255,250,240,0.5)] px-3 py-2.5 text-link transition hover:bg-link-soft-bg/80"
           >
-            <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-            <span>More</span>
-            {open ? <span className="absolute bottom-1.5 h-0.5 w-1.5 rounded-full bg-link/70" aria-hidden /> : null}
+            <ChevronUp className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
+            <div className="flex min-w-0 flex-1 items-center justify-start gap-1.5">
+              <ProfileNavAvatar src={avatarSrc} name={personName} />
+              <span className="min-w-0 flex-1 truncate text-left font-heading text-sm font-semibold leading-snug text-heading">
+                {personName}
+              </span>
+            </div>
           </button>
-        </div>
+        )}
       </motion.div>
     </nav>
   );

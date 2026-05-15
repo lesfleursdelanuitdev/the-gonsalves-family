@@ -22,17 +22,31 @@ export type PlotlyChartProps = {
  * Next.js–safe Plotly wrapper (loads on the client only).
  */
 export function PlotlyChart({ data, layout, config, className, style }: PlotlyChartProps) {
+  const outer: CSSProperties = {
+    width: "100%",
+    overflow: "hidden",
+    position: "relative",
+    ...style,
+  };
+  if (outer.minHeight == null) outer.minHeight = 360;
+  if (outer.height == null) outer.height = outer.minHeight;
+
+  const plotMin = outer.minHeight ?? 360;
+  const plotHeight = outer.height ?? plotMin;
+
   return (
-    <div
-      className={className}
-      style={{ minHeight: 360, width: "100%", overflow: "visible", ...style }}
-    >
+    <div className={className} style={outer}>
       <PlotDynamic
         data={data}
         layout={layout ?? {}}
         config={config}
         useResizeHandler
-        style={{ width: "100%", height: "100%", minHeight: 360, overflow: "visible" }}
+        style={{
+          width: "100%",
+          height: plotHeight,
+          minHeight: plotMin,
+          overflow: "hidden",
+        }}
       />
     </div>
   );

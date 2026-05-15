@@ -722,8 +722,9 @@ body {
   content: "";
   position: absolute;
   left: 0;
-  bottom: -3px;
-  height: 2px;
+  /* Match Statistics heading: underline 5px, ~6px offset from text */
+  bottom: -6px;
+  height: 5px;
   width: 0;
   background: var(--crimson);
 }

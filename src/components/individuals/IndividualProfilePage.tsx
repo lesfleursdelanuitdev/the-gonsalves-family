@@ -5,6 +5,7 @@ import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
 import { FamilyRelationsTabs } from "./FamilyRelationsTabs";
+import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import { ProfileMediaSection } from "./ProfileMediaSection";
 import { ProfileMobileNav } from "./ProfileMobileNav";
 import { ProfileNotes } from "./ProfileNotes";
@@ -101,15 +102,6 @@ function statusLabel(status: string): string {
     .join(" ");
 }
 
-function treeViewerRootHref(person: PublicIndividualProfile): string {
-  const params = new URLSearchParams({
-    root: person.xref,
-    loadSavedHistory: "true",
-    rootName: person.fullName,
-  });
-  return `/tree/viewer?${params.toString()}`;
-}
-
 function contributionHref(person: PublicIndividualProfile): string {
   const params = new URLSearchParams({
     individualXref: person.xref,
@@ -136,16 +128,15 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
   const hasOpenQuestions = openQuestions.length > 0;
   const partnerLabel = summarizePartners(partners);
   const childrenLabel = children.length > 0 ? `${children.length} recorded` : null;
-  const treeHref = treeViewerRootHref(person);
   const contributeHref = contributionHref(person);
   const profileTabs = [
     "Overview",
     "Family",
+    ...(hasAssociates ? ["Associates"] : []),
+    ...(hasNotes ? ["Notes"] : []),
     ...(linkedAccounts.length > 0 ? ["Linked Accounts"] : []),
     "Events",
     ...(hasMedia ? ["Media"] : []),
-    ...(hasNotes ? ["Notes"] : []),
-    ...(hasAssociates ? ["Associates"] : []),
     ...(hasOpenQuestions ? ["Open Questions"] : []),
   ];
 
@@ -212,7 +203,9 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                     </h1>
                     <div className="h-px w-24 bg-gradient-to-r from-link/70 via-link/30 to-transparent" />
                     <p className="text-base text-muted sm:text-lg">{lifeLabel(person.birthYear, person.deathYear)}</p>
-                    <p className="max-w-3xl text-sm leading-relaxed text-muted sm:text-base">{person.biography}</p>
+                    <p className="hidden max-w-3xl text-sm leading-relaxed text-muted md:block md:text-base">
+                      {person.biography}
+                    </p>
                   </div>
 
                   <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
@@ -252,18 +245,21 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
         </div>
 
         <ProfileMobileNav
-          treeHref={treeHref}
           contributionHref={contributeHref}
+          personId={person.id}
+          xref={person.xref}
           personName={person.fullName}
+          avatarSrc={person.portraitSrc ?? person.photos[0]?.src ?? null}
           showMedia={hasMedia}
           showNotes={hasNotes}
           showAssociates={hasAssociates}
+          showLinkedAccounts={linkedAccounts.length > 0}
           showResearch={hasOpenQuestions}
         />
 
         <Section id="overview" noPadding className="min-w-0 overflow-x-hidden pb-8 pt-2 md:py-12">
           <PageContainer narrow>
-            <aside className="rounded-2xl border border-border/80 bg-surface-elevated/90 p-5 shadow-[0_8px_24px_rgba(60,45,25,0.06)] sm:p-6">
+            <aside className="rounded-2xl border border-border/80 bg-surface-elevated/90 p-5 shadow-[0_18px_48px_rgba(40,28,18,0.14)] sm:p-6 md:shadow-[0_8px_24px_rgba(60,45,25,0.06)]">
               <h2 className="font-heading text-2xl font-semibold text-heading">Quick Facts</h2>
               <div className="mt-4">
                 <FactRow label="Full name" value={person.fullName} />
@@ -272,7 +268,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
               </div>
             </aside>
 
-            <section id="family" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_10px_26px_rgba(60,45,25,0.08)] sm:p-6">
+            <section id="family" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
               <div className="flex items-start justify-between gap-3 border-b border-border-subtle pb-4">
                 <div className="min-w-0">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Family</p>
@@ -281,16 +277,22 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                     These are the people who shaped this person&apos;s life and the families connected to them.
                   </p>
                 </div>
-                <Link
-                  href={treeHref}
-                  aria-label="View family tree"
-                  title="View family tree"
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-lg border border-border-subtle bg-surface text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg sm:h-auto sm:w-auto sm:px-4 sm:py-2"
-                >
-                  <GitBranch className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden />
-                  <span className="hidden sm:inline">View Family Tree</span>
-                  <span className="hidden sm:inline" aria-hidden>&rarr;</span>
-                </Link>
+                <PersonCardTreeModalTrigger
+                  personId={person.id}
+                  xref={person.xref}
+                  fullName={person.fullName}
+                  triggerAriaLabel="View family tree"
+                  triggerClassName="inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-lg border border-border-subtle bg-surface text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg sm:h-auto sm:w-auto sm:px-4 sm:py-2"
+                  triggerChildren={
+                    <>
+                      <GitBranch className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden />
+                      <span className="hidden sm:inline">View Family Tree</span>
+                      <span className="hidden sm:inline" aria-hidden>
+                        &rarr;
+                      </span>
+                    </>
+                  }
+                />
               </div>
               <FamilyRelationsTabs
                 parents={parents}
@@ -302,8 +304,47 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
               />
             </section>
 
+            {hasAssociates ? (
+              <section id="associates" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
+                <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
+                    <Network className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Associates</p>
+                    <h2 className="mt-1 font-heading text-2xl font-semibold text-heading">Associated People</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">
+                      Non-family relationships recorded in the GEDCOM association fields.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {associates.map((associate) => (
+                    <Link
+                      key={`${associate.id}-${associate.relationLabel}`}
+                      href={`/individuals/${encodeURIComponent(associate.id)}`}
+                      className="group flex min-w-0 items-center gap-3 rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-3 transition hover:-translate-y-0.5 hover:border-link/30 hover:shadow-[0_12px_24px_rgba(60,45,25,0.1)]"
+                    >
+                      <Portrait person={associate} className="h-14 w-14 shrink-0 rounded-full border border-border-subtle" />
+                      <div className="min-w-0">
+                        <p className="truncate font-heading text-base font-semibold text-heading group-hover:text-link">{associate.fullName}</p>
+                        <p className="mt-0.5 text-xs text-muted">{lifeLabel(associate.birthYear, associate.deathYear)}</p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-link">{associate.relationLabel}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {hasNotes ? (
+              <div className="mt-6">
+                <ProfileNotes notes={notes} />
+              </div>
+            ) : null}
+
             {linkedAccounts.length > 0 ? (
-              <section id="linked-accounts" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_10px_26px_rgba(60,45,25,0.08)] sm:p-6">
+              <section id="linked-accounts" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
                 <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
                     <UsersRound className="h-5 w-5" aria-hidden />
@@ -344,39 +385,6 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
               </section>
             ) : null}
 
-            {hasAssociates ? (
-              <section id="associates" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_10px_26px_rgba(60,45,25,0.08)] sm:p-6">
-                <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
-                    <Network className="h-5 w-5" aria-hidden />
-                  </span>
-                  <div>
-                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Associates</p>
-                    <h2 className="mt-1 font-heading text-2xl font-semibold text-heading">Associated People</h2>
-                    <p className="mt-1 text-sm leading-relaxed text-muted">
-                      Non-family relationships recorded in the GEDCOM association fields.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {associates.map((associate) => (
-                    <Link
-                      key={`${associate.id}-${associate.relationLabel}`}
-                      href={`/individuals/${encodeURIComponent(associate.id)}`}
-                      className="group flex min-w-0 items-center gap-3 rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-3 transition hover:-translate-y-0.5 hover:border-link/30 hover:shadow-[0_12px_24px_rgba(60,45,25,0.1)]"
-                    >
-                      <Portrait person={associate} className="h-14 w-14 shrink-0 rounded-full border border-border-subtle" />
-                      <div className="min-w-0">
-                        <p className="truncate font-heading text-base font-semibold text-heading group-hover:text-link">{associate.fullName}</p>
-                        <p className="mt-0.5 text-xs text-muted">{lifeLabel(associate.birthYear, associate.deathYear)}</p>
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-link">{associate.relationLabel}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
           </PageContainer>
         </Section>
 
@@ -401,16 +409,13 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
           </Section>
         ) : null}
 
-        {hasNotes || hasOpenQuestions ? (
+        {hasOpenQuestions ? (
           <Section className="min-w-0 overflow-x-hidden border-t border-border-subtle py-10 md:py-14">
             <PageContainer narrow>
-              {hasNotes ? <ProfileNotes notes={notes} /> : null}
-
-              {hasOpenQuestions ? (
-                <section
-                  id="open-questions"
-                  className={`${hasNotes ? "mt-6" : ""} rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_10px_26px_rgba(60,45,25,0.08)] sm:p-6`}
-                >
+              <section
+                id="open-questions"
+                className="rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]"
+              >
               <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
                   <HelpCircle className="h-5 w-5" aria-hidden />
@@ -439,8 +444,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                     </article>
                     ))}
                   </div>
-                </section>
-              ) : null}
+              </section>
             </PageContainer>
           </Section>
         ) : null}

@@ -14,6 +14,7 @@ import type {
   AncestorsResponse,
   DescendantsResponse,
   UpcomingEventsResponse,
+  HomeStatisticsPayload,
 } from "@/types/tree";
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -183,6 +184,18 @@ export function useTreeRandomSurname() {
       fetchJson<{ surname: TreeSurname | null }>("/api/tree/random/surname").then(
         (r) => r.surname
       ),
+  });
+}
+
+/** Homepage “By the numbers” block: counts, distribution, meet card (DB-backed). */
+export function useTreeHomeStatistics(refreshKey?: number) {
+  return useQuery({
+    queryKey: ["tree", "home-statistics", refreshKey ?? 0],
+    queryFn: () => {
+      const qs =
+        refreshKey != null && refreshKey > 0 ? `?r=${encodeURIComponent(String(refreshKey))}` : "";
+      return fetchJson<HomeStatisticsPayload>(`/api/tree/home-statistics${qs}`);
+    },
   });
 }
 

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CalendarCheck, MapPin, UsersRound } from "lucide-react";
 import type { PublicIndividual } from "./types";
+import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 
 const PERSON_CARD_FALLBACK_BG = "/images/personCardBg.png";
 
@@ -96,12 +97,15 @@ export function PersonCard({ person }: { person: PublicIndividual }) {
           </div>
         </div>
 
-        <Link
-          href={`/individuals/${encodeURIComponent(person.id)}`}
-          className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
-        >
-          View Profile <span className="text-lg leading-none" aria-hidden>&rarr;</span>
-        </Link>
+        <div className="flex min-w-0 flex-col gap-2">
+          <Link
+            href={`/individuals/${encodeURIComponent(person.id)}`}
+            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
+          >
+            View Profile <span className="text-lg leading-none" aria-hidden>&rarr;</span>
+          </Link>
+          <PersonCardTreeModalTrigger personId={person.id} xref={person.xref} fullName={person.fullName} />
+        </div>
       </div>
     </article>
   );

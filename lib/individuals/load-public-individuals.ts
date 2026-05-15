@@ -323,6 +323,7 @@ export async function loadPublicIndividuals(): Promise<PublicIndividual[]> {
 
     return {
       id: r.id,
+      xref: r.xref,
       fullName: displayName(r.fullName, r.xref),
       birthYear: r.birthYear ?? null,
       deathYear: r.deathYear ?? null,
