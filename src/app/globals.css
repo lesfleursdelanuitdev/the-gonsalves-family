@@ -744,3 +744,88 @@ body {
     @apply font-sans;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Pillars — Combo B · Margin Numeral cards
+   Hover states that can't be expressed cleanly with Tailwind group-hover
+   ═══════════════════════════════════════════════════════════════════════════ */
+.combo-b-card {
+  border-radius: 8px;
+  transition: transform 0.3s cubic-bezier(.2,.7,.3,1), box-shadow 0.3s cubic-bezier(.2,.7,.3,1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  display: block;
+  overflow: hidden;
+}
+
+.combo-b-card:hover,
+.combo-b-card:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12), 0 6px 16px rgba(0,0,0,0.08);
+  outline: none;
+}
+
+.combo-b-card:focus-visible {
+  outline: 2px solid var(--crimson);
+  outline-offset: 2px;
+}
+
+.combo-b-margin-col {
+  /* Match hero search box parchment (HeroSearchBox) at rest */
+  background: rgba(240, 226, 204, 0.47);
+  transition: background-color 0.3s;
+}
+
+.combo-b-card:hover .combo-b-margin-col,
+.combo-b-card:focus-visible .combo-b-margin-col {
+  background: rgba(139,46,46,0.06);
+}
+
+.combo-b-numeral {
+  color: var(--accent-muted);
+  transition: color 0.3s;
+}
+
+.combo-b-card:hover .combo-b-numeral,
+.combo-b-card:focus-visible .combo-b-numeral {
+  color: var(--crimson);
+}
+
+.combo-b-photo {
+  filter: var(--combo-photo-rest, sepia(0.5) brightness(0.94));
+  transition: filter 0.3s cubic-bezier(.2,.7,.3,1), transform 0.3s cubic-bezier(.2,.7,.3,1);
+}
+
+.combo-b-card:hover .combo-b-photo,
+.combo-b-card:focus-visible .combo-b-photo {
+  filter: var(--combo-photo-hover, sepia(0.3) brightness(1.02));
+  transform: scale(1.04);
+}
+
+.combo-b-arrow-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(139,94,60,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s, border-color 0.3s;
+  flex-shrink: 0;
+}
+
+.combo-b-card:hover .combo-b-arrow-btn,
+.combo-b-card:focus-visible .combo-b-arrow-btn {
+  background-color: var(--crimson);
+  border-color: var(--crimson);
+}
+
+.combo-b-arrow-icon {
+  color: var(--text-muted);
+  transition: color 0.3s, transform 0.3s;
+}
+
+.combo-b-card:hover .combo-b-arrow-icon,
+.combo-b-card:focus-visible .combo-b-arrow-icon {
+  color: var(--text-inverse);
+  transform: translateX(4px);
+}

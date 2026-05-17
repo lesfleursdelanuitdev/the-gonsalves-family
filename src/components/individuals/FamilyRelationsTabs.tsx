@@ -15,15 +15,11 @@ function lifeLabel(birthYear: number | null, deathYear: number | null): string {
 }
 
 function initials(name: string): string {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0][0]?.toUpperCase() ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1][0]?.toUpperCase() ?? "") : "";
+  return (first + last) || "?";
 }
 
 function MiniPortrait({ relation }: { relation: PublicIndividualRelation }) {

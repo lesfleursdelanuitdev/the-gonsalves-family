@@ -77,6 +77,10 @@ export interface UseFamilyTreeStateOptions {
   initialPedigreeFamcFamilyXref?: string | null;
   /** `ppg` query — pedigree parent pair gap in px. */
   initialParentPairGap?: number | null;
+  /** `spouse` query — reveal this partner for root (family unit view). */
+  initialRevealSpouseXref?: string | null;
+  /** `family` query — family-unit scope at root (with `initialRevealSpouseXref`). */
+  initialFamilyXref?: string | null;
 }
 
 export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
@@ -91,6 +95,8 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
     initialCompactCardSize = null,
     initialPedigreeFamcFamilyXref = null,
     initialParentPairGap = null,
+    initialRevealSpouseXref = null,
+    initialFamilyXref = null,
   } = options;
 
   const resolvedStrategy: ChartViewStrategyName = resolveChartStrategyName(initialChartStrategy);
@@ -102,10 +108,18 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
           const o: {
             initialCurrentDepth?: number | null;
             initialPedigreeFamcFamilyXref?: string | null;
+            initialRevealSpouseXref?: string | null;
+            initialFamilyXref?: string | null;
           } = {};
           if (initialUrlDepth != null) o.initialCurrentDepth = initialUrlDepth;
           if (initialPedigreeFamcFamilyXref != null && initialPedigreeFamcFamilyXref.trim() !== "") {
             o.initialPedigreeFamcFamilyXref = initialPedigreeFamcFamilyXref.trim();
+          }
+          if (initialRevealSpouseXref != null && initialRevealSpouseXref.trim() !== "") {
+            o.initialRevealSpouseXref = initialRevealSpouseXref.trim();
+          }
+          if (initialFamilyXref != null && initialFamilyXref.trim() !== "") {
+            o.initialFamilyXref = initialFamilyXref.trim();
           }
           return Object.keys(o).length ? o : undefined;
         })();
@@ -113,7 +127,15 @@ export function useFamilyTreeState(options: UseFamilyTreeStateOptions = {}) {
   const initialState = useMemo(
     () =>
       createInitialState(resolvedStrategy, initialRootId ?? undefined, createStateOpts ?? undefined),
-    [initialRootId, resolvedStrategy, loadSavedHistory, initialUrlDepth, initialPedigreeFamcFamilyXref]
+    [
+      initialRootId,
+      resolvedStrategy,
+      loadSavedHistory,
+      initialUrlDepth,
+      initialPedigreeFamcFamilyXref,
+      initialRevealSpouseXref,
+      initialFamilyXref,
+    ]
   );
   const [state, dispatch] = useReducer(treeReducer, initialState);
   const viewState = state.viewState as ViewState;

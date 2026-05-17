@@ -10,6 +10,10 @@ export interface ChartTypeModalProps {
   value: ChartViewStrategyName;
   /** Compact grid + vertical cards; on mobile the picker is a right-edge drawer (portaled). */
   isMobile?: boolean;
+  /** `ancestor` = pedigree, vertical pedigree, and fan chart only. */
+  mode?: "all" | "ancestor";
+  title?: string;
+  description?: string;
   onClose: () => void;
   onSelect: (next: ChartViewStrategyName) => void | Promise<void>;
 }
@@ -115,7 +119,7 @@ type OptionDef = {
   skeleton: React.ReactNode;
 };
 
-const CHART_OPTIONS: OptionDef[] = [
+export const CHART_TYPE_OPTIONS: OptionDef[] = [
   {
     value: "descendancy",
     title: "Descendancy",
@@ -157,9 +161,34 @@ function useIsMounted() {
   return mounted;
 }
 
-export function ChartTypeModal({ open, value, isMobile = false, onClose, onSelect }: ChartTypeModalProps) {
+const ANCESTOR_CHART_VALUES = new Set<ChartViewStrategyName>([
+  "pedigree",
+  "vertical_pedigree",
+  "fan_chart",
+]);
+
+export function ChartTypeModal({
+  open,
+  value,
+  isMobile = false,
+  mode = "all",
+  title,
+  description,
+  onClose,
+  onSelect,
+}: ChartTypeModalProps) {
   const isMounted = useIsMounted();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const chartOptions =
+    mode === "ancestor"
+      ? CHART_TYPE_OPTIONS.filter((o) => ANCESTOR_CHART_VALUES.has(o.value))
+      : CHART_TYPE_OPTIONS;
+  const modalTitle = title ?? (mode === "ancestor" ? "Ancestor chart" : "Chart type");
+  const modalDescription =
+    description ??
+    (mode === "ancestor"
+      ? "Choose how to show this person’s ancestors."
+      : "Choose how the tree is drawn. You can change this anytime.");
 
   useEffect(() => {
     if (!open || !isMobile) {
@@ -201,7 +230,7 @@ export function ChartTypeModal({ open, value, isMobile = false, onClose, onSelec
 
   const optionsBlock = (
     <div style={optionsGrid}>
-      {CHART_OPTIONS.map((opt) => {
+      {chartOptions.map((opt) => {
         const selected = value === opt.value;
         const rowLayout = !isMobile;
 
@@ -290,7 +319,7 @@ export function ChartTypeModal({ open, value, isMobile = false, onClose, onSelec
               minWidth: 0,
             }}
           >
-            Chart type
+            {modalTitle}
           </div>
           <button
             type="button"
@@ -330,7 +359,7 @@ export function ChartTypeModal({ open, value, isMobile = false, onClose, onSelec
               fontFamily: "system-ui, sans-serif",
             }}
           >
-            Choose how the tree is drawn. You can change this anytime.
+            {modalDescription}
           </p>
           {optionsBlock}
         </div>
@@ -373,7 +402,7 @@ export function ChartTypeModal({ open, value, isMobile = false, onClose, onSelec
             fontFamily: "var(--font-heading-raw), Georgia, serif",
           }}
         >
-          Chart type
+          {modalTitle}
         </div>
         <p
           style={{
@@ -384,7 +413,7 @@ export function ChartTypeModal({ open, value, isMobile = false, onClose, onSelec
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          Choose how the tree is drawn. You can change this anytime.
+          {modalDescription}
         </p>
 
         {optionsBlock}

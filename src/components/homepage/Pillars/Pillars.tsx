@@ -1,7 +1,7 @@
 "use client";
 
-import { PillarsV3 } from "./PillarsV3";
+import { PillarsComboB } from "./PillarsComboB";
 
 export function Pillars() {
-  return <PillarsV3 />;
+  return <PillarsComboB />;
 }

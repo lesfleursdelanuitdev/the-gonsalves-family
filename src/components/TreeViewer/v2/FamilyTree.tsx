@@ -52,6 +52,10 @@ export interface FamilyTreeProps {
   initialCompactCardSize?: PersonCompactCardSize | null;
   /** From `partners` query (`open` | `closed`); `null` = do not apply from URL. */
   initialPartnersUrl?: TreeViewerPartnersUrl | null;
+  /** From `spouse` query — reveal this partner for root (family unit view). */
+  initialRevealSpouseXref?: string | null;
+  /** From `family` query — family xref for family profile links. */
+  initialFamilyXref?: string | null;
   /** From `famc` query — pedigree family xref when opening in pedigree / vertical pedigree. */
   initialPedigreeFamcFamilyXref?: string | null;
   /** From `ppg` query — pedigree parent pair spacing in px. */
@@ -69,6 +73,8 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     initialPersonCardVariant = null,
     initialCompactCardSize = null,
     initialPartnersUrl = null,
+    initialRevealSpouseXref = null,
+    initialFamilyXref = null,
     initialPedigreeFamcFamilyXref = null,
     initialParentPairGap = null,
   } = props;
@@ -94,6 +100,8 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     initialCompactCardSize,
     initialPedigreeFamcFamilyXref,
     initialParentPairGap,
+    initialRevealSpouseXref,
+    initialFamilyXref,
   });
   const {
     state,
@@ -227,7 +235,10 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     compactCardSize: settings.compactCardSize,
     parentPairGap: settings.parentPairGap,
     revealedUnions: viewState.revealedUnions,
+    familyUnitScope: viewState.familyUnitScope,
     initialPartnersUrl,
+    initialRevealSpouseXref,
+    initialFamilyXref,
   });
   const { handleChartStrategyChange } = useFamilyTreeSyncEffects(familyTreeSyncEffectsInput);
   const {

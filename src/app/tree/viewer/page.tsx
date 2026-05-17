@@ -13,13 +13,15 @@ type SearchParams = Promise<{
   cardVariant?: string;
   cardSize?: string;
   partners?: string;
+  spouse?: string;
+  family?: string;
   famc?: string;
   ppg?: string;
 }>;
 
 /**
  * Main tree viewer route: /tree/viewer. Serves v2 tree.
- * Query: root, chart, depth, card, cardVariant, cardSize, partners, famc, ppg,
+ * Query: root, chart, depth, card, cardVariant, cardSize, partners, spouse, family, famc, ppg,
  * loadSavedHistory, rootName (see `lib/treeViewerUrl.ts`).
  */
 export default async function TreeViewerPage({
@@ -49,12 +51,16 @@ export default async function TreeViewerPage({
     cardVariant: params.cardVariant,
     cardSize: params.cardSize,
     partners: params.partners,
+    spouse: params.spouse,
+    family: params.family,
     famc: params.famc,
     ppg: params.ppg,
   });
   const skipUrlViewOverrides = Boolean(loadSavedHistory && initialRootId != null);
   const initialUrlDepth = skipUrlViewOverrides ? null : parsedUrl.initialUrlDepth;
   const initialPartnersUrl = skipUrlViewOverrides ? null : parsedUrl.initialPartnersUrl;
+  const initialRevealSpouseXref = skipUrlViewOverrides ? null : parsedUrl.initialRevealSpouseXref;
+  const initialFamilyXref = skipUrlViewOverrides ? null : parsedUrl.initialFamilyXref;
   const initialPedigreeFamcFamilyXref = skipUrlViewOverrides ? null : parsedUrl.initialPedigreeFamcFamilyXref;
   const initialPersonCardLayout = parsedUrl.initialPersonCardLayout;
   const initialPersonCardVariant = parsedUrl.initialPersonCardVariant;
@@ -71,6 +77,8 @@ export default async function TreeViewerPage({
     initialPersonCardVariant ?? "",
     initialCompactCardSize ?? "",
     initialPartnersUrl ?? "",
+    initialRevealSpouseXref ?? "",
+    initialFamilyXref ?? "",
     initialPedigreeFamcFamilyXref ?? "",
     initialParentPairGap ?? "",
   ].join("-");
@@ -125,6 +133,8 @@ export default async function TreeViewerPage({
             initialPersonCardVariant={initialPersonCardVariant}
             initialCompactCardSize={initialCompactCardSize}
             initialPartnersUrl={initialPartnersUrl}
+            initialRevealSpouseXref={initialRevealSpouseXref}
+            initialFamilyXref={initialFamilyXref}
             initialPedigreeFamcFamilyXref={initialPedigreeFamcFamilyXref}
             initialParentPairGap={initialParentPairGap}
           />

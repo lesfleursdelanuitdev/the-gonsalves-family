@@ -5,9 +5,9 @@ import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
 import { FamilyRelationsTabs } from "./FamilyRelationsTabs";
+import { MobileIndividualProfile } from "./MobileIndividualProfile";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import { ProfileMediaSection } from "./ProfileMediaSection";
-import { ProfileMobileNav } from "./ProfileMobileNav";
 import { ProfileNotes } from "./ProfileNotes";
 import { ProfileTimeline } from "./ProfileTimeline";
 import type { PublicIndividualProfile, PublicIndividualRelation } from "./types";
@@ -21,15 +21,11 @@ function lifeLabel(birthYear: number | null, deathYear: number | null): string {
 }
 
 function initials(name: string): string {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0][0]?.toUpperCase() ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1][0]?.toUpperCase() ?? "") : "";
+  return (first + last) || "?";
 }
 
 function summarizePartners(partners: PublicIndividualRelation[]): string | null {
@@ -141,9 +137,12 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
   ];
 
   return (
-    <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg pb-24 text-text md:pb-0">
+    <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg text-text md:pb-0">
       <Navbar />
       <main className="min-w-0 flex-1 overflow-x-hidden">
+        <MobileIndividualProfile person={person} contributionHref={contributeHref} />
+
+        <div className="hidden md:block">
         <Section noPadding className="relative min-w-0 overflow-hidden pb-2 pt-[66px] md:pb-12 md:pt-32">
           <div className="absolute inset-0 min-w-0 max-w-full">
             {person.portraitSrc ? (
@@ -244,18 +243,6 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
           </PageContainer>
         </div>
 
-        <ProfileMobileNav
-          contributionHref={contributeHref}
-          personId={person.id}
-          xref={person.xref}
-          personName={person.fullName}
-          avatarSrc={person.portraitSrc ?? person.photos[0]?.src ?? null}
-          showMedia={hasMedia}
-          showNotes={hasNotes}
-          showAssociates={hasAssociates}
-          showLinkedAccounts={linkedAccounts.length > 0}
-          showResearch={hasOpenQuestions}
-        />
 
         <Section id="overview" noPadding className="min-w-0 overflow-x-hidden pb-8 pt-2 md:py-12">
           <PageContainer narrow>
@@ -448,6 +435,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             </PageContainer>
           </Section>
         ) : null}
+        </div>
       </main>
       <Footer />
     </div>

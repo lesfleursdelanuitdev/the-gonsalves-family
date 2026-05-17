@@ -29,10 +29,25 @@ export interface SpouseDrawerProps {
   onSelectAll?: (personId: string, spouseIdToPanTo: string) => void;
   /** Close all revealed spouses for this person. */
   onCloseAll?: (personId: string) => void;
+  /** Show only this family union (exclusive spouse; catch-all suppressed at chart root). */
+  onSetFamilyUnitScope?: (
+    personId: string,
+    spouseId: string,
+    familyXref: string | null
+  ) => void;
   onClose: () => void;
 }
 
-export function SpouseDrawer({ personId, viewState, onSelect, onCloseSpouse, onSelectAll, onCloseAll, onClose }: SpouseDrawerProps) {
+export function SpouseDrawer({
+  personId,
+  viewState,
+  onSelect,
+  onCloseSpouse,
+  onSelectAll,
+  onCloseAll,
+  onSetFamilyUnitScope,
+  onClose,
+}: SpouseDrawerProps) {
   const anchor = useSpouseDrawerAnchor();
   const open = Boolean(personId);
 
@@ -55,6 +70,7 @@ export function SpouseDrawer({ personId, viewState, onSelect, onCloseSpouse, onS
     ({ spouseId }) => !revealedForPerson.includes(spouseId)
   );
   const allRevealed = unrevealedEntries.length === 0 && allSpouseEntries.length > 0;
+  const familyUnitScope = viewState.familyUnitScope;
 
   const isMobile = anchor === "left";
   const padding = isMobile ? 16 : "20px 28px 28px";
@@ -140,19 +156,31 @@ export function SpouseDrawer({ personId, viewState, onSelect, onCloseSpouse, onS
           if (!spouse) return null;
           const isUnknown = spouse.firstName === "Unknown";
           const isRevealed = revealedForPerson.includes(spouseId);
-          const borderColor = isRevealed
+          const isFamilyUnitActive =
+            familyUnitScope?.personId === personId &&
+            familyUnitScope.spouseId === spouseId &&
+            (familyUnitScope.familyXref == null ||
+              familyUnitScope.familyXref === (union.id ?? null));
+          const borderColor = isFamilyUnitActive
+            ? "var(--tree-root)"
+            : isRevealed
             ? "var(--crimson)"
             : isUnknown
               ? "var(--tree-border)"
               : "var(--tree-linked)";
-          const borderWidth = isRevealed ? 3 : 1;
+          const borderWidth = isRevealed || isFamilyUnitActive ? 3 : 1;
           const handleClick = () => {
             if (isRevealed && onCloseSpouse) onCloseSpouse(spouseId);
             else onSelect(personId, spouseId);
           };
+          const familyXref = union.id?.trim() ? union.id : null;
           return (
-            <button
+            <div
               key={`${union.husb}-${union.wife}`}
+              className="flex flex-col gap-1.5"
+              style={{ width: isMobile ? "100%" : undefined }}
+            >
+            <button
               type="button"
               onClick={handleClick}
               style={{
@@ -162,7 +190,9 @@ export function SpouseDrawer({ personId, viewState, onSelect, onCloseSpouse, onS
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--hover-overlay)";
-                if (!isRevealed) e.currentTarget.style.borderColor = "var(--tree-linked)";
+                if (!isRevealed && !isFamilyUnitActive) {
+                  e.currentTarget.style.borderColor = "var(--tree-linked)";
+                }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "var(--surface-2)";
@@ -231,6 +261,16 @@ export function SpouseDrawer({ personId, viewState, onSelect, onCloseSpouse, onS
                 </div>
               </div>
             </button>
+            {onSetFamilyUnitScope && !isUnknown && (
+              <button
+                type="button"
+                onClick={() => onSetFamilyUnitScope(personId, spouseId, familyXref)}
+                className="w-full rounded-lg border border-border-subtle/80 bg-surface/60 px-3 py-2 text-left text-xs font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
+              >
+                {isFamilyUnitActive ? "Showing this family only" : "View only this family"}
+              </button>
+            )}
+            </div>
           );
         })}
 

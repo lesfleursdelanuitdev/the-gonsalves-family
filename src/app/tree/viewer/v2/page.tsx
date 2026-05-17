@@ -11,6 +11,8 @@ type SearchParams = Promise<{
   cardVariant?: string;
   cardSize?: string;
   partners?: string;
+  spouse?: string;
+  family?: string;
   famc?: string;
   ppg?: string;
 }>;
@@ -40,6 +42,8 @@ export default async function TreeV2Page({
     cardVariant: params.cardVariant,
     cardSize: params.cardSize,
     partners: params.partners,
+    spouse: params.spouse,
+    family: params.family,
     famc: params.famc,
     ppg: params.ppg,
   });
@@ -52,6 +56,8 @@ export default async function TreeV2Page({
     parsedUrl.initialPersonCardVariant ?? "",
     parsedUrl.initialCompactCardSize ?? "",
     parsedUrl.initialPartnersUrl ?? "",
+    parsedUrl.initialRevealSpouseXref ?? "",
+    parsedUrl.initialFamilyXref ?? "",
     parsedUrl.initialPedigreeFamcFamilyXref ?? "",
     parsedUrl.initialParentPairGap ?? "",
   ].join("-");
@@ -104,6 +110,8 @@ export default async function TreeV2Page({
             initialPersonCardVariant={parsedUrl.initialPersonCardVariant}
             initialCompactCardSize={parsedUrl.initialCompactCardSize}
             initialPartnersUrl={parsedUrl.initialPartnersUrl}
+            initialRevealSpouseXref={parsedUrl.initialRevealSpouseXref}
+            initialFamilyXref={parsedUrl.initialFamilyXref}
             initialPedigreeFamcFamilyXref={parsedUrl.initialPedigreeFamcFamilyXref}
             initialParentPairGap={parsedUrl.initialParentPairGap}
           />

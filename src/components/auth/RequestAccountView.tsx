@@ -62,11 +62,11 @@ export function RequestAccountView() {
               alt=""
               fill
               priority
-              className="object-cover object-center"
+              className="scale-[1.02] object-cover object-center blur-[2px] md:scale-100 md:blur-none"
               sizes="100vw"
             />
             <div
-              className="absolute inset-0 bg-bg/40 md:bg-bg/55"
+              className="absolute inset-0 bg-gradient-to-b from-transparent via-bg/40 to-bg md:bg-bg/55"
               aria-hidden
             />
           </div>

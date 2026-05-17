@@ -7,7 +7,7 @@ const FOOTER_COLUMNS = [
     links: [
       { label: "Family Tree", href: "/tree/viewer" },
       { label: "Individuals", href: "/individuals" },
-      { label: "Families", href: "/tree/families" },
+      { label: "Families", href: "/families" },
       { label: "Photos", href: "/archive/photos" },
       { label: "Albums", href: "/albums" },
       { label: "Stories", href: "/stories" },

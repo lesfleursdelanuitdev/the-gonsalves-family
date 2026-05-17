@@ -13,14 +13,11 @@ function lifespanLabel(person: PublicIndividual): string {
 }
 
 function initials(name: string): string {
-  const letters = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-  return letters || "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0][0]?.toUpperCase() ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1][0]?.toUpperCase() ?? "") : "";
+  return (first + last) || "?";
 }
 
 function metricLabel(value: string | number | null): string {

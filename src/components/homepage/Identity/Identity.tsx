@@ -18,12 +18,6 @@ const contentVariants = {
   },
 };
 
-const CULTURE_STATS = [
-  { value: "04", label: "Sections" },
-  { value: "12", label: "Artifacts" },
-  { value: "07", label: "Heritages" },
-] as const;
-
 /**
  * Identity component — blank state for remake.
  * Replaces IdentitySection with a new implementation.
@@ -69,7 +63,7 @@ export function Identity() {
             </motion.div>
 
             <motion.div
-              className="mt-8 flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between lg:block"
+              className="mt-8"
               initial="hidden"
               animate={isInView ? "visible" : "hidden"}
               variants={contentVariants}
@@ -81,19 +75,6 @@ export function Identity() {
                 Explore culture
                 <span aria-hidden>&rarr;</span>
               </Link>
-
-              <dl className="grid w-full max-w-md grid-cols-3 border-t border-border-subtle pt-5 sm:max-w-sm lg:mt-10 lg:max-w-md">
-                {CULTURE_STATS.map((stat) => (
-                  <div key={stat.label} className="min-w-0 pr-4">
-                    <dt className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-crimson">
-                      {stat.value}
-                    </dt>
-                    <dd className="mt-1 font-body text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-muted">
-                      {stat.label}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
             </motion.div>
           </div>
         </div>

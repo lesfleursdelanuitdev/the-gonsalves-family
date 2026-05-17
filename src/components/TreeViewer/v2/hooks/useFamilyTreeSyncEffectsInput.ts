@@ -18,7 +18,10 @@ export interface UseFamilyTreeSyncEffectsInputParams {
   compactCardSize: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["compactCardSize"];
   parentPairGap: number;
   revealedUnions: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["revealedUnions"];
+  familyUnitScope: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["familyUnitScope"];
   initialPartnersUrl: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["initialPartnersUrl"];
+  initialRevealSpouseXref: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["initialRevealSpouseXref"];
+  initialFamilyXref: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["initialFamilyXref"];
 }
 
 export function useFamilyTreeSyncEffectsInput({
@@ -37,7 +40,10 @@ export function useFamilyTreeSyncEffectsInput({
   compactCardSize,
   parentPairGap,
   revealedUnions,
+  familyUnitScope,
   initialPartnersUrl,
+  initialRevealSpouseXref,
+  initialFamilyXref,
 }: UseFamilyTreeSyncEffectsInputParams): UseFamilyTreeSyncEffectsParams {
   return {
     chartStrategyChangeParams: {
@@ -64,9 +70,13 @@ export function useFamilyTreeSyncEffectsInput({
       parentPairGap,
       pedigreeFamcFamilyXref,
       revealedUnions,
+      familyUnitScope,
       initialPartnersUrl,
+      initialRevealSpouseXref,
+      initialFamilyXref,
       chartAdapter,
       isChartLoading,
+      chartDataKey,
       dispatch,
     },
   };

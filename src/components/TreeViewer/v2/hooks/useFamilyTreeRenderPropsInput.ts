@@ -46,6 +46,7 @@ export interface UseFamilyTreeRenderPropsInputParams {
     onDrawerSelectAll: UseFamilyTreeRenderPropsParams["overlays"]["onSpouseDrawerSelectAll"];
     onCloseSpouse: UseFamilyTreeRenderPropsParams["overlays"]["onSpouseDrawerCloseSpouse"];
     onCloseAllSpouses: UseFamilyTreeRenderPropsParams["overlays"]["onSpouseDrawerCloseAll"];
+    onDrawerSetFamilyUnitScope: UseFamilyTreeRenderPropsParams["overlays"]["onSpouseDrawerSetFamilyUnitScope"];
   };
   state: UseFamilyTreeRenderPropsParams["overlays"]["state"];
   historyHandlers: {
@@ -236,6 +237,7 @@ export function useFamilyTreeRenderPropsInput(
         onSpouseDrawerSelectAll: params.actions.onDrawerSelectAll,
         onSpouseDrawerCloseSpouse: params.actions.onCloseSpouse,
         onSpouseDrawerCloseAll: params.actions.onCloseAllSpouses,
+        onSpouseDrawerSetFamilyUnitScope: params.actions.onDrawerSetFamilyUnitScope,
         onCloseSpouseDrawer: params.overlayCloseHandlers.onCloseSpouseDrawer,
         goToPersonDrawerOpen: params.goToPersonDrawerOpen,
         onCloseGoToPersonDrawer: params.overlayCloseHandlers.onCloseGoToPersonDrawer,

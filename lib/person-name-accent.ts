@@ -9,8 +9,19 @@ export const NAME_UNDERLINE_PX = 3;
 /** Resolve sex for name underline — supports API labels and GEDCOM letters (case-insensitive). */
 export function getNameBackgroundColor(gender: string | null | undefined): string {
   if (gender == null) return NAME_BG_OTHER;
-  const normalized = `${gender}`.trim().toUpperCase().replace(/\s+/g, "");
-  if (normalized === "MALE" || normalized === "M") return NAME_BG_MALE;
-  if (normalized === "FEMALE" || normalized === "F") return NAME_BG_FEMALE;
+  const raw = `${gender}`.trim();
+  if (!raw) return NAME_BG_OTHER;
+
+  const candidates = [
+    raw.toUpperCase().replace(/\s+/g, ""),
+    ...raw.toUpperCase().split(/\s+/).map((part) => part.replace(/[^A-Z]/g, "")),
+  ];
+
+  for (const normalized of candidates) {
+    if (!normalized) continue;
+    if (normalized === "MALE" || normalized === "M") return NAME_BG_MALE;
+    if (normalized === "FEMALE" || normalized === "F") return NAME_BG_FEMALE;
+  }
+
   return NAME_BG_OTHER;
 }

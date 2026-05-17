@@ -75,10 +75,9 @@ export async function fetchPublishedStoryBySlug(slug: string): Promise<StoryPubl
   });
 }
 
-export function prismaKindToPublic(kind: StoryKind): "story" | "article" | "post" | "recipe" | "folklore" {
+export function prismaKindToPublic(kind: StoryKind): "story" | "article" | "post" | "folklore" {
   if (kind === StoryKind.article) return "article";
   if (kind === StoryKind.post) return "post";
-  if (kind === StoryKind.recipe) return "recipe";
   if (kind === StoryKind.folklore) return "folklore";
   return "story";
 }

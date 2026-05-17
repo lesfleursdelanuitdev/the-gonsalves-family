@@ -159,6 +159,7 @@ export function useFamilyTreeInteractionsInput({
     toggleAllSpousesParams: {
       chartStrategy,
       revealedUnions: viewState.revealedUnions,
+      rootId: effectiveRootId,
       dispatch,
     },
     goToPersonSelectionParams: {

@@ -49,7 +49,7 @@ export function PersonCardTreeModalTrigger({
   /** `aria-label` on the trigger button (e.g. profile header icon). */
   triggerAriaLabel?: string;
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -109,12 +109,12 @@ export function PersonCardTreeModalTrigger({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const dialog = dialogRef.current;
+    if (!dialog || !open) return;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
   useEffect(() => {
@@ -149,23 +149,18 @@ export function PersonCardTreeModalTrigger({
 
       {mounted && open
         ? createPortal(
-            <div
-              className="fixed inset-0 z-[10100] flex items-center justify-center p-4 sm:p-6"
-              role="presentation"
+            <dialog
+              ref={dialogRef}
+              aria-labelledby={titleId}
+              onClose={onClose}
+              className={cn(
+                "fixed inset-0 m-0 flex h-[100dvh] w-full max-h-none max-w-none items-center justify-center border-0 bg-transparent p-4 sm:p-6",
+                "backdrop:bg-black/50",
+              )}
             >
-              <button
-                type="button"
-                className="absolute inset-0 bg-black/50"
-                aria-label="Close dialog"
-                onClick={onClose}
-              />
               <div
-                ref={dialogRef}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby={titleId}
                 className={cn(
-                  "relative z-[10101] flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border-subtle/90",
+                  "relative flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border-subtle/90",
                   "bg-surface-elevated shadow-[0_24px_60px_rgba(40,28,18,0.22)]",
                 )}
               >
@@ -231,8 +226,9 @@ export function PersonCardTreeModalTrigger({
                     Cancel
                   </button>
                 </div>
+
               </div>
-            </div>,
+            </dialog>,
             document.body,
           )
         : null}

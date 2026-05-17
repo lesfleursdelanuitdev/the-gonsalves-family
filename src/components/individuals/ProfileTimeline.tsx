@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
-import type { PublicIndividualTimelineItem } from "./types";
+import type { PublicProfileTimelineItem } from "@/lib/timeline/public-timeline";
 
 const EVENTS_PER_PAGE = 4;
 type TimelineLayout = "horizontal" | "vertical";
 
-export function ProfileTimeline({ items }: { items: PublicIndividualTimelineItem[] }) {
+export function ProfileTimeline({ items }: { items: PublicProfileTimelineItem[] }) {
   const [page, setPage] = useState(1);
   const [layout, setLayout] = useState<TimelineLayout>("horizontal");
   const totalPages = Math.max(1, Math.ceil(items.length / EVENTS_PER_PAGE));

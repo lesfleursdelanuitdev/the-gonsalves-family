@@ -57,7 +57,7 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
       },
       {
         label: "Families",
-        href: "/tree/families",
+        href: "/families",
         description: "View connected family groups",
         icon: Home,
       },

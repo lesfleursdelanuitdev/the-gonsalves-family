@@ -118,7 +118,7 @@ export function Statistics() {
       label: "Families",
       displayValue: isPending ? null : displayX,
       example: data?.examples.family?.displayName ?? null,
-      exampleHref: "/tree/families",
+      exampleHref: "/families",
     },
     {
       key: "places",

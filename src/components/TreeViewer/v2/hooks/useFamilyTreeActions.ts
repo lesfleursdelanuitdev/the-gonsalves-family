@@ -258,6 +258,30 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
     [chartStrategyName, dispatch]
   );
 
+  const onDrawerSetFamilyUnitScope = useCallback(
+    (personId: string, spouseId: string, familyXref: string | null) => {
+      if (chartStrategyName !== "descendancy") return;
+      skipNextGoToInitialViewRef.current = true;
+      dispatch({
+        type: "SET_FAMILY_UNIT_SCOPE",
+        personId: normalizeGedcomXref(personId),
+        spouseId: normalizeGedcomXref(spouseId),
+        familyXref: familyXref ? normalizeGedcomXref(familyXref) : null,
+      });
+      spouseDrawer.closeDrawer();
+      triggerBlinkBack();
+      openPanToPartnerModal(spouseId);
+    },
+    [
+      chartStrategyName,
+      dispatch,
+      spouseDrawer.closeDrawer,
+      triggerBlinkBack,
+      skipNextGoToInitialViewRef,
+      openPanToPartnerModal,
+    ]
+  );
+
   const clearSearchAndClosePanel = useCallback(() => {
     search.setSearchGivenName("");
     search.setSearchLastName("");
@@ -309,6 +333,7 @@ export function useFamilyTreeActions(params: UseFamilyTreeActionsParams) {
     onDrawerSelectAll,
     onCloseSpouse,
     onCloseAllSpouses,
+    onDrawerSetFamilyUnitScope,
     clearSearchAndClosePanel,
     setShowSearchPanel,
     setShowDepthPanel,

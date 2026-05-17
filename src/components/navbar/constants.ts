@@ -22,7 +22,7 @@ export type NavItem = { label: string; href: string; icon?: LucideIcon };
 
 export const TREE_MENU: NavItem[] = [
   { label: "Events", href: "/tree/events", icon: CalendarDays },
-  { label: "Families", href: "/tree/families", icon: Home },
+  { label: "Families", href: "/families", icon: Home },
   { label: "Given Names", href: "/tree/given-names", icon: FileSignature },
   { label: "Individuals", href: "/individuals", icon: User },
   { label: "Maps", href: "/maps", icon: Map },

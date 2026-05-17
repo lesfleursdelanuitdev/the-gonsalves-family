@@ -60,6 +60,11 @@ export interface FamilyTreeOverlaysProps {
   onSpouseDrawerSelectAll?: (personId: string, spouseIdToPanTo: string) => void;
   onSpouseDrawerCloseSpouse?: (spouseId: string) => void;
   onSpouseDrawerCloseAll?: (personId: string) => void;
+  onSpouseDrawerSetFamilyUnitScope?: (
+    personId: string,
+    spouseId: string,
+    familyXref: string | null
+  ) => void;
   onCloseSpouseDrawer: () => void;
   goToPersonDrawerOpen: boolean;
   onCloseGoToPersonDrawer: () => void;
@@ -113,6 +118,7 @@ export function FamilyTreeOverlays({
   onSpouseDrawerSelectAll,
   onSpouseDrawerCloseSpouse,
   onSpouseDrawerCloseAll,
+  onSpouseDrawerSetFamilyUnitScope,
   onCloseSpouseDrawer,
   goToPersonDrawerOpen,
   onCloseGoToPersonDrawer,
@@ -206,6 +212,7 @@ export function FamilyTreeOverlays({
           onCloseSpouse={onSpouseDrawerCloseSpouse}
           onSelectAll={onSpouseDrawerSelectAll}
           onCloseAll={onSpouseDrawerCloseAll}
+          onSetFamilyUnitScope={onSpouseDrawerSetFamilyUnitScope}
           onClose={onCloseSpouseDrawer}
         />
       )}

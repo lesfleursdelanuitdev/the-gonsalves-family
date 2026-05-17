@@ -2,11 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
-import type { PublicIndividualNote } from "./types";
+import type { PublicProfileNote } from "@/lib/notes/public-profile-note";
 
 const NOTES_PER_PAGE = 3;
 
-export function ProfileNotes({ notes }: { notes: PublicIndividualNote[] }) {
+export function ProfileNotes({
+  notes,
+  description = "Source notes and transcribed remarks connected directly to this person.",
+}: {
+  notes: PublicProfileNote[];
+  description?: string;
+}) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(notes.length / NOTES_PER_PAGE));
   const pageIndex = Math.min(page, totalPages);
@@ -24,9 +30,7 @@ export function ProfileNotes({ notes }: { notes: PublicIndividualNote[] }) {
         <div>
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Notes</p>
           <h2 className="mt-1 font-heading text-2xl font-semibold text-heading">Notes</h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted">
-            Source notes and transcribed remarks connected directly to this person.
-          </p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">{description}</p>
         </div>
       </div>
       <div className="grid gap-4">
