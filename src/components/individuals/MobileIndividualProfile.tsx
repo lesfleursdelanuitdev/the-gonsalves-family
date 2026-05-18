@@ -21,11 +21,13 @@ import {
   RefreshCw,
   Share2,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNameBackgroundColor } from "@/lib/person-name-accent";
 import { MobileProfileNotes } from "@/components/notes/MobileProfileNotes";
 import { MobileProfileTimeline } from "@/components/timeline/MobileProfileTimeline";
+import { ProfileCharts } from "./ProfileCharts";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import type {
   PublicIndividualAssociate,
@@ -69,6 +71,17 @@ function possessivePronoun(gender: string | null): string {
   if (g.startsWith("f")) return "her";
   if (g.startsWith("m")) return "his";
   return "their";
+}
+
+function FamilyTabIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <span
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-link/10 text-link"
+      aria-hidden
+    >
+      <Icon className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.75} />
+    </span>
+  );
 }
 
 /** Portrait ring colors — same palette as tree / person name accents. */
@@ -245,8 +258,9 @@ function MobileBottomBar({
   const moreLinks = useMemo(() => {
     const links: { label: string; href: string }[] = [];
     if (hasAssociates) links.push({ label: "Associates", href: "#associates" });
-    if (hasNotes) links.push({ label: "Notes", href: "#notes" });
     if (hasMedia) links.push({ label: "Media", href: "#media" });
+    links.push({ label: "Charts", href: "#charts" });
+    if (hasNotes) links.push({ label: "Notes", href: "#notes" });
     if (hasResearch) links.push({ label: "Research", href: "#open-questions" });
     links.push({ label: "Contribute", href: contributionHref });
     return links;
@@ -508,7 +522,7 @@ export function MobileIndividualProfile({
 
   return (
     <div className="pb-28 text-text md:hidden">
-      <section className="relative overflow-hidden pt-[66px]">
+      <section className="relative overflow-hidden pt-[calc(var(--mobile-nav-height,60px)+1.25rem)]">
         <div className="absolute inset-0" aria-hidden>
           {avatarSrc ? (
             <Image
@@ -532,7 +546,7 @@ export function MobileIndividualProfile({
           <div className="absolute inset-0 bg-gradient-to-b from-surface/10 via-bg/55 to-bg" />
         </div>
 
-        <div className="relative z-10 px-4">
+        <div className="relative z-10 px-4 pt-1">
           <nav
             aria-label="Breadcrumb"
             className="mb-4 flex min-w-0 flex-wrap items-center gap-1.5 font-body text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-muted"
@@ -633,21 +647,6 @@ export function MobileIndividualProfile({
           <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Family</p>
           <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Closest Relations</h2>
           <p className="mt-1 font-body text-sm leading-relaxed text-muted">The people who shaped {pronoun} life.</p>
-          <div className="mt-3 flex justify-center">
-            <PersonCardTreeModalTrigger
-              personId={person.id}
-              xref={person.xref}
-              fullName={person.fullName}
-              triggerAriaLabel="View in tree"
-              triggerClassName="inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
-              triggerChildren={
-                <>
-                  <GitBranch className="h-3.5 w-3.5" aria-hidden />
-                  <span>View in tree</span>
-                </>
-              }
-            />
-          </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2">
@@ -656,13 +655,13 @@ export function MobileIndividualProfile({
             onClick={() => setFamilyTab("child")}
             aria-pressed={familyTab === "child"}
             className={cn(
-              "flex items-start gap-2.5 rounded-xl px-3 py-3 text-left transition",
+              "flex items-center gap-2.5 rounded-xl px-3 py-3 text-left transition",
               familyTab === "child"
                 ? "border border-crimson bg-surface-elevated shadow-[0_4px_14px_rgba(60,45,25,0.08)]"
                 : "border border-transparent bg-surface-inset/80",
             )}
           >
-            <Home className="mt-0.5 h-4 w-4 shrink-0 text-link" strokeWidth={1.75} aria-hidden />
+            <FamilyTabIcon icon={Home} />
             <span className="min-w-0 flex-1">
               <span className="block font-heading text-sm font-semibold leading-snug text-heading">Parents & Siblings</span>
               <span className="mt-1 block font-body text-xs leading-snug text-muted">
@@ -676,13 +675,13 @@ export function MobileIndividualProfile({
             onClick={() => setFamilyTab("partner")}
             aria-pressed={familyTab === "partner"}
             className={cn(
-              "flex items-start gap-2.5 rounded-xl px-3 py-3 text-left transition",
+              "flex items-center gap-2.5 rounded-xl px-3 py-3 text-left transition",
               familyTab === "partner"
                 ? "border border-crimson bg-surface-elevated shadow-[0_4px_14px_rgba(60,45,25,0.08)]"
                 : "border border-transparent bg-surface-inset/80",
             )}
           >
-            <Heart className="mt-0.5 h-4 w-4 shrink-0 text-link" strokeWidth={1.75} aria-hidden />
+            <FamilyTabIcon icon={Heart} />
             <span className="min-w-0 flex-1">
               <span className="block font-heading text-sm font-semibold leading-snug text-heading">Partner(s) & Children</span>
               <span className="mt-1 block font-body text-xs leading-snug text-muted">
@@ -776,8 +775,6 @@ export function MobileIndividualProfile({
         </section>
       ) : null}
 
-      {hasNotes ? <MobileProfileNotes notes={notes} subjectName={person.fullName} /> : null}
-
       <section
         id="events"
         className="scroll-mt-[7.5rem] border-y border-border-subtle bg-[linear-gradient(180deg,color-mix(in_srgb,var(--link)_7%,var(--bg)),color-mix(in_srgb,var(--link)_3%,var(--bg)))] px-4 py-8"
@@ -790,6 +787,7 @@ export function MobileIndividualProfile({
           <MobileProfileTimeline items={timeline} />
         </div>
       </section>
+
 
       {hasMedia ? (
         <section id="media" className="scroll-mt-[7.5rem] px-4 py-8">
@@ -837,6 +835,25 @@ export function MobileIndividualProfile({
           </ul>
         </section>
       ) : null}
+
+      <section
+        id="charts"
+        className="scroll-mt-[7.5rem] border-y border-border-subtle bg-[linear-gradient(180deg,color-mix(in_srgb,var(--link)_7%,var(--bg)),color-mix(in_srgb,var(--link)_3%,var(--bg)))] px-4 py-8"
+      >
+        <div className="text-center">
+          <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Tree</p>
+          <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Charts</h2>
+          <p className="mx-auto mt-3 max-w-md font-body text-xs leading-relaxed text-muted">
+            Choose a chart below to explore {person.fullName.split(" ")[0] || "this person"}&apos;s place in the tree —
+            their descendants, their ancestors, or both in the layout that feels right to you.
+          </p>
+        </div>
+        <div className="mt-6">
+          <ProfileCharts xref={person.xref} fullName={person.fullName} />
+        </div>
+      </section>
+
+      {hasNotes ? <MobileProfileNotes notes={notes} subjectName={person.fullName} /> : null}
 
       {hasResearch ? (
         <section id="open-questions" className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">

@@ -6,22 +6,23 @@ import { HamburgerButton } from "@/components/navbar/HamburgerButton";
 import { SITE_NAV_SEARCH_HREF } from "./navConfig";
 import { DesktopNav } from "./DesktopNav";
 import { MobileNavDrawer } from "./MobileNavDrawer";
+import { createSiteNavGroupState, type SiteNavGroupId } from "./navGroupState";
 
 export function SiteNavigation() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [treeExpanded, setTreeExpanded] = React.useState(false);
-  const [archiveExpanded, setArchiveExpanded] = React.useState(false);
-  const [cultureExpanded, setCultureExpanded] = React.useState(false);
+  const [groupExpanded, setGroupExpanded] = React.useState(createSiteNavGroupState);
   const [loginExpanded, setLoginExpanded] = React.useState(false);
 
   React.useEffect(() => {
     if (!menuOpen) return;
-    setTreeExpanded(false);
-    setArchiveExpanded(false);
-    setCultureExpanded(false);
+    setGroupExpanded(createSiteNavGroupState());
     setLoginExpanded(false);
   }, [menuOpen]);
+
+  const onGroupToggle = (id: SiteNavGroupId) => {
+    setGroupExpanded((prev) => ({ ...createSiteNavGroupState(), [id]: !prev[id] }));
+  };
 
   const searchActive = React.useMemo(
     () => pathname === SITE_NAV_SEARCH_HREF,
@@ -43,13 +44,9 @@ export function SiteNavigation() {
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         pathname={pathname}
-        treeExpanded={treeExpanded}
-        archiveExpanded={archiveExpanded}
-        cultureExpanded={cultureExpanded}
+        groupExpanded={groupExpanded}
         loginExpanded={loginExpanded}
-        onTreeToggle={() => setTreeExpanded((v) => !v)}
-        onArchiveToggle={() => setArchiveExpanded((v) => !v)}
-        onCultureToggle={() => setCultureExpanded((v) => !v)}
+        onGroupToggle={onGroupToggle}
         onLoginToggle={() => setLoginExpanded((v) => !v)}
       />
     </>

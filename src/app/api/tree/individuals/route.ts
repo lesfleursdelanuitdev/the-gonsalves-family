@@ -46,7 +46,7 @@ function escapeRegex(s: string): string {
  */
 function surnamePrefixRegexPattern(lastNameInput: string): string {
   const prefix = escapeRegex(lastNameInput.trim().toLowerCase());
-  return "\\/" + prefix; // match literal / then prefix (case-insensitive via ~*)
+  return "\\/\\s*" + prefix; // slash, optional space, then prefix (case-insensitive via ~*)
 }
 
 /** Escape % and _ for safe use inside a LIKE pattern (user input is the literal part). */
@@ -140,13 +140,17 @@ export async function GET(req: NextRequest) {
           ...(limit != null && { take: limit, skip: offset }),
         }) as Array<IndividualRowForMapping & { id: string; xref: string }>;
       } else if (lastName && !givenName) {
-        // Last name only: raw Postgres regex (surname token prefix, slash-aware)
+        // Last name only: GEDCOM slash token and/or primary_surname_lower prefix
         const pattern = lastNamePattern!;
+        const primaryPrefix = lastName!.trim().toLowerCase() + "%";
         const idRows = await prisma.$queryRaw<[{ id: string }]>(
           Prisma.sql`
             SELECT i.id FROM gedcom_individuals_v2 i
             WHERE i.file_uuid = ${fileUuid}::uuid
-              AND i.full_name_lower ~* ${pattern}
+              AND (
+                i.full_name_lower ~* ${pattern}
+                OR i.primary_surname_lower LIKE ${primaryPrefix}
+              )
             ORDER BY i.full_name_lower
             LIMIT ${limit ?? 10000} OFFSET ${offset}
           `
@@ -167,13 +171,17 @@ export async function GET(req: NextRequest) {
         // Avoids depending on name-form tables which may be empty; fullName is "Given /Surname/"
         const givenPrefix = escapeLike(givenLower) + "%";
         const surnamePattern = surnamePrefixRegexPattern(lastName!);
+        const primaryPrefix = lastName!.trim().toLowerCase() + "%";
         const idRows = await prisma.$queryRaw<[{ id: string }]>(
           Prisma.sql`
             SELECT i.id
             FROM gedcom_individuals_v2 i
             WHERE i.file_uuid = ${fileUuid}::uuid
               AND i.full_name_lower LIKE ${givenPrefix}
-              AND i.full_name_lower ~* ${surnamePattern}
+              AND (
+                i.full_name_lower ~* ${surnamePattern}
+                OR i.primary_surname_lower LIKE ${primaryPrefix}
+              )
             ORDER BY i.full_name_lower
             LIMIT ${limit ?? 10000} OFFSET ${offset}
           `

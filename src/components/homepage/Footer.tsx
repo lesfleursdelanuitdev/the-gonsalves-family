@@ -16,16 +16,14 @@ const FOOTER_COLUMNS = [
   {
     title: "Resources",
     links: [
-      { label: "Research Guides", href: "/research" },
-      { label: "Historical Records", href: "/records" },
-      { label: "Genealogy Tips", href: "/genealogy-tips" },
-      { label: "Help Center", href: "/help" },
-      { label: "FAQ", href: "/faq" },
+      { label: "Useful Links", href: "/more/useful-links" },
+      { label: "Help", href: "/help" },
     ],
   },
   {
     title: "Connect",
     links: [
+      { label: "About Creators", href: "/more/about-creators" },
       { label: "Contact Us", href: "/contact" },
       { label: "Contribute", href: "/contribute" },
     ],
@@ -138,34 +136,9 @@ export function Footer() {
 
         <section>
           <h2 className="m-0 mb-4 border-b border-[rgba(139,46,46,0.18)] pb-2.5 font-body text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--crimson)]">
-            Stay Connected
+            Contribute
           </h2>
-          <p className="m-0 mb-4 text-sm leading-[1.6] text-muted">
-            Subscribe for new stories, albums, and tree additions.
-          </p>
-
-          <div className="flex overflow-hidden rounded-md border border-[rgba(139,94,60,0.25)] bg-[rgba(255,253,247,0.85)] shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            <label className="sr-only" htmlFor="footer-email">
-              Email address
-            </label>
-            <input
-              id="footer-email"
-              type="email"
-              placeholder="your-email@home.com"
-              className="min-w-0 flex-1 border-0 bg-transparent px-3.5 py-[11px] text-[13px] text-text outline-none placeholder:text-subtle"
-            />
-            <button
-              type="button"
-              className="bg-[#1F3D28] px-[18px] py-[11px] text-[13px] font-semibold tracking-[0.04em] text-[#F7F1E4] transition hover:bg-[#18452B]"
-            >
-              Subscribe
-            </button>
-          </div>
-
-          <div className="mt-[18px] rounded-md border border-[rgba(31,90,56,0.16)] bg-[rgba(31,90,56,0.05)] px-4 py-3.5">
-            <p className="m-0 mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-              Contribute
-            </p>
+          <div className="rounded-md border border-[rgba(31,90,56,0.16)] bg-[rgba(31,90,56,0.05)] px-4 py-3.5">
             <p className="m-0 font-accent text-sm italic text-text">
               Have a photo, story, or correction?
               <Link href="/contribute" className="ml-1 font-semibold text-link no-underline hover:underline">

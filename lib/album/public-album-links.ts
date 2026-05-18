@@ -1,4 +1,8 @@
 import type { AlbumViewSource } from "@ligneous/album-view";
+import type { MediaBucketKind } from "@ligneous/album-view";
+import { appendAlbumMediaFilterQuery } from "@/lib/album/album-media-url-filter";
+
+export type AlbumPathMediaFilter = "all" | MediaBucketKind;
 
 function encodeGeneratedSource(source: Exclude<AlbumViewSource, { type: "album" }>): string {
   switch (source.type) {
@@ -21,10 +25,18 @@ function encodeGeneratedSource(source: Exclude<AlbumViewSource, { type: "album" 
   }
 }
 
-export function sourceToAlbumPath(source: AlbumViewSource): string {
-  if (source.type === "album") return `/media/album/${encodeURIComponent(source.albumId)}`;
+export function sourceToAlbumPath(
+  source: AlbumViewSource,
+  options?: { media?: AlbumPathMediaFilter },
+): string {
+  const media = options?.media;
+  if (source.type === "album") {
+    const base = `/media/album/${encodeURIComponent(source.albumId)}`;
+    return media && media !== "all" ? appendAlbumMediaFilterQuery(base, media) : base;
+  }
   const q = encodeGeneratedSource(source);
-  return `/media/album-view?kind=generated&${q}`;
+  const base = `/media/album-view?kind=generated&${q}`;
+  return media && media !== "all" ? appendAlbumMediaFilterQuery(base, media) : base;
 }
 
 export function sourceToAlbumApiQuery(source: AlbumViewSource): string {

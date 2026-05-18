@@ -14,6 +14,14 @@ const AVATAR_SIZE = {
     overlap: "-ml-10 sm:-ml-12",
     empty: "h-24 w-24 sm:h-28 sm:w-28",
   },
+  cardCompact: {
+    shell: "h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20",
+    borderClass: "border-[4px]",
+    initials: "text-2xl sm:text-3xl",
+    imageSizes: "(max-width: 640px) 72px, 80px",
+    overlap: "-ml-8 sm:-ml-9",
+    empty: "h-[4.5rem] w-[4.5rem] sm:h-20 sm:w-20",
+  },
   hero: {
     shell: "h-[72px] w-[72px]",
     borderClass: "border-4",
@@ -111,14 +119,17 @@ export function FamilyPortrait({
   partners,
   className = "",
   interactive = false,
+  compact = false,
 }: {
   partners: PublicFamilyPartner[];
   className?: string;
   interactive?: boolean;
+  /** Shorter header area for dense grids (e.g. upcoming anniversaries). */
+  compact?: boolean;
 }) {
   return (
     <div
-      className={`relative aspect-[4/5] w-full min-w-0 overflow-hidden bg-surface ${className}`.trim()}
+      className={`relative w-full min-w-0 overflow-hidden bg-surface ${compact ? "aspect-[5/3]" : "aspect-[4/5]"} ${className}`.trim()}
     >
       <Image
         src={PERSON_CARD_FALLBACK_BG}
@@ -128,8 +139,10 @@ export function FamilyPortrait({
         sizes="(max-width: 768px) 40vw, 220px"
       />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(247,241,228,0.06),rgba(64,41,24,0.18)),radial-gradient(circle_at_center,rgba(255,248,232,0.08),rgba(44,30,20,0.18))]" />
-      <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
-        <FamilyOverlappingAvatars partners={partners} />
+      <div
+        className={`absolute inset-0 flex items-center justify-center ${compact ? "p-4 sm:p-5" : "p-6 sm:p-8"}`}
+      >
+        <FamilyOverlappingAvatars partners={partners} size={compact ? "cardCompact" : "card"} />
       </div>
     </div>
   );

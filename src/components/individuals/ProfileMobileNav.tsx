@@ -74,10 +74,11 @@ function ProfileNavAvatar({ src, name }: { src: string | null; name: string }) {
 
 const DRAWER_ITEMS: NavItem[] = [
   { label: "Associates", href: "#associates", description: "Connected people and organizations", icon: Network },
-  { label: "Notes", href: "#notes", description: "Private notes and observations", icon: FileText },
   { label: "Linked Accounts", href: "#linked-accounts", description: "Connected family accounts", icon: UsersRound },
   { label: "Media", href: "#media", description: "Photos, documents, audio and more", icon: ImageIcon },
   { label: "Timeline", href: "#events", description: "Life story in chronological order", icon: SlidersHorizontal },
+  { label: "Charts", href: "#charts", description: "Tree viewer — pedigree, fan, and descendancy", icon: GitBranch },
+  { label: "Notes", href: "#notes", description: "Private notes and observations", icon: FileText },
   { label: "Research", href: "#open-questions", description: "Questions and research log", icon: Search },
 ];
 

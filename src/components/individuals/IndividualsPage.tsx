@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Filter, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, Search, X } from "lucide-react";
+import { ListPageFilterSheet, ListPageMobileControls } from "@/components/list-page";
 import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
@@ -63,103 +63,19 @@ function matchesRange(value: number | null, min: number | null, max: number | nu
   return true;
 }
 
-function IndividualsMobileControls({
-  searchQuery,
-  onSearchQueryChange,
-  filterLabel,
-  filterMenuOpen,
-  onOpenFilters,
-  sortMode,
-  onSortModeChange,
+export function IndividualsPage({
+  individuals,
+  initialLastName,
+  initialSurnameId,
+  initialGivenName,
+  initialGivenNameId,
 }: {
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
-  filterLabel: string;
-  filterMenuOpen: boolean;
-  onOpenFilters: () => void;
-  sortMode: SortMode;
-  onSortModeChange: (value: SortMode) => void;
+  individuals: PublicIndividual[];
+  initialLastName?: string;
+  initialSurnameId?: string;
+  initialGivenName?: string;
+  initialGivenNameId?: string;
 }) {
-  const filterIsActive = filterLabel !== "Filter individuals";
-  const [expanded, setExpanded] = useState(true);
-
-  return (
-    <aside className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] sm:hidden">
-      <div
-        className={`pointer-events-auto w-full border-t border-border-subtle/90 bg-surface-elevated/95 px-4 shadow-[0_-14px_42px_rgba(60,45,25,0.16)] backdrop-blur-md ${
-          expanded ? "py-3" : "py-1.5"
-        }`}
-        style={{
-          WebkitBackdropFilter: "blur(16px)",
-          backgroundImage:
-            "linear-gradient(180deg, rgba(255,248,232,0.96), rgba(247,241,228,0.93)), radial-gradient(circle at 84% 12%, rgba(195,164,90,0.12), transparent 34%)",
-        }}
-      >
-        <div className={`${expanded ? "mb-1.5" : ""} flex items-center justify-between gap-3`}>
-          <button
-            type="button"
-            className="flex min-h-9 min-w-0 flex-1 items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            aria-expanded={expanded}
-            aria-controls="individuals-mobile-controls-panel"
-            onClick={() => setExpanded((value) => !value)}
-          >
-            <span className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#8b2e2e]">
-              Search Individuals
-            </span>
-            {expanded ? (
-              <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted" aria-hidden />
-            ) : (
-              <ChevronUp className="ml-auto h-4 w-4 shrink-0 text-muted" aria-hidden />
-            )}
-          </button>
-        </div>
-        <div id="individuals-mobile-controls-panel" className={expanded ? "flex items-center gap-1.5" : "hidden"}>
-          <label className="relative block min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-link/80" aria-hidden />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder="Search individuals..."
-              className="h-10 w-full rounded-2xl border border-border-subtle bg-[rgba(255,250,240,0.74)] px-9 text-sm text-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] outline-none transition placeholder:text-muted/70 focus:border-link/50 focus:ring-2 focus:ring-link/15"
-            />
-          </label>
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={filterMenuOpen}
-            aria-label={filterLabel}
-            title={filterLabel}
-            onClick={onOpenFilters}
-            className="relative inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-border-subtle bg-[rgba(255,250,240,0.58)] text-link shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition hover:bg-link-soft-bg hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          >
-            <Filter className="h-4 w-4" aria-hidden />
-            {filterIsActive ? (
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#8b2e2e]" aria-hidden />
-            ) : null}
-          </button>
-          <label className="relative block w-24 shrink-0">
-            <span className="sr-only">Sort individuals</span>
-            <select
-              aria-label="Sort individuals"
-              value={sortMode}
-              onChange={(event) => onSortModeChange(event.target.value as SortMode)}
-              className="h-10 w-full cursor-pointer rounded-2xl border border-border-subtle bg-[rgba(255,250,240,0.58)] px-3 text-sm font-semibold text-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-export function IndividualsPage({ individuals }: { individuals: PublicIndividual[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<IndividualsFilterState>(EMPTY_INDIVIDUALS_FILTERS);
   const [draftFilters, setDraftFilters] = useState<IndividualsFilterState>(EMPTY_INDIVIDUALS_FILTERS);
@@ -281,8 +197,11 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
                   <div className="h-px w-24 bg-gradient-to-r from-link/70 via-link/30 to-transparent" />
 
                   <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg md:text-xl">
-                    Explore the people who shaped our family&apos;s story. Browse individuals in our family tree and
-                    discover their lives, photos, and memories.
+                    {initialGivenName
+                      ? `People in our tree whose GEDCOM name includes the given name ${initialGivenName}. Use search and filters to narrow further.`
+                      : initialLastName
+                        ? `People in our tree whose GEDCOM name includes the surname ${initialLastName}. Use search and filters to narrow further.`
+                        : "Explore the people who shaped our family's story. Browse individuals in our family tree and discover their lives, photos, and memories."}
                   </p>
                 </div>
 
@@ -377,6 +296,57 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
                     setPage(1);
                   }}
                 />
+
+                {initialGivenName ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#e5dccf] bg-[#faf7f2]/90 px-2 py-0.5 font-body text-[11px] text-heading shadow-sm">
+                      <span className="min-w-0 truncate">Given name: {initialGivenName}</span>
+                      <Link
+                        href="/individuals"
+                        className="shrink-0 rounded-full p-0.5 text-muted transition hover:bg-black/[0.06] hover:text-text"
+                        aria-label="Clear given name filter"
+                      >
+                        <X size={12} aria-hidden />
+                      </Link>
+                    </span>
+                    {initialGivenNameId ? (
+                      <Link
+                        href={`/given-names/${initialGivenNameId}`}
+                        className="font-body text-xs text-link underline-offset-2 hover:underline"
+                      >
+                        About this given name
+                      </Link>
+                    ) : null}
+                    <Link href="/given-names" className="font-body text-xs text-link underline-offset-2 hover:underline">
+                      Browse all given names
+                    </Link>
+                  </div>
+                ) : null}
+                {initialLastName && !initialGivenName ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#e5dccf] bg-[#faf7f2]/90 px-2 py-0.5 font-body text-[11px] text-heading shadow-sm">
+                      <span className="min-w-0 truncate">Surname: {initialLastName}</span>
+                      <Link
+                        href="/individuals"
+                        className="shrink-0 rounded-full p-0.5 text-muted transition hover:bg-black/[0.06] hover:text-text"
+                        aria-label="Clear surname filter"
+                      >
+                        <X size={12} aria-hidden />
+                      </Link>
+                    </span>
+                    {initialSurnameId ? (
+                      <Link
+                        href={`/surnames/${initialSurnameId}`}
+                        className="font-body text-xs text-link underline-offset-2 hover:underline"
+                      >
+                        About this surname
+                      </Link>
+                    ) : null}
+                    <Link href="/surnames" className="font-body text-xs text-link underline-offset-2 hover:underline">
+                      Browse all surnames
+                    </Link>
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid min-w-0 max-w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -429,36 +399,26 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
           </PageContainer>
         </Section>
       </main>
-      {filterMenuOpen && isNarrow && typeof document !== "undefined"
-        ? createPortal(
-            <div className="fixed inset-0 z-[10040] font-body">
-              <button
-                type="button"
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                aria-label="Dismiss filter"
-                onClick={() => setFilterMenuOpen(false)}
-              />
-              <div
-                className="album-filter-sheet-enter absolute bottom-0 left-0 right-0 flex max-h-[min(88dvh,720px)] min-h-0 flex-col overflow-hidden rounded-t-2xl border border-[#e8e0d4] bg-[#f5f1ea] shadow-[0_-12px_48px_rgba(0,0,0,0.14)]"
-                role="dialog"
-                aria-label="Filter individuals"
-              >
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <IndividualsFilterPanel
-                    variant="mobile-sheet"
-                    filters={draftFilters}
-                    onChange={setDraftFilters}
-                    onClearFilters={clearFilters}
-                    onApplyFilter={applyDraftFilters}
-                    onClose={() => setFilterMenuOpen(false)}
-                  />
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-      <IndividualsMobileControls
+      <ListPageFilterSheet
+        open={filterMenuOpen && isNarrow}
+        ariaLabel="Filter individuals"
+        onClose={() => setFilterMenuOpen(false)}
+      >
+        <IndividualsFilterPanel
+          variant="mobile-sheet"
+          filters={draftFilters}
+          onChange={setDraftFilters}
+          onClearFilters={clearFilters}
+          onApplyFilter={applyDraftFilters}
+          onClose={() => setFilterMenuOpen(false)}
+        />
+      </ListPageFilterSheet>
+      <ListPageMobileControls
+        entityName="Individuals"
+        searchPlaceholder="Search individuals..."
+        panelId="individuals-mobile-controls-panel"
+        filterDefaultLabel="Filter individuals"
+        sortAriaLabel="Sort individuals"
         searchQuery={searchQuery}
         onSearchQueryChange={(value) => {
           setSearchQuery(value);
@@ -475,6 +435,7 @@ export function IndividualsPage({ individuals }: { individuals: PublicIndividual
           setSortMode(value);
           setPage(1);
         }}
+        sortOptions={SORT_OPTIONS}
       />
       <Footer />
     </div>

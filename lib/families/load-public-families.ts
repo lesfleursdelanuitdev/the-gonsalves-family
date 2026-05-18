@@ -56,72 +56,136 @@ function partnerFromRow(
   };
 }
 
+const PUBLIC_FAMILY_LIST_SELECT = {
+  id: true,
+  xref: true,
+  marriageDateDisplay: true,
+  marriagePlaceDisplay: true,
+  marriageYear: true,
+  marriagePlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
+  isDivorced: true,
+  divorceDateId: true,
+  childrenCount: true,
+  husband: {
+    select: { id: true, xref: true, fullName: true, sex: true, gender: true },
+  },
+  wife: {
+    select: { id: true, xref: true, fullName: true, sex: true, gender: true },
+  },
+  familyEvents: {
+    where: { event: { eventType: "DIV" } },
+    take: 1,
+    select: { id: true },
+  },
+} as const;
+
+type PublicFamilyListRow = {
+  id: string;
+  xref: string;
+  marriageDateDisplay: string | null;
+  marriagePlaceDisplay: string | null;
+  marriageYear: number | null;
+  marriagePlace: GedcomPlaceDisplayRow | null;
+  isDivorced: boolean;
+  divorceDateId: string | null;
+  childrenCount: number | null;
+  husband: {
+    id: string;
+    xref: string;
+    fullName: string | null;
+    sex: string | null;
+    gender: string | null;
+  } | null;
+  wife: {
+    id: string;
+    xref: string;
+    fullName: string | null;
+    sex: string | null;
+    gender: string | null;
+  } | null;
+  familyEvents: { id: string }[];
+};
+
+function mapPublicFamilyListRow(
+  row: PublicFamilyListRow,
+  photoMap: Map<string, IndividualDisplayPhotoMedia>,
+): PublicFamily {
+  const partners = [row.husband, row.wife]
+    .filter((item): item is NonNullable<typeof item> => item != null)
+    .map((item) => partnerFromRow(item, photoMap));
+  const marriagePlaceLabel =
+    fullPlaceLabelFromGedcomPlace(row.marriagePlace) ??
+    row.marriagePlaceDisplay?.trim() ??
+    null;
+  const marriageDateLabel =
+    row.marriageDateDisplay?.trim() || (row.marriageYear != null ? String(row.marriageYear) : null);
+
+  return {
+    id: row.id,
+    xref: row.xref,
+    title: familyTitle(partners),
+    partners,
+    childrenCount: row.childrenCount ?? 0,
+    marriageDateLabel,
+    marriagePlaceLabel,
+    marriageYear: row.marriageYear ?? null,
+    divorcedStatus: resolveDivorcedStatus({
+      isDivorced: row.isDivorced,
+      divorceDateId: row.divorceDateId,
+      hasDivorceEvent: row.familyEvents.length > 0,
+      marriageDateLabel,
+      marriageYear: row.marriageYear ?? null,
+    }),
+    albumHref: sourceToAlbumPath({ type: "family", familyId: row.id }),
+    profileHref: `/families/${encodeURIComponent(row.id)}`,
+  };
+}
+
+async function loadPublicFamilyListRows(
+  fileUuid: string,
+  options?: { ids?: string[] },
+): Promise<PublicFamilyListRow[]> {
+  if (options?.ids) {
+    if (options.ids.length === 0) return [];
+    const byId = (await prisma.gedcomFamily.findMany({
+      where: { fileUuid, id: { in: options.ids } },
+      select: PUBLIC_FAMILY_LIST_SELECT,
+    })) as PublicFamilyListRow[];
+    const order = new Map(options.ids.map((id, i) => [id, i]));
+    return byId.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  }
+
+  return prisma.gedcomFamily.findMany({
+    where: { fileUuid },
+    orderBy: [{ marriageYear: "desc" }, { id: "asc" }],
+    select: PUBLIC_FAMILY_LIST_SELECT,
+  }) as Promise<PublicFamilyListRow[]>;
+}
+
 export async function loadPublicFamilies(): Promise<PublicFamily[]> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return [];
 
-  const rows = await prisma.gedcomFamily.findMany({
-    where: { fileUuid },
-    orderBy: [{ marriageYear: "desc" }, { id: "asc" }],
-    select: {
-      id: true,
-      xref: true,
-      marriageDateDisplay: true,
-      marriagePlaceDisplay: true,
-      marriageYear: true,
-      marriagePlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
-      isDivorced: true,
-      divorceDateId: true,
-      childrenCount: true,
-      husband: {
-        select: { id: true, xref: true, fullName: true, sex: true, gender: true },
-      },
-      wife: {
-        select: { id: true, xref: true, fullName: true, sex: true, gender: true },
-      },
-      familyEvents: {
-        where: { event: { eventType: "DIV" } },
-        take: 1,
-        select: { id: true },
-      },
-    },
-  });
-
+  const rows = await loadPublicFamilyListRows(fileUuid);
   const partnerIds = [
     ...new Set(
       rows.flatMap((row) => [row.husband?.id, row.wife?.id].filter((id): id is string => Boolean(id))),
     ),
   ];
   const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, partnerIds);
+  return rows.map((row) => mapPublicFamilyListRow(row, photoMap));
+}
 
-  return rows.map((row) => {
-    const partners = [row.husband, row.wife]
-      .filter((item): item is NonNullable<typeof item> => item != null)
-      .map((item) => partnerFromRow(item, photoMap));
-    const marriagePlaceLabel =
-      fullPlaceLabelFromGedcomPlace(row.marriagePlace as GedcomPlaceDisplayRow | null) ??
-      row.marriagePlaceDisplay?.trim() ??
-      null;
-    const marriageDateLabel = row.marriageDateDisplay?.trim() || (row.marriageYear != null ? String(row.marriageYear) : null);
+export async function loadPublicFamiliesByIds(ids: string[]): Promise<PublicFamily[]> {
+  const fileUuid = await resolveTreeFileUuid();
+  if (!fileUuid || ids.length === 0) return [];
 
-    return {
-      id: row.id,
-      xref: row.xref,
-      title: familyTitle(partners),
-      partners,
-      childrenCount: row.childrenCount ?? 0,
-      marriageDateLabel,
-      marriagePlaceLabel,
-      marriageYear: row.marriageYear ?? null,
-      divorcedStatus: resolveDivorcedStatus({
-        isDivorced: row.isDivorced,
-        divorceDateId: row.divorceDateId,
-        hasDivorceEvent: row.familyEvents.length > 0,
-        marriageDateLabel,
-        marriageYear: row.marriageYear ?? null,
-      }),
-      albumHref: sourceToAlbumPath({ type: "family", familyId: row.id }),
-      profileHref: `/families/${encodeURIComponent(row.id)}`,
-    };
-  });
+  const rows = await loadPublicFamilyListRows(fileUuid, { ids });
+  const partnerIds = [
+    ...new Set(
+      rows.flatMap((row) => [row.husband?.id, row.wife?.id].filter((id): id is string => Boolean(id))),
+    ),
+  ];
+  const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, partnerIds);
+  return rows.map((row) => mapPublicFamilyListRow(row, photoMap));
 }

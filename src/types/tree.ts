@@ -103,7 +103,9 @@ export interface TreeGivenName {
 
 /** One event from GET /api/tree/events/upcoming (BIRT, DEAT, or MARR in the next 3 months). */
 export interface UpcomingEvent {
+  id: string;
   eventType: "BIRT" | "DEAT" | "MARR";
+  eventLabel?: string | null;
   date: {
     original: string | null;
     year: number | null;
@@ -111,10 +113,12 @@ export interface UpcomingEvent {
     day: number | null;
   } | null;
   place: { original: string | null; name: string | null } | null;
-  individual?: { xref: string; fullName: string } | null;
+  individual?: { id: string; xref: string; fullName: string } | null;
   family?: {
-    husband: { xref: string; fullName: string } | null;
-    wife: { xref: string; fullName: string } | null;
+    id: string;
+    xref: string;
+    husband: { id: string; xref: string; fullName: string } | null;
+    wife: { id: string; xref: string; fullName: string } | null;
   } | null;
 }
 

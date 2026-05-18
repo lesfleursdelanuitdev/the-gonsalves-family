@@ -7,6 +7,14 @@ import {
   type GedcomPlaceDisplayRow,
 } from "@/lib/gedcom-place-display";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
+import {
+  fetchIndividualIdsForGivenNameId,
+  fetchIndividualIdsForGivenNamePrefix,
+} from "@/lib/given-names/given-name-query";
+import {
+  fetchIndividualIdsForSurnameId,
+  fetchIndividualIdsForSurnamePrefix,
+} from "@/lib/surnames/surname-query";
 import { resolveTreeFileUuid, resolveTreeId } from "@/lib/tree";
 import {
   batchIndividualDisplayPhotoMedia,
@@ -255,48 +263,168 @@ function relativeVitalTimelineItem(args: {
   };
 }
 
-export async function loadPublicIndividuals(): Promise<PublicIndividual[]> {
-  const fileUuid = await resolveTreeFileUuid();
-  if (!fileUuid) return [];
-
-  const rows = await prisma.gedcomIndividual.findMany({
-    where: { fileUuid },
-    orderBy: [{ fullNameLower: "asc" }, { xref: "asc" }],
+const PUBLIC_INDIVIDUAL_LIST_SELECT = {
+  id: true,
+  xref: true,
+  fullName: true,
+  birthYear: true,
+  birthPlaceDisplay: true,
+  birthPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
+  deathYear: true,
+  deathPlaceDisplay: true,
+  deathPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
+  ageAtDeath: true,
+  hasChildren: true,
+  hasParents: true,
+  hasSpouse: true,
+  sex: true,
+  gender: true,
+  individualEvents: {
+    where: { event: { eventType: "RESI" } },
     select: {
-      id: true,
-      xref: true,
-      fullName: true,
-      birthYear: true,
-      birthPlaceDisplay: true,
-      birthPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
-      deathYear: true,
-      deathPlaceDisplay: true,
-      deathPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
-      ageAtDeath: true,
-      hasChildren: true,
-      hasParents: true,
-      hasSpouse: true,
-      sex: true,
-      gender: true,
-      individualEvents: {
-        where: { event: { eventType: "RESI" } },
+      event: {
         select: {
-          event: {
-            select: {
-              date: { select: { year: true, month: true, day: true } },
-              place: { select: GEDCOM_PLACE_DISPLAY_SELECT },
-              value: true,
-            },
-          },
-        },
-      },
-      familyPartnerships: {
-        select: {
-          family: { select: { childrenCount: true } },
+          date: { select: { year: true, month: true, day: true } },
+          place: { select: GEDCOM_PLACE_DISPLAY_SELECT },
+          value: true,
         },
       },
     },
-  });
+  },
+  familyPartnerships: {
+    select: {
+      family: { select: { childrenCount: true } },
+    },
+  },
+} as const;
+
+type PublicIndividualListRow = {
+  id: string;
+  xref: string;
+  fullName: string | null;
+  birthYear: number | null;
+  birthPlaceDisplay: string | null;
+  birthPlace: GedcomPlaceDisplayRow | null;
+  deathYear: number | null;
+  deathPlaceDisplay: string | null;
+  deathPlace: GedcomPlaceDisplayRow | null;
+  ageAtDeath: number | null;
+  hasChildren: boolean;
+  hasParents: boolean;
+  hasSpouse: boolean;
+  sex: string | null;
+  gender: string | null;
+  individualEvents: Array<{
+    event: {
+      date: { year: number | null; month: number | null; day: number | null } | null;
+      place: GedcomPlaceDisplayRow | null;
+      value: string | null;
+    };
+  }>;
+  familyPartnerships: Array<{ family: { childrenCount: number } }>;
+};
+
+function mapPublicIndividualListRow(
+  r: PublicIndividualListRow,
+  photoMap: Map<string, IndividualDisplayPhotoMedia>,
+): PublicIndividual {
+  const residences = [...r.individualEvents]
+    .map(({ event }) => ({
+      label: fullPlaceLabel(event.place, event.value),
+      year: event.date?.year ?? Number.NEGATIVE_INFINITY,
+      month: event.date?.month ?? 0,
+      day: event.date?.day ?? 0,
+    }))
+    .filter((event): event is { label: string; year: number; month: number; day: number } => Boolean(event.label))
+    .sort((a, b) => b.year - a.year || b.month - a.month || b.day - a.day);
+  const placeLabels = uniquePlaceLabels([
+    ...residences.map((event) => event.label),
+    fullPlaceLabel(r.deathPlace, r.deathPlaceDisplay),
+    fullPlaceLabel(r.birthPlace, r.birthPlaceDisplay),
+  ]);
+  const childrenCount = r.familyPartnerships.reduce((total, { family }) => total + family.childrenCount, 0);
+
+  return {
+    id: r.id,
+    xref: r.xref,
+    fullName: displayName(r.fullName, r.xref),
+    birthYear: r.birthYear ?? null,
+    deathYear: r.deathYear ?? null,
+    currentLocationLabel: placeLabels[0] ?? null,
+    placeLabels,
+    age: r.ageAtDeath ?? ageLabelYears(r.birthYear ?? null, r.deathYear ?? null),
+    childrenCount,
+    role: inferRole({
+      sex: r.sex ?? null,
+      hasChildren: Boolean(r.hasChildren),
+      hasSpouse: Boolean(r.hasSpouse),
+      hasParents: Boolean(r.hasParents),
+    }),
+    gender: r.gender ?? null,
+    sex: r.sex ?? null,
+    hasPartner: Boolean(r.hasSpouse),
+    hasChildren: Boolean(r.hasChildren),
+    portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
+  };
+}
+
+async function loadPublicIndividualListRows(
+  fileUuid: string,
+  options?: {
+    lastName?: string;
+    surnameId?: string;
+    givenName?: string;
+    givenNameId?: string;
+    ids?: string[];
+  },
+): Promise<PublicIndividualListRow[]> {
+  if (options?.ids) {
+    if (options.ids.length === 0) return [];
+    const byId = await prisma.gedcomIndividual.findMany({
+      where: { id: { in: options.ids }, fileUuid },
+      select: PUBLIC_INDIVIDUAL_LIST_SELECT,
+    });
+    const order = new Map(options.ids.map((id, i) => [id, i]));
+    return byId.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)) as PublicIndividualListRow[];
+  }
+
+  if (options?.givenNameId?.trim()) {
+    const ids = await fetchIndividualIdsForGivenNameId(options.givenNameId.trim());
+    return loadPublicIndividualListRows(fileUuid, { ids });
+  }
+
+  if (options?.givenName?.trim()) {
+    const ids = await fetchIndividualIdsForGivenNamePrefix(fileUuid, options.givenName);
+    return loadPublicIndividualListRows(fileUuid, { ids });
+  }
+
+  if (options?.surnameId?.trim()) {
+    const ids = await fetchIndividualIdsForSurnameId(options.surnameId.trim());
+    return loadPublicIndividualListRows(fileUuid, { ids });
+  }
+
+  if (options?.lastName?.trim()) {
+    const ids = await fetchIndividualIdsForSurnamePrefix(fileUuid, options.lastName);
+    return loadPublicIndividualListRows(fileUuid, { ids });
+  }
+
+  return prisma.gedcomIndividual.findMany({
+    where: { fileUuid },
+    orderBy: [{ fullNameLower: "asc" }, { xref: "asc" }],
+    select: PUBLIC_INDIVIDUAL_LIST_SELECT,
+  }) as Promise<PublicIndividualListRow[]>;
+}
+
+export async function loadPublicIndividuals(options?: {
+  lastName?: string;
+  surnameId?: string;
+  givenName?: string;
+  givenNameId?: string;
+}): Promise<PublicIndividual[]> {
+  const fileUuid = await resolveTreeFileUuid();
+  if (!fileUuid) return [];
+
+  const rows = await loadPublicIndividualListRows(fileUuid, options);
 
   const photoMap = await batchIndividualDisplayPhotoMedia(
     prisma,
@@ -304,46 +432,16 @@ export async function loadPublicIndividuals(): Promise<PublicIndividual[]> {
     rows.map((r) => r.id),
   );
 
-  return rows.map((r) => {
-    const residences = [...r.individualEvents]
-      .map(({ event }) => ({
-        label: fullPlaceLabel(event.place, event.value),
-        year: event.date?.year ?? Number.NEGATIVE_INFINITY,
-        month: event.date?.month ?? 0,
-        day: event.date?.day ?? 0,
-      }))
-      .filter((event): event is { label: string; year: number; month: number; day: number } => Boolean(event.label))
-      .sort((a, b) => b.year - a.year || b.month - a.month || b.day - a.day);
-    const placeLabels = uniquePlaceLabels([
-      ...residences.map((event) => event.label),
-      fullPlaceLabel(r.deathPlace, r.deathPlaceDisplay),
-      fullPlaceLabel(r.birthPlace, r.birthPlaceDisplay),
-    ]);
-    const childrenCount = r.familyPartnerships.reduce((total, { family }) => total + family.childrenCount, 0);
+  return rows.map((r) => mapPublicIndividualListRow(r, photoMap));
+}
 
-    return {
-      id: r.id,
-      xref: r.xref,
-      fullName: displayName(r.fullName, r.xref),
-      birthYear: r.birthYear ?? null,
-      deathYear: r.deathYear ?? null,
-      currentLocationLabel: placeLabels[0] ?? null,
-      placeLabels,
-      age: r.ageAtDeath ?? ageLabelYears(r.birthYear ?? null, r.deathYear ?? null),
-      childrenCount,
-      role: inferRole({
-        sex: r.sex ?? null,
-        hasChildren: Boolean(r.hasChildren),
-        hasSpouse: Boolean(r.hasSpouse),
-        hasParents: Boolean(r.hasParents),
-      }),
-      gender: r.gender ?? null,
-      sex: r.sex ?? null,
-      hasPartner: Boolean(r.hasSpouse),
-      hasChildren: Boolean(r.hasChildren),
-      portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
-    };
-  });
+export async function loadPublicIndividualsByIds(ids: string[]): Promise<PublicIndividual[]> {
+  const fileUuid = await resolveTreeFileUuid();
+  if (!fileUuid || ids.length === 0) return [];
+
+  const rows = await loadPublicIndividualListRows(fileUuid, { ids });
+  const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, rows.map((r) => r.id));
+  return rows.map((r) => mapPublicIndividualListRow(r, photoMap));
 }
 
 export async function loadPublicIndividualById(id: string): Promise<PublicIndividualProfile | null> {

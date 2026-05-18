@@ -133,7 +133,7 @@ export function parseTreeViewerUrlParams(raw: {
   };
 }
 
-const TREE_VIEWER_PATH = "/tree/viewer";
+export const TREE_VIEWER_PATH = "/tree/viewer";
 
 /**
  * Descendancy deep link for a family profile: root at one partner, reveal the other, children only.

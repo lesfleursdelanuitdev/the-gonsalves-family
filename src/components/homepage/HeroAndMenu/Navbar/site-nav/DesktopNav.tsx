@@ -6,6 +6,10 @@ import { Search } from "lucide-react";
 import { SITE_NAV_GROUPS, SITE_NAV_SEARCH_HREF } from "./navConfig";
 import { DesktopDropdown } from "./DesktopDropdown";
 import { DesktopLoginDropdown } from "./DesktopLoginDropdown";
+import {
+  createSiteNavGroupState,
+  type SiteNavGroupId,
+} from "./navGroupState";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -17,44 +21,28 @@ type DesktopNavProps = {
 };
 
 export function DesktopNav({ pathname, searchActive }: DesktopNavProps) {
-  const [treeOpen, setTreeOpen] = React.useState(false);
-  const [archiveOpen, setArchiveOpen] = React.useState(false);
-  const [cultureOpen, setCultureOpen] = React.useState(false);
+  const [groupOpen, setGroupOpen] = React.useState(createSiteNavGroupState);
   const [loginOpen, setLoginOpen] = React.useState(false);
 
-  const setters = {
-    tree: setTreeOpen,
-    archive: setArchiveOpen,
-    culture: setCultureOpen,
-  } as const;
-
-  const closeOthers = (id: "tree" | "archive" | "culture" | "login") => {
-    if (id !== "tree") setTreeOpen(false);
-    if (id !== "archive") setArchiveOpen(false);
-    if (id !== "culture") setCultureOpen(false);
-    if (id !== "login") setLoginOpen(false);
+  const closeOthers = (_id: SiteNavGroupId | "login") => {
+    setGroupOpen(createSiteNavGroupState());
+    setLoginOpen(false);
   };
 
   return (
     <div className="hidden min-w-0 shrink items-center gap-5 md:flex">
-      {SITE_NAV_GROUPS.map((group) => {
-        const open =
-          group.id === "tree" ? treeOpen : group.id === "archive" ? archiveOpen : cultureOpen;
-        const setOpen = setters[group.id];
-
-        return (
-          <DesktopDropdown
-            key={group.id}
-            group={group}
-            isOpen={open}
-            onOpenChange={(next) => {
-              if (next) closeOthers(group.id);
-              setOpen(next);
-            }}
-            pathname={pathname}
-          />
-        );
-      })}
+      {SITE_NAV_GROUPS.map((group) => (
+        <DesktopDropdown
+          key={group.id}
+          group={group}
+          isOpen={groupOpen[group.id]}
+          onOpenChange={(next) => {
+            if (next) closeOthers(group.id);
+            setGroupOpen((prev) => ({ ...createSiteNavGroupState(), [group.id]: next }));
+          }}
+          pathname={pathname}
+        />
+      ))}
       <DesktopLoginDropdown
         isOpen={loginOpen}
         onOpenChange={(next) => {

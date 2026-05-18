@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { BookOpen, GitBranch, Landmark } from "lucide-react";
 import type { SiteNavGroup } from "./navConfig";
+import { resolveNavIcon } from "./navIcons";
 import { isSiteNavGroupActive, isSiteNavItemActive } from "./navActive";
 import { NavMenuItem } from "./NavMenuItem";
 import { navHeritage } from "./navHeritageTokens";
@@ -10,12 +10,6 @@ import { navHeritage } from "./navHeritageTokens";
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
-
-const SECTION_ICON = {
-  tree: GitBranch,
-  archive: BookOpen,
-  culture: Landmark,
-} as const;
 
 type MobileNavAccordionProps = {
   group: SiteNavGroup;
@@ -34,7 +28,7 @@ export function MobileNavAccordion({
   panelId,
   onLinkClick,
 }: MobileNavAccordionProps) {
-  const SectionIcon = SECTION_ICON[group.id];
+  const SectionIcon = resolveNavIcon(group.sectionIcon);
   const groupActive = isSiteNavGroupActive(pathname, group);
 
   return (

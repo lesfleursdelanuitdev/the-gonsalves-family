@@ -9,6 +9,7 @@ import { MobileIndividualProfile } from "./MobileIndividualProfile";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import { ProfileMediaSection } from "./ProfileMediaSection";
 import { ProfileNotes } from "./ProfileNotes";
+import { ProfileCharts } from "./ProfileCharts";
 import { ProfileTimeline } from "./ProfileTimeline";
 import type { PublicIndividualProfile, PublicIndividualRelation } from "./types";
 
@@ -133,6 +134,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
     ...(linkedAccounts.length > 0 ? ["Linked Accounts"] : []),
     "Events",
     ...(hasMedia ? ["Media"] : []),
+    "Charts",
     ...(hasOpenQuestions ? ["Open Questions"] : []),
   ];
 
@@ -395,6 +397,24 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             </PageContainer>
           </Section>
         ) : null}
+
+        <Section
+          id="charts"
+          className="min-w-0 overflow-x-hidden border-y border-border-subtle bg-[linear-gradient(180deg,rgba(129,89,58,0.07),rgba(129,89,58,0.03))] py-10 md:py-14"
+        >
+          <PageContainer narrow>
+            <div className="mb-6 text-center">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Tree</p>
+              <h2 className="mt-2 font-heading text-3xl font-semibold text-heading">Charts</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+                Each chart opens in the family tree viewer with {person.fullName.split(" ")[0] || "this person"} at the
+                center — follow their story forward, look back through their ancestors, or enjoy a fan view of the lines
+                behind their name.
+              </p>
+            </div>
+            <ProfileCharts xref={person.xref} fullName={person.fullName} />
+          </PageContainer>
+        </Section>
 
         {hasOpenQuestions ? (
           <Section className="min-w-0 overflow-x-hidden border-t border-border-subtle py-10 md:py-14">

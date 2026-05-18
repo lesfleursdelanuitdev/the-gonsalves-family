@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { SiteNavItem } from "./navConfig";
+import { resolveNavIcon } from "./navIcons";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -20,7 +21,7 @@ export function NavMenuItem({
   onNavigate,
   variant = "desktop",
 }: NavMenuItemProps) {
-  const Icon = item.icon;
+  const Icon = resolveNavIcon(item.icon);
   const isMobile = variant === "mobile";
 
   return (

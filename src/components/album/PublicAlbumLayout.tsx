@@ -43,10 +43,13 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import { AlbumMediaFilterPanel, type AlbumMediaTypeFilter } from "./AlbumMediaFilterPanel";
 import { LightboxZoomableImage } from "./LightboxZoomableImage";
+import { parseAlbumMediaFilterFromSearchParams } from "@/lib/album/album-media-url-filter";
+import { useAlbumMediaUrlSync } from "@/lib/album/use-album-media-url-sync";
 import { buildPublicMediaPath } from "@/lib/album/public-album-links";
 import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
 
@@ -724,9 +727,8 @@ export type PublicAlbumLayoutProps = {
   model: AlbumViewModel;
 };
 
-export function PublicAlbumLayout({
-  model,
-}: PublicAlbumLayoutProps) {
+function PublicAlbumLayoutInner({ model }: PublicAlbumLayoutProps) {
+  const searchParams = useSearchParams();
   const description = (model.description ?? "").trim();
   const addedLabel = formatAlbumDate(model.albumCreatedAt);
 
@@ -736,7 +738,10 @@ export function PublicAlbumLayout({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"about" | "media">("media");
   const [mediaLayout, setMediaLayout] = useState<"grid" | "list">("grid");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<PublicAlbumMediaTypeFilter>("all");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<PublicAlbumMediaTypeFilter>(() =>
+    parseAlbumMediaFilterFromSearchParams(searchParams),
+  );
+  const { applyMediaTypeFilter } = useAlbumMediaUrlSync(setMediaTypeFilter, viewKey);
   const [personFilterIds, setPersonFilterIds] = useState<string[]>([]);
   const [placeFilterIds, setPlaceFilterIds] = useState<string[]>([]);
   const [tagFilterIds, setTagFilterIds] = useState<string[]>([]);
@@ -770,7 +775,6 @@ export function PublicAlbumLayout({
     setPageSize(DEFAULT_PAGE_SIZE);
     prevMediaPageRef.current = null;
     setActiveTab("media");
-    setMediaTypeFilter("all");
     setPersonFilterIds([]);
     setPlaceFilterIds([]);
     setTagFilterIds([]);
@@ -779,12 +783,13 @@ export function PublicAlbumLayout({
     setPeopleSearchQuery("");
     setPlaceSearchQuery("");
     setTagSearchQuery("");
-    setDraftMediaType("all");
+    const mediaFromUrl = parseAlbumMediaFilterFromSearchParams(searchParams);
+    setDraftMediaType(mediaFromUrl);
     setDraftPersonIds([]);
     setDraftPlaceIds([]);
     setDraftTagIds([]);
     setDraftDateRange(EMPTY_DATE_RANGE);
-  }, [viewKey]);
+  }, [viewKey, searchParams]);
 
   const items = model.media;
   const totalAll = items.length;
@@ -828,9 +833,9 @@ export function PublicAlbumLayout({
 
   useEffect(() => {
     if (mediaTypeFilter !== "all" && mediaKindCounts[mediaTypeFilter] === 0) {
-      setMediaTypeFilter("all");
+      applyMediaTypeFilter("all");
     }
-  }, [mediaKindCounts, mediaTypeFilter]);
+  }, [applyMediaTypeFilter, mediaKindCounts, mediaTypeFilter]);
 
   useEffect(() => {
     if (!filterMenuOpen) return;
@@ -1395,7 +1400,7 @@ export function PublicAlbumLayout({
                         onToggleTag={toggleDraftTag}
                         onDateRangeChange={setDraftDateRange}
                         onClearFilters={() => {
-                          setMediaTypeFilter("all");
+                          applyMediaTypeFilter("all");
                           setPersonFilterIds([]);
                           setPlaceFilterIds([]);
                           setTagFilterIds([]);
@@ -1410,7 +1415,7 @@ export function PublicAlbumLayout({
                           setTagSearchQuery("");
                         }}
                         onApplyFilter={() => {
-                          setMediaTypeFilter(draftMediaType);
+                          applyMediaTypeFilter(draftMediaType);
                           setPersonFilterIds([...draftPersonIds]);
                           setPlaceFilterIds([...draftPlaceIds]);
                           setTagFilterIds([...draftTagIds]);
@@ -1841,7 +1846,7 @@ export function PublicAlbumLayout({
                       setTagSearchQuery("");
                     }}
                     onApplyFilter={() => {
-                      setMediaTypeFilter(draftMediaType);
+                      applyMediaTypeFilter(draftMediaType);
                       setPersonFilterIds([...draftPersonIds]);
                       setPlaceFilterIds([...draftPlaceIds]);
                       setTagFilterIds([...draftTagIds]);
@@ -1874,7 +1879,7 @@ export function PublicAlbumLayout({
                       type="button"
                       className="h-12 min-h-[48px] flex-1 border-0 bg-[#8b2e2e] font-body text-sm text-white shadow-none hover:bg-[#7a2828]"
                       onClick={() => {
-                        setMediaTypeFilter(draftMediaType);
+                        applyMediaTypeFilter(draftMediaType);
                         setPersonFilterIds([...draftPersonIds]);
                         setPlaceFilterIds([...draftPlaceIds]);
                         setTagFilterIds([...draftTagIds]);
@@ -1905,6 +1910,23 @@ export function PublicAlbumLayout({
         />
       ) : null}
       </div>
+    </div>
+  );
+}
+
+export function PublicAlbumLayout(props: PublicAlbumLayoutProps) {
+  return (
+    <Suspense fallback={<PublicAlbumLayoutFallback model={props.model} />}>
+      <PublicAlbumLayoutInner {...props} />
+    </Suspense>
+  );
+}
+
+function PublicAlbumLayoutFallback({ model }: PublicAlbumLayoutProps) {
+  return (
+    <div className="min-h-[40vh] px-4 pb-8 pt-28 font-body text-sm text-muted-foreground">
+      Loading album…
+      <span className="sr-only">{model.title}</span>
     </div>
   );
 }

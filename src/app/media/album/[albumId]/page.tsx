@@ -1,21 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { AlbumViewModel } from "@ligneous/album-view";
+import { AlbumViewRouteShell } from "@/components/album/AlbumViewRouteShell";
 import { PublicAlbumLayout } from "@/components/album/PublicAlbumLayout";
-import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { readJsonResponse } from "@/lib/read-json-response";
-
-function AlbumRouteShell({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <Navbar />
-      {children}
-    </>
-  );
-}
 
 export default function PublicCuratedAlbumPage() {
   const params = useParams();
@@ -60,29 +50,29 @@ export default function PublicCuratedAlbumPage() {
 
   if (!albumId) {
     return (
-      <AlbumRouteShell>
+      <AlbumViewRouteShell>
         <p className="px-4 pb-8 pt-28 text-sm text-destructive">Invalid album.</p>
-      </AlbumRouteShell>
+      </AlbumViewRouteShell>
     );
   }
   if (loading) {
     return (
-      <AlbumRouteShell>
+      <AlbumViewRouteShell>
         <p className="px-4 pb-8 pt-28 text-sm text-muted-foreground">Loading…</p>
-      </AlbumRouteShell>
+      </AlbumViewRouteShell>
     );
   }
   if (err || !model) {
     return (
-      <AlbumRouteShell>
+      <AlbumViewRouteShell>
         <p className="px-4 pb-8 pt-28 text-sm text-destructive">{err ?? "Album not found."}</p>
-      </AlbumRouteShell>
+      </AlbumViewRouteShell>
     );
   }
 
   return (
-    <AlbumRouteShell>
+    <AlbumViewRouteShell>
       <PublicAlbumLayout model={model} />
-    </AlbumRouteShell>
+    </AlbumViewRouteShell>
   );
 }

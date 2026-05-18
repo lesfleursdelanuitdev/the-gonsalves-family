@@ -1,21 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AlbumViewModel } from "@ligneous/album-view";
+import { AlbumViewRouteShell } from "@/components/album/AlbumViewRouteShell";
 import { PublicAlbumLayout } from "@/components/album/PublicAlbumLayout";
-import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { readJsonResponse } from "@/lib/read-json-response";
-
-function AlbumRouteShell({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <Navbar />
-      {children}
-    </>
-  );
-}
 
 function Inner() {
   const sp = useSearchParams();
@@ -74,10 +64,10 @@ function Inner() {
 
 export default function PublicMediaAlbumViewPage() {
   return (
-    <AlbumRouteShell>
+    <AlbumViewRouteShell>
       <Suspense fallback={<p className="px-4 pb-8 pt-28 text-sm text-muted-foreground">Loading…</p>}>
         <Inner />
       </Suspense>
-    </AlbumRouteShell>
+    </AlbumViewRouteShell>
   );
 }

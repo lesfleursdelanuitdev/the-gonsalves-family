@@ -9,6 +9,7 @@ import { Crest } from "@/components/wireframe";
 import { SITE_NAV_GROUPS, SITE_NAV_SEARCH_HREF } from "./navConfig";
 import { MobileNavAccordion } from "./MobileNavAccordion";
 import { MobileNavLoginAccordion } from "./MobileNavLoginAccordion";
+import type { SiteNavGroupId } from "./navGroupState";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -17,13 +18,9 @@ type MobileNavDrawerProps = {
   open: boolean;
   onClose: () => void;
   pathname: string;
-  treeExpanded: boolean;
-  archiveExpanded: boolean;
-  cultureExpanded: boolean;
+  groupExpanded: Record<SiteNavGroupId, boolean>;
   loginExpanded: boolean;
-  onTreeToggle: () => void;
-  onArchiveToggle: () => void;
-  onCultureToggle: () => void;
+  onGroupToggle: (id: SiteNavGroupId) => void;
   onLoginToggle: () => void;
 };
 
@@ -31,13 +28,9 @@ export function MobileNavDrawer({
   open,
   onClose,
   pathname,
-  treeExpanded,
-  archiveExpanded,
-  cultureExpanded,
+  groupExpanded,
   loginExpanded,
-  onTreeToggle,
-  onArchiveToggle,
-  onCultureToggle,
+  onGroupToggle,
   onLoginToggle,
 }: MobileNavDrawerProps) {
   const router = useRouter();
@@ -112,18 +105,6 @@ export function MobileNavDrawer({
     router.push(SITE_NAV_SEARCH_HREF);
     setSearchQuery("");
   };
-
-  const expandedMap = {
-    tree: treeExpanded,
-    archive: archiveExpanded,
-    culture: cultureExpanded,
-  } as const;
-
-  const toggleMap = {
-    tree: onTreeToggle,
-    archive: onArchiveToggle,
-    culture: onCultureToggle,
-  } as const;
 
   if (!mounted) return null;
 
@@ -209,8 +190,8 @@ export function MobileNavDrawer({
                   <MobileNavAccordion
                     key={group.id}
                     group={group}
-                    expanded={expandedMap[group.id]}
-                    onToggle={toggleMap[group.id]}
+                    expanded={groupExpanded[group.id]}
+                    onToggle={() => onGroupToggle(group.id)}
                     pathname={pathname}
                     panelId={`mobile-nav-${group.id}`}
                     onLinkClick={onClose}

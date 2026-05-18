@@ -20,6 +20,19 @@ export function isSiteNavGroupActive(pathname: string, group: SiteNavGroup): boo
       pathname.startsWith("/individuals/")
     );
   }
+  if (group.id === "visualize") {
+    return (
+      pathname === "/visualize" ||
+      pathname.startsWith("/visualize/") ||
+      pathname.startsWith("/tree/viewer") ||
+      pathname === "/timelines" ||
+      pathname.startsWith("/timelines/") ||
+      pathname === "/visualize/calendar" ||
+      pathname.startsWith("/visualize/calendar/") ||
+      pathname === "/maps" ||
+      pathname.startsWith("/maps/")
+    );
+  }
   if (group.id === "archive") {
     return (
       pathname === "/archive" ||
@@ -35,6 +48,25 @@ export function isSiteNavGroupActive(pathname: string, group: SiteNavGroup): boo
   }
   if (group.id === "culture") {
     return pathname === "/culture" || pathname.startsWith("/culture/");
+  }
+  if (group.id === "research") {
+    return pathname === "/research" || pathname.startsWith("/research/");
+  }
+  if (group.id === "more") {
+    return (
+      pathname === "/more" ||
+      pathname.startsWith("/more/") ||
+      pathname === "/more/todays-anniversaries" ||
+      pathname.startsWith("/more/todays-anniversaries/") ||
+      pathname === "/more/upcoming-anniversaries" ||
+      pathname.startsWith("/more/upcoming-anniversaries/") ||
+      pathname === "/contact" ||
+      pathname.startsWith("/contact/") ||
+      pathname === "/contribute" ||
+      pathname.startsWith("/contribute/") ||
+      pathname === "/help" ||
+      pathname.startsWith("/help/")
+    );
   }
   return false;
 }

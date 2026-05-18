@@ -111,7 +111,7 @@ export function Statistics() {
       label: "Surnames",
       displayValue: isPending ? null : displayY,
       example: data?.examples.surname?.surname ?? null,
-      exampleHref: "/tree/surnames",
+      exampleHref: "/surnames",
     },
     {
       key: "families",
