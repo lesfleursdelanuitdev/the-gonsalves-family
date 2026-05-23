@@ -26,7 +26,7 @@ export function SurnameCard({
           </span>
         ) : null}
         <div className="text-center">
-          <CaseSensitive className="mx-auto mb-2 h-10 w-10 text-link" strokeWidth={1.6} aria-hidden />
+          <CaseSensitive className="mx-auto mb-2 hidden h-10 w-10 text-link sm:block" strokeWidth={1.6} aria-hidden />
           <p className="font-heading text-2xl font-semibold leading-tight text-heading">{surname.displaySurname}</p>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function SurnameCard({
           </Link>
           <Link
             href={surname.profileHref}
-            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface/80 px-4 py-2.5 text-sm font-semibold text-heading transition hover:bg-surface-2/90 hover:text-link"
+            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
           >
             About this surname
           </Link>

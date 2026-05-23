@@ -18,16 +18,20 @@ export function useFamilyTreeViewportInteractions({
   panToPersonParams,
   viewportPolicyParams,
 }: UseFamilyTreeViewportInteractionsParams) {
+  const isPedigree = isPedigreeTreeStrategy(viewportPolicyParams.chartStrategy);
   const panZoom = usePanZoom({
     ...panZoomParams,
-    deferLayoutOriginInitialPan: isPedigreeTreeStrategy(
-      viewportPolicyParams.chartStrategy
-    ),
+    deferLayoutOriginInitialPan: isPedigree,
   });
+
+  const centerOnPositionForPanToPerson =
+    panZoomParams.embedMode && isPedigree
+      ? panZoom.embedCenterOnPosition
+      : panZoom.centerOnPosition;
 
   const { centerOnPerson, scheduleCenterOnPerson } = usePanToPerson({
     ...panToPersonParams,
-    centerOnPosition: panZoom.centerOnPosition,
+    centerOnPosition: centerOnPositionForPanToPerson,
   });
 
   const { handleChartHomeView, skipNextGoToInitialViewRef } = useChartViewportPolicy({

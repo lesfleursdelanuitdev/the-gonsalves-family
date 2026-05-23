@@ -829,3 +829,28 @@ body {
   color: var(--text-inverse);
   transform: translateX(4px);
 }
+
+/* ─── Timeline theme: map DaisyUI/shadcn CSS vars to Gonsalves warm parchment ─── */
+.tl-gonsalves {
+  /* shadcn vars — used by bg-card, bg-background, text-foreground, text-muted-foreground */
+  --background: var(--surface-2);
+  --card: var(--surface-elevated);
+  --foreground: var(--text);
+  --card-foreground: var(--text);
+  --muted-foreground: var(--text-muted);
+  /* DaisyUI v5 base vars — used by bg-base-100, bg-base-200, text-base-content, border-base-content/10 */
+  --color-base-100: var(--surface);
+  --color-base-200: var(--surface-2);
+  --color-base-content: var(--text);
+}
+
+.dark .tl-gonsalves {
+  --background: var(--surface);
+  --card: var(--surface-elevated);
+  --foreground: var(--text);
+  --card-foreground: var(--text);
+  --muted-foreground: var(--text-muted);
+  --color-base-100: var(--surface);
+  --color-base-200: var(--surface-2);
+  --color-base-content: var(--text);
+}

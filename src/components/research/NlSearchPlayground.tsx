@@ -9,6 +9,7 @@ import { messageFromResearchErrorJson } from "@/lib/research-api-client-error";
 
 type Props = {
   treeId: string | null;
+  inline?: boolean;
 };
 
 type SuggestState = { prompts: string[]; error: string | null };
@@ -27,7 +28,7 @@ async function readJsonThrow(res: Response): Promise<unknown> {
   return data;
 }
 
-export function NlSearchPlayground({ treeId }: Props) {
+export function NlSearchPlayground({ treeId, inline }: Props) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchErr, setFetchErr] = useState<string | null>(null);
@@ -104,23 +105,8 @@ export function NlSearchPlayground({ treeId }: Props) {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 pb-20 pt-6 lg:max-w-6xl lg:px-8">
-      <div className="mb-10">
-        <nav className="text-muted font-body text-sm">
-          <Link href="/tree/viewer" className="text-link hover:text-link-hover underline-offset-2 hover:underline">
-            Tree viewer
-          </Link>
-          <span className="px-2 opacity-50">/</span>
-          <span className="text-subtle">Natural language search</span>
-        </nav>
-        <h1 className="text-heading mt-4 font-accent text-4xl tracking-tight">Ask the tree</h1>
-        <p className="text-muted mt-3 max-w-2xl font-body text-base leading-relaxed">
-          Plain-language questions route to read-only analytics intents (names, places, lifespans, relatives, and more).
-          Queries are not persisted on the public site.
-        </p>
-      </div>
-
+  const inner = (
+    <>
       <section className="border-border-subtle space-y-4 rounded-xl border bg-surface-elevated px-5 py-6 shadow-sm md:px-8 md:py-8">
         <label htmlFor="nl-query" className="text-heading sr-only">
           Search query
@@ -148,7 +134,7 @@ export function NlSearchPlayground({ treeId }: Props) {
             onClick={() => void runSearch()}
             className="bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg px-6 py-2.5 font-body text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {loading ? "Searching…" : "Search"}
+            {loading ? "Searching…" : "Ask"}
           </button>
           <button
             type="button"
@@ -200,6 +186,28 @@ export function NlSearchPlayground({ treeId }: Props) {
         onClose={() => setSampleDrawerOpen(false)}
         onPickSample={applySamplePrompt}
       />
+    </>
+  );
+
+  if (inline) return inner;
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 pb-20 pt-6 lg:max-w-6xl lg:px-8">
+      <div className="mb-10">
+        <nav className="text-muted font-body text-sm">
+          <Link href="/tree/viewer" className="text-link hover:text-link-hover underline-offset-2 hover:underline">
+            Tree viewer
+          </Link>
+          <span className="px-2 opacity-50">/</span>
+          <span className="text-subtle">Natural language search</span>
+        </nav>
+        <h1 className="text-heading mt-4 font-accent text-4xl tracking-tight">Ask the tree</h1>
+        <p className="text-muted mt-3 max-w-2xl font-body text-base leading-relaxed">
+          Plain-language questions route to read-only analytics intents (names, places, lifespans, relatives, and more).
+          Queries are not persisted on the public site.
+        </p>
+      </div>
+      {inner}
     </div>
   );
 }

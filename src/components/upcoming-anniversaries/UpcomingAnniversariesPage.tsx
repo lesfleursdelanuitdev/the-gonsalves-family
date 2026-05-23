@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Filter, Search } from "lucide-react";
+import { CalendarDays, Filter, LayoutGrid, List, Search } from "lucide-react";
 import { ListPageFilterSheet, ListPageMobileControls } from "@/components/list-page";
 import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
@@ -22,10 +22,9 @@ import {
   type UpcomingAnniversariesFilterState,
 } from "./UpcomingAnniversariesFilterPanel";
 import { UpcomingAnniversaryOccasionCard } from "./UpcomingAnniversaryOccasionCard";
+import { UpcomingAnniversaryListItem } from "./UpcomingAnniversaryListItem";
 
-type SortMode = "calendar";
-
-const SORT_OPTIONS: { value: SortMode; label: string }[] = [{ value: "calendar", label: "By date" }];
+type ViewMode = "cards" | "list";
 
 export function UpcomingAnniversariesPage({ data }: { data: UpcomingAnniversariesPageData }) {
   const availableMonths = useMemo(
@@ -54,7 +53,7 @@ export function UpcomingAnniversariesPage({ data }: { data: UpcomingAnniversarie
   const [draftFilters, setDraftFilters] = useState<UpcomingAnniversariesFilterState>(defaultFilters);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>("calendar");
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
 
   useEffect(() => {
     const mq = typeof window !== "undefined" ? window.matchMedia("(max-width: 639px)") : null;
@@ -218,21 +217,26 @@ export function UpcomingAnniversariesPage({ data }: { data: UpcomingAnniversarie
                           </div>
                         ) : null}
                       </div>
-                      <label className="font-body flex min-w-0 items-center gap-2 text-sm text-muted">
-                        <span className="hidden shrink-0 whitespace-nowrap sm:inline">Sort</span>
-                        <select
-                          aria-label="Sort anniversaries"
-                          value={sortMode}
-                          onChange={(e) => setSortMode(e.target.value as SortMode)}
-                          className="h-9 min-w-[8rem] max-w-full cursor-pointer rounded-lg border border-border bg-surface px-2.5 py-1 text-sm font-medium text-text outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                      <div className="flex items-center rounded-lg border border-border-subtle bg-surface p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setViewMode("cards")}
+                          aria-label="Card view"
+                          aria-pressed={viewMode === "cards"}
+                          className={`rounded-md p-1.5 transition ${viewMode === "cards" ? "bg-link text-primary-foreground shadow-sm" : "text-muted hover:text-heading"}`}
                         >
-                          {SORT_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          <LayoutGrid className="h-4 w-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setViewMode("list")}
+                          aria-label="List view"
+                          aria-pressed={viewMode === "list"}
+                          className={`rounded-md p-1.5 transition ${viewMode === "list" ? "bg-link text-primary-foreground shadow-sm" : "text-muted hover:text-heading"}`}
+                        >
+                          <List className="h-4 w-4" aria-hidden />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -270,13 +274,23 @@ export function UpcomingAnniversariesPage({ data }: { data: UpcomingAnniversarie
                                   ({section.items.length})
                                 </span>
                               </h3>
-                              <ul className="grid min-w-0 list-none gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                                {section.items.map((item) => (
-                                  <li key={item.eventId} className="min-w-0">
-                                    <UpcomingAnniversaryOccasionCard item={item} />
-                                  </li>
-                                ))}
-                              </ul>
+                              {viewMode === "cards" ? (
+                                <ul className="grid min-w-0 list-none gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                                  {section.items.map((item) => (
+                                    <li key={item.eventId} className="min-w-0">
+                                      <UpcomingAnniversaryOccasionCard item={item} />
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <ul className="list-none divide-y divide-border-subtle/50">
+                                  {section.items.map((item) => (
+                                    <li key={item.eventId} className="min-w-0">
+                                      <UpcomingAnniversaryListItem item={item} />
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -322,9 +336,31 @@ export function UpcomingAnniversariesPage({ data }: { data: UpcomingAnniversarie
             if (filterMenuOpen) setFilterMenuOpen(false);
             else openFilters();
           }}
-          sortMode={sortMode}
-          onSortModeChange={setSortMode}
-          sortOptions={SORT_OPTIONS}
+          sortMode="calendar"
+          onSortModeChange={() => {}}
+          sortOptions={[]}
+          trailingSlot={
+            <div className="flex items-center rounded-2xl border border-border-subtle bg-[rgba(255,250,240,0.58)] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                aria-label="Card view"
+                aria-pressed={viewMode === "cards"}
+                className={`rounded-xl p-2 transition ${viewMode === "cards" ? "bg-link text-primary-foreground shadow-sm" : "text-muted hover:text-heading"}`}
+              >
+                <LayoutGrid className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
+                className={`rounded-xl p-2 transition ${viewMode === "list" ? "bg-link text-primary-foreground shadow-sm" : "text-muted hover:text-heading"}`}
+              >
+                <List className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          }
         />
       ) : null}
 

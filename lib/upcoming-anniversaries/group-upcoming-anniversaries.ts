@@ -96,7 +96,7 @@ function anniversarySubtitle(
   const years = referenceYear - eventYear;
   if (years < 0) return "";
   if (eventType === "BIRT") {
-    return years === 0 ? "Born this year" : `Turning ${years + 1}`;
+    return years === 0 ? "Born this year" : `Turning ${years} years`;
   }
   if (years === 0) return "First anniversary";
   if (years === 1) return "1 year";

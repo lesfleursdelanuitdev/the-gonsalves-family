@@ -417,7 +417,7 @@ export function MobileFamilyProfile({
               </div>
             </div>
 
-            <div className="mb-7 mt-4 rounded-xl border border-border-subtle bg-surface/90 p-3 shadow-[0_10px_24px_rgba(60,45,25,0.12)]">
+            <div className="mb-7 mt-4 rounded-xl border border-border-subtle bg-surface/90 p-3">
               <div className="grid grid-cols-4 gap-1 text-center">
                 {(
                   [
@@ -478,6 +478,7 @@ export function MobileFamilyProfile({
                       member={member}
                       partners={family.partners}
                       showAncestorsAction
+                      flat
                     />
                   ))}
                 </div>
@@ -493,6 +494,7 @@ export function MobileFamilyProfile({
                       member={member}
                       partners={family.partners}
                       showDescendancyChartAction
+                      flat
                     />
                   ))}
                 </div>

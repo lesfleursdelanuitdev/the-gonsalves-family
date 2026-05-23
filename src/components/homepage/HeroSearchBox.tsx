@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { GitBranch, Search } from "lucide-react";
 
@@ -69,6 +70,7 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
   const [hasCompletedTyping, setHasCompletedTyping] = useState(false);
   const [userHasTyped, setUserHasTyped] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const programmaticFocusRef = useRef(false);
@@ -134,6 +136,13 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
     }
   }, [triggerTyping, typedValue, phraseIndex, phase, userHasTyped, hasCompletedTyping]);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = typedValue.trim();
+    if (!q) return;
+    router.push(`/search?mode=general&q=${encodeURIComponent(q)}`);
+  };
+
   const handleBlur = () => {
     setTimeout(() => {
       if (formRef.current && !formRef.current.contains(document.activeElement)) {
@@ -180,8 +189,7 @@ export function HeroSearchBox({ triggerTyping = false }: HeroSearchBoxProps) {
         <form
           ref={formRef}
           id="hero-archive-search"
-          action="/tree/viewer/searchDatabase"
-          method="GET"
+          onSubmit={handleSubmit}
           className="mt-3 flex min-w-0 flex-col divide-y divide-[color-mix(in_srgb,#C9B37A_65%,transparent)] overflow-hidden rounded-lg border max-sm:divide-y-0 sm:mt-4 sm:flex-row sm:divide-x sm:divide-y-0"
           style={{ borderColor: H.gold }}
           onFocus={() => setFocused(true)}

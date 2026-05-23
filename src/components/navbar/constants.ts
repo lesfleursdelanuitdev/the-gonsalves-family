@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { SITE_NAV_SEARCH_HREF } from "@/components/homepage/HeroAndMenu/Navbar/site-nav/navConfig";
 import {
   User,
   Home,
@@ -73,4 +74,4 @@ export const MORE_MENU: NavItem[] = [
   { label: "Help", href: "/help", icon: LifeBuoy },
 ];
 
-export const NAV_RIGHT: NavItem[] = [{ label: "Search", href: "/tree/viewer/searchDatabase" }];
+export const NAV_RIGHT: NavItem[] = [{ label: "Search", href: SITE_NAV_SEARCH_HREF }];

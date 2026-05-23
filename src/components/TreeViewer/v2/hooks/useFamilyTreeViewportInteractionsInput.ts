@@ -11,6 +11,7 @@ export interface UseFamilyTreeViewportInteractionsInputParams {
   chartStrategy: UseFamilyTreeViewportInteractionsParams["viewportPolicyParams"]["chartStrategy"];
   effectiveRootId: string;
   viewState: UseFamilyTreeViewportInteractionsParams["viewportPolicyParams"]["viewState"];
+  embedMode?: boolean;
 }
 
 export function useFamilyTreeViewportInteractionsInput({
@@ -22,6 +23,7 @@ export function useFamilyTreeViewportInteractionsInput({
   chartStrategy,
   effectiveRootId,
   viewState,
+  embedMode,
 }: UseFamilyTreeViewportInteractionsInputParams): UseFamilyTreeViewportInteractionsParams {
   return {
     panZoomParams: {
@@ -29,6 +31,7 @@ export function useFamilyTreeViewportInteractionsInput({
       bounds,
       baseX,
       baseY,
+      embedMode,
     },
     panToPersonParams: {
       root,

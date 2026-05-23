@@ -1,19 +1,18 @@
-import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUp, GitBranch, PieChart } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { ArrowDown, ArrowRight, ArrowUp, PieChart } from "lucide-react";
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
-import { profileChartDescription, profileChartOpenLabel } from "@/lib/profile-chart-copy";
-import { PROFILE_CHART_OPTIONS, profileChartHref } from "@/lib/profile-chart-options";
+import { IndividualChartEmbed } from "./IndividualChartEmbed";
 
-const CHART_ICONS: Record<ChartViewStrategyName, typeof GitBranch> = {
-  descendancy: ArrowDown,
-  vertical_pedigree: ArrowUp,
-  pedigree: ArrowRight,
-  fan_chart: PieChart,
-};
+type ChartTab = "pedigree" | "descendancy" | "fan_chart" | "vertical_pedigree";
 
-function chartIcon(chart: ChartViewStrategyName) {
-  return CHART_ICONS[chart] ?? GitBranch;
-}
+const CHART_TABS: Array<{ id: ChartTab; label: string; Icon: typeof ArrowRight }> = [
+  { id: "pedigree", label: "Pedigree", Icon: ArrowRight },
+  { id: "descendancy", label: "Descendancy", Icon: ArrowDown },
+  { id: "fan_chart", label: "Fan Chart", Icon: PieChart },
+  { id: "vertical_pedigree", label: "Vertical Pedigree", Icon: ArrowUp },
+];
 
 export function ProfileCharts({
   xref,
@@ -22,36 +21,35 @@ export function ProfileCharts({
   xref: string;
   fullName: string;
 }) {
+  const [activeTab, setActiveTab] = useState<ChartTab>("pedigree");
+
   return (
-    <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-      {PROFILE_CHART_OPTIONS.map((option) => {
-        const Icon = chartIcon(option.chart);
-        const href = profileChartHref({
-          rootXref: xref,
-          chart: option.chart,
-          rootName: fullName,
-        });
-        return (
-          <Link
-            key={option.chart}
-            href={href}
-            className="group flex min-w-0 flex-col rounded-2xl border border-border-subtle/80 bg-surface/90 p-5 shadow-[0_8px_24px_rgba(60,45,25,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-link/35 hover:shadow-[0_14px_30px_rgba(60,45,25,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+    <div className="mt-5 min-w-0">
+      <div className="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-border-subtle bg-bg/60 p-1 sm:inline-flex sm:gap-2">
+        {CHART_TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            aria-pressed={activeTab === id}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.11em] transition sm:gap-2 sm:text-xs sm:tracking-[0.12em] ${
+              activeTab === id
+                ? "bg-link text-primary-foreground shadow-[0_6px_16px_rgba(31,90,56,0.18)]"
+                : "text-link hover:bg-link-soft-bg hover:text-link-soft-fg"
+            }`}
           >
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-link/20 bg-link-soft-bg text-link transition group-hover:bg-link group-hover:text-primary-foreground">
-              <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
-            </span>
-            <h3 className="mt-4 font-heading text-xl font-semibold text-heading group-hover:text-link">
-              {option.title}
-            </h3>
-            <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
-              {profileChartDescription(option.chart, fullName)}
-            </p>
-            <p className="mt-4 text-sm font-semibold text-link">
-              {profileChartOpenLabel(option.chart, fullName)} <span aria-hidden>&rarr;</span>
-            </p>
-          </Link>
-        );
-      })}
+            <Icon className="h-4 w-4" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <IndividualChartEmbed
+        key={activeTab}
+        xref={xref}
+        chart={activeTab as ChartViewStrategyName}
+        fullName={fullName}
+      />
     </div>
   );
 }

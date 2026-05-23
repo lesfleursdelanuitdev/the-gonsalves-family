@@ -10,7 +10,7 @@ import { PERSON_CARD_LAYOUT_OPTIONS } from "@/lib/person-card-layout";
 const CARD_VALUES = new Set(PERSON_CARD_LAYOUT_OPTIONS.map((o) => o.value));
 const CARD_VARIANT_VALUES = new Set<PersonCardVariant>(["full", "compact-name", "compact-avatar"]);
 const COMPACT_SIZE_VALUES = new Set<PersonCompactCardSize>(["large", "medium", "small", "extra-small"]);
-const PARENT_PAIR_GAP_MIN = 4;
+const PARENT_PAIR_GAP_MIN = 0;
 const PARENT_PAIR_GAP_MAX = 64;
 
 export type TreeViewerPartnersUrl = "open" | "closed" | "root";

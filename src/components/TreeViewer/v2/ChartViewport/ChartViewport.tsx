@@ -70,6 +70,8 @@ export interface ChartViewportProps {
   /** Debug panel: toggle shown at top of right controls. */
   showDebugPanel?: boolean;
   onToggleDebugPanel?: () => void;
+  /** When true: suppress minimap, use 100% SVG height (fixed-size embed container). */
+  embedMode?: boolean;
 }
 
 export function ChartViewport({
@@ -110,11 +112,12 @@ export function ChartViewport({
   onToggleLegendPanel,
   showDebugPanel = false,
   onToggleDebugPanel,
+  embedMode = false,
 }: ChartViewportProps) {
   const [minimapOpen, setMinimapOpen] = useState(true);
   const minimapCapable = bounds != null && setPan != null && !isMobile;
   const minimapAllowedBySettings = settings.showMinimap !== false;
-  const showMinimapToggle = minimapCapable && minimapAllowedBySettings;
+  const showMinimapToggle = !embedMode && minimapCapable && minimapAllowedBySettings;
   const chartViewportRef = useRef<HTMLDivElement>(null);
   const viewportOverlayValue = useMemo(
     () => ({ containerRef: chartViewportRef, chromeRightInsetPx: 92 }),
@@ -131,27 +134,30 @@ export function ChartViewport({
         position: "relative",
         overflow: "hidden",
         touchAction: "none",
+        ...(embedMode ? { height: "100%" } : undefined),
       }}
     >
       <ChartViewportLoading isLoading={isLoading} />
-      <style>{`
-        .chart-viewport-svg {
-          min-height: calc(var(--app-height, 100svh) - 101px);
-        }
-        @media (max-width: 640px) {
+      {!embedMode && (
+        <style>{`
           .chart-viewport-svg {
-            min-height: 0;
+            min-height: calc(var(--app-height, 100svh) - 101px);
           }
-        }
-      `}</style>
+          @media (max-width: 640px) {
+            .chart-viewport-svg {
+              min-height: 0;
+            }
+          }
+        `}</style>
+      )}
       <svg
         ref={svgRef}
-        className="chart-viewport-svg"
+        className={embedMode ? undefined : "chart-viewport-svg"}
         style={{
           position: "relative",
           zIndex: 0,
           width: "100%",
-          height: "100svh",
+          height: embedMode ? "100%" : "100svh",
           cursor: dragging ? "grabbing" : "grab",
           display: "block",
           background: "var(--tree-bg)",
@@ -202,8 +208,8 @@ export function ChartViewport({
         onZoomIn={onZoomIn}
         onZoomOut={onZoomOut}
         onFitToScreen={onFitToScreen}
-        showDebugPanel={showDebugPanel}
-        onToggleDebugPanel={onToggleDebugPanel}
+        showDebugPanel={embedMode ? false : showDebugPanel}
+        onToggleDebugPanel={embedMode ? undefined : onToggleDebugPanel}
         showMinimapToggle={showMinimapToggle}
         minimapOpen={minimapOpen}
         onMinimapOpen={() => setMinimapOpen(true)}
@@ -211,11 +217,13 @@ export function ChartViewport({
         showLegendPanel={showLegendPanel}
         onToggleLegendPanel={onToggleLegendPanel}
       />
-      <ChartViewportBottomBar
-        isMobile={isMobile}
-        onGoToPerson={onGoToPerson}
-        onToggleAllSpouses={onToggleAllSpouses}
-      />
+      {!embedMode && (
+        <ChartViewportBottomBar
+          isMobile={isMobile}
+          onGoToPerson={onGoToPerson}
+          onToggleAllSpouses={onToggleAllSpouses}
+        />
+      )}
     </div>
     </ChartViewportOverlayContext.Provider>
   );

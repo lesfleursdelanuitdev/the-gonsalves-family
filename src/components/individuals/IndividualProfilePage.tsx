@@ -180,10 +180,6 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                   Home
                 </Link>
                 <span className="text-subtle">/</span>
-                <Link href="/tree" className="transition hover:text-link">
-                  Family Tree
-                </Link>
-                <span className="text-subtle">/</span>
                 <Link href="/individuals" className="transition hover:text-link">
                   Individuals
                 </Link>
@@ -406,11 +402,6 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             <div className="mb-6 text-center">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Tree</p>
               <h2 className="mt-2 font-heading text-3xl font-semibold text-heading">Charts</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-                Each chart opens in the family tree viewer with {person.fullName.split(" ")[0] || "this person"} at the
-                center — follow their story forward, look back through their ancestors, or enjoy a fan view of the lines
-                behind their name.
-              </p>
             </div>
             <ProfileCharts xref={person.xref} fullName={person.fullName} />
           </PageContainer>

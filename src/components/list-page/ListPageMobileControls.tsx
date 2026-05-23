@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { ChevronDown, ChevronUp, Filter, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,8 @@ type ListPageMobileControlsProps<T extends string> = {
   sortOptions: ListPageSortOption<T>[];
   /** When false, hides the filter button (search + sort only). */
   showFilterButton?: boolean;
+  /** When provided, renders in place of the sort dropdown. */
+  trailingSlot?: ReactNode;
 };
 
 /**
@@ -45,6 +48,7 @@ export function ListPageMobileControls<T extends string>({
   onSortModeChange,
   sortOptions,
   showFilterButton = true,
+  trailingSlot,
 }: ListPageMobileControlsProps<T>) {
   const filterIsActive = filterLabel !== filterDefaultLabel;
   const [expanded, setExpanded] = useState(true);
@@ -106,21 +110,23 @@ export function ListPageMobileControls<T extends string>({
               ) : null}
             </button>
           ) : null}
-          <label className={cn("relative block shrink-0", showFilterButton ? "w-24" : "w-[7.5rem]")}>
-            <span className="sr-only">{sortAriaLabel}</span>
-            <select
-              aria-label={sortAriaLabel}
-              value={sortMode}
-              onChange={(event) => onSortModeChange(event.target.value as T)}
-              className="h-10 w-full cursor-pointer rounded-2xl border border-border-subtle bg-[rgba(255,250,240,0.58)] px-3 text-sm font-semibold text-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {trailingSlot ?? (
+            <label className={cn("relative block shrink-0", showFilterButton ? "w-24" : "w-[7.5rem]")}>
+              <span className="sr-only">{sortAriaLabel}</span>
+              <select
+                aria-label={sortAriaLabel}
+                value={sortMode}
+                onChange={(event) => onSortModeChange(event.target.value as T)}
+                className="h-10 w-full cursor-pointer rounded-2xl border border-border-subtle bg-[rgba(255,250,240,0.58)] px-3 text-sm font-semibold text-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       </div>
     </aside>

@@ -10,6 +10,7 @@ import {
   NAV_LEFT,
   NAV_RIGHT,
 } from "./constants";
+import { SITE_NAV_SEARCH_HREF } from "@/components/homepage/HeroAndMenu/Navbar/site-nav/navConfig";
 import { SITE_ADMIN_LOGIN_HREF } from "@/lib/siteAdminLogin";
 import { NavLogo } from "./NavLogo";
 import { NavDropdown } from "./NavDropdown";
@@ -137,7 +138,7 @@ export function Navbar() {
                   showSeparator
                 />
                 {rightItems.map((it) =>
-                  it.href === "/tree/viewer/searchDatabase" ? (
+                  it.href === SITE_NAV_SEARCH_HREF ? (
                     <NavSearchLink
                       key={it.href}
                       href={it.href}

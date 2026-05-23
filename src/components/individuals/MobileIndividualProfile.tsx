@@ -23,8 +23,10 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
+import { IconGenderAgender, IconGenderFemale, IconGenderMale } from "@tabler/icons-react";
+import { formatGender } from "@/lib/individual-mapper";
+import { formatPersonAgeLabel } from "@/lib/individuals/person-age";
 import { cn } from "@/lib/utils";
-import { getNameBackgroundColor } from "@/lib/person-name-accent";
 import { MobileProfileNotes } from "@/components/notes/MobileProfileNotes";
 import { MobileProfileTimeline } from "@/components/timeline/MobileProfileTimeline";
 import { ProfileCharts } from "./ProfileCharts";
@@ -49,6 +51,12 @@ function initials(name: string): string {
 
 function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName;
+}
+
+function possessiveAlbumTitle(fullName: string): string {
+  const given = firstName(fullName);
+  if (!given) return "Album";
+  return `${given}'s Album`;
 }
 
 function lifeRange(birthYear: number | null, deathYear: number | null): string {
@@ -84,17 +92,41 @@ function FamilyTabIcon({ icon: Icon }: { icon: LucideIcon }) {
   );
 }
 
-/** Portrait ring colors — same palette as tree / person name accents. */
-function portraitBorderColor(gender: string | null, sex: string | null): string {
-  const sexTrimmed = sex?.trim();
-  if (sexTrimmed) {
-    const fromSex = getNameBackgroundColor(sexTrimmed);
-    const compact = sexTrimmed.toUpperCase().replace(/\s+/g, "");
-    if (compact === "M" || compact === "F" || compact === "MALE" || compact === "FEMALE") {
-      return fromSex;
-    }
+type GenderLabel = "Male" | "Female" | "Unknown";
+
+function resolveGenderLabel(gender: string | null, sex: string | null): GenderLabel {
+  const candidates = [formatGender(sex, gender), sex, gender].filter(
+    (value): value is string => typeof value === "string" && value.trim().length > 0,
+  );
+
+  for (const raw of candidates) {
+    const value = raw.trim().toLowerCase();
+    const compact = value.replace(/[^a-z]/g, "");
+    if (compact === "f" || compact === "female" || value.includes("female")) return "Female";
+    if (compact === "m" || compact === "male" || value.includes("male")) return "Male";
   }
-  return getNameBackgroundColor(gender?.trim() || null);
+
+  return "Unknown";
+}
+
+function ProfileGenderIcon({
+  gender,
+  sex,
+  className = "h-4 w-4 shrink-0 text-muted",
+}: {
+  gender: string | null;
+  sex: string | null;
+  className?: string;
+}) {
+  const label = resolveGenderLabel(gender, sex);
+
+  if (label === "Male") {
+    return <IconGenderMale className={className} stroke={1.75} aria-label="Male" />;
+  }
+  if (label === "Female") {
+    return <IconGenderFemale className={className} stroke={1.75} aria-label="Female" />;
+  }
+  return <IconGenderAgender className={className} stroke={1.75} aria-label="Unknown gender" />;
 }
 
 function mobileLifeLine(person: PublicIndividualProfile): string {
@@ -160,22 +192,22 @@ function RelationsGroup({
   if (items.length === 0) return null;
 
   return (
-    <div className="mt-5 first:mt-0">
-      <div className="mb-2 flex items-center gap-2">
+    <div className="mt-6 first:mt-0">
+      <div className="mb-3 flex items-center gap-2 px-1">
         <span className="shrink-0 font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-muted">
           {label}
         </span>
         <span className="h-px min-w-0 flex-1 bg-border-subtle" aria-hidden />
         <span className="shrink-0 font-body text-[0.58rem] font-semibold tabular-nums text-muted">{items.length}</span>
       </div>
-      <ul className="divide-y divide-dotted divide-border-subtle">
+      <ul className="divide-y divide-dotted divide-border-subtle rounded-xl border border-border-subtle/80 px-4">
         {items.map((item) => {
           const suffix = relationSuffix?.(item);
           return (
             <li key={`${label}-${item.id}`}>
               <Link
                 href={`/individuals/${encodeURIComponent(item.id)}`}
-                className="group flex items-center gap-3 py-3"
+                className="group flex items-center gap-3.5 py-4"
               >
                 <RelationAvatar relation={item} />
                 <span className="min-w-0 flex-1">
@@ -524,25 +556,14 @@ export function MobileIndividualProfile({
     <div className="pb-28 text-text md:hidden">
       <section className="relative overflow-hidden pt-[calc(var(--mobile-nav-height,60px)+1.25rem)]">
         <div className="absolute inset-0" aria-hidden>
-          {avatarSrc ? (
-            <Image
-              src={avatarSrc}
-              alt=""
-              fill
-              priority
-              className="scale-110 object-cover blur-xl sepia-[0.28] saturate-[0.85]"
-              sizes="100vw"
-            />
-          ) : (
-            <Image
-              src={PERSON_CARD_FALLBACK_BG}
-              alt=""
-              fill
-              priority
-              className="scale-110 object-cover blur-xl sepia-[0.28] saturate-[0.72]"
-              sizes="100vw"
-            />
-          )}
+          <Image
+            src={PERSON_CARD_FALLBACK_BG}
+            alt=""
+            fill
+            priority
+            className="scale-110 object-cover blur-xl sepia-[0.28] saturate-[0.72]"
+            sizes="100vw"
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-surface/10 via-bg/55 to-bg" />
         </div>
 
@@ -555,19 +576,16 @@ export function MobileIndividualProfile({
               Home
             </Link>
             <span className="text-subtle">/</span>
-            <Link href="/tree" className="transition hover:text-link">
-              Family Tree
+            <Link href="/individuals" className="transition hover:text-link">
+              Individuals
             </Link>
             <span className="text-subtle">/</span>
             <span className="truncate text-heading">{person.fullName}</span>
           </nav>
 
           <div id="overview" className="scroll-mt-[7.5rem]">
-            <div className="flex items-start gap-3.5">
-              <div
-                className="relative aspect-square h-[92px] w-[92px] shrink-0 overflow-hidden rounded-full border-[5px] bg-surface shadow-[0_14px_34px_rgba(40,28,18,0.24)]"
-                style={{ borderColor: portraitBorderColor(person.gender, person.sex) }}
-              >
+            <div className="mt-6 flex items-center gap-3.5">
+              <div className="relative aspect-square h-32 w-32 shrink-0 overflow-hidden rounded-full border-[5px] border-[color-mix(in_srgb,var(--link)_7%,var(--bg))] bg-surface/90">
                 {avatarSrc ? (
                   <Image
                     src={avatarSrc}
@@ -575,19 +593,22 @@ export function MobileIndividualProfile({
                     fill
                     priority
                     className="object-cover sepia-[0.22]"
-                    sizes="92px"
+                    sizes="128px"
                   />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-surface-elevated font-heading text-2xl font-semibold text-link">
+                  <span className="flex h-full w-full items-center justify-center bg-surface-elevated font-heading text-3xl font-semibold text-link">
                     {initials(person.fullName)}
                   </span>
                 )}
               </div>
-              <div className="min-w-0 flex-1 pl-2 pt-1 sm:pl-3">
-                <h1 className="mt-1 font-heading text-2xl font-semibold leading-[1.12] tracking-[-0.015em] text-heading">
+              <div className="min-w-0 flex-1 text-center">
+                <h1 className="font-heading text-2xl font-semibold leading-[1.12] tracking-[-0.015em] text-heading">
                   {person.fullName}
                 </h1>
-                <p className="mt-1 font-body text-[0.94rem] leading-snug text-link">{mobileLifeLine(person)}</p>
+                <div className="mt-1 flex min-w-0 items-center justify-center gap-1.5">
+                  <ProfileGenderIcon gender={person.gender} sex={person.sex} />
+                  <p className="min-w-0 font-body text-[0.94rem] leading-snug text-link">{mobileLifeLine(person)}</p>
+                </div>
                 {linkedAccounts.length > 0 ? (
                   <p className="mt-1.5 line-clamp-2 font-body text-xs leading-relaxed text-muted">
                     {linkedAccounts.map((account) => `@${account.username}`).join(" · ")}
@@ -596,14 +617,20 @@ export function MobileIndividualProfile({
               </div>
             </div>
 
-            <div className="mb-7 mt-4 rounded-xl border border-border-subtle bg-surface/90 p-3 shadow-[0_10px_24px_rgba(60,45,25,0.12)]">
+            <div className="mb-7 mt-6 rounded-xl border border-border-subtle bg-surface/80 p-3 backdrop-blur-sm">
               <div className="grid grid-cols-4 gap-1 text-center">
                 {(
                   [
                     {
                       label: "Age",
                       icon: CalendarDays,
-                      sub: person.age != null ? `${person.age} years` : "Unknown",
+                      sub:
+                        formatPersonAgeLabel({
+                          birthDateLabel: person.birthDateLabel,
+                          birthYear: person.birthYear,
+                          deathDateLabel: person.deathDateLabel,
+                          deathYear: person.deathYear,
+                        }) ?? "Unknown",
                     },
                     {
                       label: "Born",
@@ -655,19 +682,13 @@ export function MobileIndividualProfile({
             onClick={() => setFamilyTab("child")}
             aria-pressed={familyTab === "child"}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-3 py-3 text-left transition",
-              familyTab === "child"
-                ? "border border-crimson bg-surface-elevated shadow-[0_4px_14px_rgba(60,45,25,0.08)]"
-                : "border border-transparent bg-surface-inset/80",
+              "flex items-center gap-2.5 rounded-xl border-2 bg-surface-inset/80 px-3 py-3 text-left transition",
+              familyTab === "child" ? "border-crimson" : "border-transparent",
             )}
           >
             <FamilyTabIcon icon={Home} />
-            <span className="min-w-0 flex-1">
-              <span className="block font-heading text-sm font-semibold leading-snug text-heading">Parents & Siblings</span>
-              <span className="mt-1 block font-body text-xs leading-snug text-muted">
-                {parents.length} {parents.length === 1 ? "parent" : "parents"} · {siblings.length}{" "}
-                {siblings.length === 1 ? "sibling" : "siblings"}
-              </span>
+            <span className="min-w-0 flex-1 font-heading text-sm font-semibold leading-snug text-heading">
+              Parents & Siblings
             </span>
           </button>
           <button
@@ -675,24 +696,18 @@ export function MobileIndividualProfile({
             onClick={() => setFamilyTab("partner")}
             aria-pressed={familyTab === "partner"}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-3 py-3 text-left transition",
-              familyTab === "partner"
-                ? "border border-crimson bg-surface-elevated shadow-[0_4px_14px_rgba(60,45,25,0.08)]"
-                : "border border-transparent bg-surface-inset/80",
+              "flex items-center gap-2.5 rounded-xl border-2 bg-surface-inset/80 px-3 py-3 text-left transition",
+              familyTab === "partner" ? "border-crimson" : "border-transparent",
             )}
           >
             <FamilyTabIcon icon={Heart} />
-            <span className="min-w-0 flex-1">
-              <span className="block font-heading text-sm font-semibold leading-snug text-heading">Partner(s) & Children</span>
-              <span className="mt-1 block font-body text-xs leading-snug text-muted">
-                {partners.length} {partners.length === 1 ? "partner" : "partners"} · {children.length}{" "}
-                {children.length === 1 ? "child" : "children"}
-              </span>
+            <span className="min-w-0 flex-1 font-heading text-sm font-semibold leading-snug text-heading">
+              Partner(s) & Children
             </span>
           </button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-5 px-1">
           {familyTab === "child" ? (
             <>
               {childFamilyGroups.length > 1 ? (
@@ -793,7 +808,9 @@ export function MobileIndividualProfile({
         <section id="media" className="scroll-mt-[7.5rem] px-4 py-8">
           <div className="text-center">
             <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Media</p>
-            <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Family album</h2>
+            <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">
+              {possessiveAlbumTitle(person.fullName)}
+            </h2>
           </div>
           <p className="mt-3 text-center font-body text-xs text-muted">
             Showing 3 random photos. Tap randomize to see a different set.
@@ -843,10 +860,6 @@ export function MobileIndividualProfile({
         <div className="text-center">
           <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Tree</p>
           <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Charts</h2>
-          <p className="mx-auto mt-3 max-w-md font-body text-xs leading-relaxed text-muted">
-            Choose a chart below to explore {person.fullName.split(" ")[0] || "this person"}&apos;s place in the tree —
-            their descendants, their ancestors, or both in the layout that feels right to you.
-          </p>
         </div>
         <div className="mt-6">
           <ProfileCharts xref={person.xref} fullName={person.fullName} />

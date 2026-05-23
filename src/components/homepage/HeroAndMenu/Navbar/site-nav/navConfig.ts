@@ -300,7 +300,7 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
   },
 ];
 
-export const SITE_NAV_SEARCH_HREF = "/tree/viewer/searchDatabase";
+export const SITE_NAV_SEARCH_HREF = "/search";
 
 /** Public site sign-in (append `?returnTo=` from client where needed). */
 export const SITE_NAV_LOGIN_HREF = "/login";

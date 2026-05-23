@@ -30,7 +30,12 @@ export function FamilyCard({
 
   return (
     <article className="group min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_8px_24px_rgba(60,45,25,0.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(60,45,25,0.14)]">
-      <FamilyPortrait partners={family.partners} interactive compact={compactHeader} />
+      <FamilyPortrait
+        partners={family.partners}
+        interactive
+        compact={compactHeader}
+        className={compactHeader ? "hidden sm:block" : undefined}
+      />
 
       <div className={`min-w-0 ${compactHeader ? "space-y-2 p-3" : "space-y-4 p-4 sm:p-5"}`}>
         <div className="min-w-0 space-y-0.5">

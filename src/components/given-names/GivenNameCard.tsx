@@ -49,7 +49,7 @@ export function GivenNameCard({
           </Link>
           <Link
             href={givenName.profileHref}
-            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface/80 px-4 py-2.5 text-sm font-semibold text-heading transition hover:bg-surface-2/90 hover:text-link"
+            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
           >
             About this given name
           </Link>

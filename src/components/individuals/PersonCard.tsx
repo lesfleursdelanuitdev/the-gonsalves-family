@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarCheck, MapPin, UsersRound } from "lucide-react";
+import { CalendarCheck, GitBranch, MapPin, User, UsersRound } from "lucide-react";
 import { CardOccasionRow } from "@/components/cards/CardOccasionRow";
 import type { CardOccasionHighlight } from "@/components/cards/card-occasion";
 import type { PublicIndividual } from "./types";
@@ -48,7 +48,9 @@ export function PersonCard({
   return (
     <article className="group min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_8px_24px_rgba(60,45,25,0.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(60,45,25,0.14)]">
       <div
-        className={`relative max-w-full overflow-hidden bg-surface ${compactHeader ? "aspect-[5/3]" : "aspect-[4/5]"}`}
+        className={`relative max-w-full overflow-hidden bg-surface ${
+          compactHeader ? "hidden aspect-[5/3] sm:block" : "aspect-[4/5]"
+        }`}
       >
         {person.portraitSrc ? (
           <>
@@ -132,14 +134,45 @@ export function PersonCard({
           </div>
         )}
 
-        <div className="flex min-w-0 flex-col gap-2">
+        <div className={`flex min-w-0 gap-2 ${compactHeader ? "flex-row sm:flex-col" : "flex-col"}`}>
           <Link
             href={`/individuals/${encodeURIComponent(person.id)}`}
-            className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
+            aria-label={compactHeader ? "View profile" : undefined}
+            className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg ${
+              compactHeader ? "flex-1 sm:w-full" : "w-full"
+            }`}
           >
-            View Profile <span className="text-lg leading-none" aria-hidden>&rarr;</span>
+            {compactHeader ? (
+              <>
+                <User className="h-5 w-5 shrink-0 sm:hidden" aria-hidden />
+                <span className="hidden sm:inline-flex sm:items-center sm:gap-2">
+                  View Profile <span className="text-lg leading-none" aria-hidden>&rarr;</span>
+                </span>
+              </>
+            ) : (
+              <>
+                View Profile <span className="text-lg leading-none" aria-hidden>&rarr;</span>
+              </>
+            )}
           </Link>
-          <PersonCardTreeModalTrigger personId={person.id} xref={person.xref} fullName={person.fullName} />
+          <PersonCardTreeModalTrigger
+            personId={person.id}
+            xref={person.xref}
+            fullName={person.fullName}
+            triggerClassName={
+              compactHeader
+                ? "inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg sm:w-full"
+                : undefined
+            }
+            triggerChildren={
+              compactHeader ? (
+                <>
+                  <GitBranch className="h-5 w-5 shrink-0 sm:hidden" aria-hidden />
+                  <span className="hidden sm:inline">View in tree</span>
+                </>
+              ) : undefined
+            }
+          />
         </div>
       </div>
     </article>

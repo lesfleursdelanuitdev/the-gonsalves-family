@@ -53,6 +53,8 @@ export interface FamilyMemberCardProps {
   showAncestorsAction?: boolean;
   /** Children: link to descendancy chart with all root partners revealed. */
   showDescendancyChartAction?: boolean;
+  /** Flat presentation without card/avatar drop shadows (mobile family profile). */
+  flat?: boolean;
 }
 
 export function FamilyMemberCard({
@@ -60,6 +62,7 @@ export function FamilyMemberCard({
   partners,
   showAncestorsAction = false,
   showDescendancyChartAction = false,
+  flat = false,
 }: FamilyMemberCardProps) {
   const router = useRouter();
   const [pedigreePickerOpen, setPedigreePickerOpen] = useState(false);
@@ -80,11 +83,19 @@ export function FamilyMemberCard({
 
   return (
     <>
-      <article className="flex flex-col gap-4 rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-4 shadow-[0_4px_14px_rgba(40,28,18,0.06)]">
+      <article
+        className={cn(
+          "flex flex-col gap-4 rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-4",
+          !flat && "shadow-[0_4px_14px_rgba(40,28,18,0.06)]",
+        )}
+      >
         <div className="flex min-w-0 items-center gap-3">
           <div className="shrink-0 p-0.5">
             <div
-              className="relative h-12 w-12 overflow-hidden rounded-full border-[3px] bg-surface shadow-[0_6px_16px_rgba(40,28,18,0.14)]"
+              className={cn(
+                "relative h-12 w-12 overflow-hidden rounded-full border-[3px] bg-surface",
+                !flat && "shadow-[0_6px_16px_rgba(40,28,18,0.14)]",
+              )}
               style={{ borderColor }}
             >
               {member.portraitSrc ? (

@@ -59,7 +59,7 @@ function PartnerAvatar({
   return (
     <div className={`shrink-0 p-1.5 ${className ?? ""}`} style={style}>
       <div
-        className={`relative overflow-hidden rounded-full bg-surface shadow-[0_14px_34px_rgba(40,28,18,0.22)] ${dims.shell} ${dims.borderClass}`}
+        className={`relative overflow-hidden rounded-full bg-surface ${size === "hero" ? "" : "shadow-[0_14px_34px_rgba(40,28,18,0.22)]"} ${dims.shell} ${dims.borderClass}`}
         style={{ borderColor }}
       >
         {partner.portraitSrc ? (
@@ -95,7 +95,7 @@ export function FamilyOverlappingAvatars({
   if (partners.length === 0) {
     return (
       <div
-        className={`relative flex items-center justify-center rounded-full border-border-subtle bg-surface-elevated shadow-[0_14px_34px_rgba(40,28,18,0.18)] ${dims.empty} ${dims.borderClass} border`}
+        className={`relative flex items-center justify-center rounded-full border-border-subtle bg-surface-elevated ${size === "hero" ? "" : "shadow-[0_14px_34px_rgba(40,28,18,0.18)]"} ${dims.empty} ${dims.borderClass} border`}
       >
         <span className={`font-heading font-semibold text-muted ${dims.initials}`}>?</span>
       </div>

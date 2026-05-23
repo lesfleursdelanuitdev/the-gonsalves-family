@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   useChartSearch,
 } from "@/genealogy-visualization-engine";
@@ -60,6 +61,8 @@ export interface FamilyTreeProps {
   initialPedigreeFamcFamilyXref?: string | null;
   /** From `ppg` query — pedigree parent pair spacing in px. */
   initialParentPairGap?: number | null;
+  /** When true: renders as a fixed-size embed (no full-screen header, no person detail overlay, no minimap). */
+  embedMode?: boolean;
 }
 
 export function FamilyTree(props: FamilyTreeProps = {}) {
@@ -77,7 +80,15 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     initialFamilyXref = null,
     initialPedigreeFamcFamilyXref = null,
     initialParentPairGap = null,
+    embedMode = false,
   } = props;
+  const router = useRouter();
+  const embedOnNameClick = useCallback(
+    (person: PersonDetailOverlayPerson) => {
+      if (person.uuid) router.push(`/individuals/${encodeURIComponent(person.uuid)}`);
+    },
+    [router]
+  );
   const svgRef = useRef<SVGSVGElement>(null);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [chartTypeModalOpen, setChartTypeModalOpen] = useState(false);
@@ -199,6 +210,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     chartStrategy,
     effectiveRootId,
     viewState,
+    embedMode,
   });
   const {
     pan,
@@ -336,7 +348,10 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     scale,
     root,
     effectiveRootId,
-    chartSurfaceInteractions,
+    chartSurfaceInteractions: {
+      ...chartSurfaceInteractions,
+      onNameClick: embedMode ? embedOnNameClick : chartSurfaceInteractions.onNameClick,
+    },
     settings,
     chartAdapter,
     effectivePersonHeight,
@@ -378,7 +393,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     isChartLoading,
     isMobile,
     showSearchPanel: panels.showSearchPanel,
-    chartViewportProps,
+    chartViewportProps: { ...chartViewportProps, embedMode },
   });
   const familyTreeModalsProps = buildFamilyTreeModalsProps({
     pedigreeFamcPicker,
@@ -392,7 +407,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     onViewFanPeekProfile: chartSurfaceInteractions.onFanPeekViewProfile,
     onMakeFanPeekRoot: chartSurfaceInteractions.onFanPeekMakeRoot,
     onChooseFanPeekParentFamily: chartSurfaceInteractions.onFanPeekChooseParentFamily,
-    personDetailOverlay,
+    personDetailOverlay: embedMode ? null : personDetailOverlay,
     onClosePersonDetail: overlayInteractions.closePersonDetail,
     onSelectLinkedPerson: overlayInteractions.onSelectLinkedPerson,
   });
@@ -403,6 +418,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
       familyTreeCanvasProps={familyTreeCanvasProps}
       familyTreeOverlaysProps={familyTreeOverlaysProps}
       familyTreeModalsProps={familyTreeModalsProps}
+      embedMode={embedMode}
     />
   );
 }
