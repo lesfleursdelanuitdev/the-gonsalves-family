@@ -43,8 +43,24 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
+/**
+ * True when the generated client includes models added in the place-resolution migration
+ * (20260523170000_place_resolution). If false the cached client pre-dates that migration
+ * and must be replaced so queries using `resolvedLink` on GedcomPlace don't fail.
+ */
+function prismaClientHasExpectedDelegates(client: PrismaClient): boolean {
+  const o = client as unknown as Record<string, unknown>;
+  return o.resolvedPlace != null;
+}
+
 function getPrisma(): PrismaClient {
-  if (globalForPrisma.prisma) return globalForPrisma.prisma;
+  if (globalForPrisma.prisma && prismaClientHasExpectedDelegates(globalForPrisma.prisma)) {
+    return globalForPrisma.prisma;
+  }
+  if (globalForPrisma.prisma) {
+    void globalForPrisma.prisma.$disconnect().catch(() => {});
+    globalForPrisma.prisma = undefined;
+  }
   const client = createPrismaClient();
   globalForPrisma.prisma = client;
   return client;

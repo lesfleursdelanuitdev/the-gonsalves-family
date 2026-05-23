@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import type { ComponentType } from "react";
 import type { ChartNode, ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import {
@@ -112,7 +113,7 @@ interface TreeNodesProps {
   pedigreeRootChildren?: PedigreeRootSiblingNode[] | null;
 }
 
-export function TreeNodes({
+export const TreeNodes = memo(function TreeNodes({
   root,
   rootId,
   onAction,
@@ -129,14 +130,24 @@ export function TreeNodes({
   pedigreeRootSiblings = null,
   pedigreeRootChildren = null,
 }: TreeNodesProps) {
-  const collapsedSet = new Set(viewState?.collapsedSubtrees ?? []);
+  const collapsedSet = useMemo(
+    () => new Set(viewState?.collapsedSubtrees ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [viewState?.collapsedSubtrees],
+  );
   const elements: React.ReactNode[] = [];
 
-  const pedigreeGenMap =
-    (chartStrategy === "pedigree" || chartStrategy === "vertical_pedigree") && root instanceof PersonNode
-      ? buildPedigreeGenerationMap(root)
-      : null;
-  const pedigreeGlobalMinGen = pedigreeGenMap != null ? pedigreeGlobalMinGeneration(pedigreeGenMap) : 0;
+  const pedigreeGenMap = useMemo(
+    () =>
+      (chartStrategy === "pedigree" || chartStrategy === "vertical_pedigree") && root instanceof PersonNode
+        ? buildPedigreeGenerationMap(root)
+        : null,
+    [chartStrategy, root],
+  );
+  const pedigreeGlobalMinGen = useMemo(
+    () => (pedigreeGenMap != null ? pedigreeGlobalMinGeneration(pedigreeGenMap) : 0),
+    [pedigreeGenMap],
+  );
   const pedigreeRootSiblingsExpanded = Boolean(pedigreeRootSiblings?.length);
   const pedigreeRootChildrenExpanded = Boolean(pedigreeRootChildren?.length);
 
@@ -503,4 +514,4 @@ export function TreeNodes({
     collect(root);
   }
   return <g>{elements}</g>;
-}
+});

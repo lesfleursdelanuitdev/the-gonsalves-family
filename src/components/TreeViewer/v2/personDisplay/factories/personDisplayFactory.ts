@@ -1,4 +1,4 @@
-import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
+import type { ChartViewStrategyName, DescendancyPerson, PersonCardAction } from "@/genealogy-visualization-engine";
 import {
   buildPersonDisplayData,
   type BuildPersonDisplayDataParams,
@@ -13,7 +13,6 @@ import {
 } from "./personDisplayActionsFactory";
 import {
   buildPersonDisplayRenderer,
-  type BuildPersonDisplayRendererParams,
 } from "./personDisplayRendererFactory";
 import {
   resolvePersonDisplayVariant,
@@ -28,6 +27,12 @@ export interface BuildPersonDisplayParams {
   data: BuildPersonDisplayDataParams;
   layout: BuildPersonDisplayLayoutParams["layout"];
   actions?: BuildPersonDisplayActionsParams["actions"];
+  /** Raw person node — needed by the renderer closure. */
+  person: DescendancyPerson;
+  cx: number;
+  y: number;
+  onAction?: (action: PersonCardAction, personId: string) => void;
+  onNameClick?: (person: { name: string; xref: string; uuid: string | null }) => void;
 }
 
 export function buildPersonDisplay(params: BuildPersonDisplayParams): PersonDisplay {
@@ -46,7 +51,12 @@ export function buildPersonDisplay(params: BuildPersonDisplayParams): PersonDisp
   const render = buildPersonDisplayRenderer({
     strategy: params.strategy,
     variant: displayVariant,
-  } as BuildPersonDisplayRendererParams);
+    person: params.person,
+    cx: params.cx,
+    y: params.y,
+    onAction: params.onAction,
+    onNameClick: params.onNameClick,
+  });
 
   return {
     viewStrategy: params.strategy,

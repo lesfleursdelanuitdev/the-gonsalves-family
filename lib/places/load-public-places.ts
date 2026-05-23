@@ -37,20 +37,26 @@ export async function loadPublicPlaces(): Promise<PublicPlace[]> {
     orderBy: [{ country: "asc" }, { state: "asc" }, { name: "asc" }],
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    label: fullPlaceLabelFromGedcomPlace(row) ?? row.original,
-    name: row.name,
-    county: row.county,
-    state: row.state,
-    country: row.country,
-    latitude: row.latitude != null ? Number(row.latitude) : null,
-    longitude: row.longitude != null ? Number(row.longitude) : null,
-    birthCount: row._count.individualBirthPlaces,
-    deathCount: row._count.individualDeathPlaces,
-    marriageCount: row._count.familyMarriagePlaces,
-    profileHref: `/tree/places/${row.id}`,
-  }));
+  return rows.map((row) => {
+    // Prefer resolved coordinates when available (more accurate / curated by admin)
+    const resolved = row.resolvedLink?.resolvedPlace;
+    const lat = resolved?.latitude ?? row.latitude;
+    const lon = resolved?.longitude ?? row.longitude;
+    return {
+      id: row.id,
+      label: fullPlaceLabelFromGedcomPlace(row) ?? row.original,
+      name: row.name,
+      county: row.county,
+      state: row.state,
+      country: row.country,
+      latitude: lat != null ? Number(lat) : null,
+      longitude: lon != null ? Number(lon) : null,
+      birthCount: row._count.individualBirthPlaces,
+      deathCount: row._count.individualDeathPlaces,
+      marriageCount: row._count.familyMarriagePlaces,
+      profileHref: `/tree/places/${row.id}`,
+    };
+  });
 }
 
 export async function loadPublicPlaceById(id: string): Promise<PublicPlaceProfile | null> {
@@ -88,6 +94,9 @@ export async function loadPublicPlaceById(id: string): Promise<PublicPlaceProfil
   if (!row) return null;
 
   const label = fullPlaceLabelFromGedcomPlace(row) ?? row.original;
+  const resolved = row.resolvedLink?.resolvedPlace;
+  const lat = resolved?.latitude ?? row.latitude;
+  const lon = resolved?.longitude ?? row.longitude;
 
   return {
     id: row.id,
@@ -96,8 +105,8 @@ export async function loadPublicPlaceById(id: string): Promise<PublicPlaceProfil
     county: row.county,
     state: row.state,
     country: row.country,
-    latitude: row.latitude != null ? Number(row.latitude) : null,
-    longitude: row.longitude != null ? Number(row.longitude) : null,
+    latitude: lat != null ? Number(lat) : null,
+    longitude: lon != null ? Number(lon) : null,
     birthCount: row.individualBirthPlaces.length,
     deathCount: row.individualDeathPlaces.length,
     marriageCount: row.familyMarriagePlaces.length,

@@ -15,6 +15,7 @@ import {
   resolvePersonDisplayVariant,
   resolveRequestedVariantFromCardSettings,
 } from "./personDisplay";
+import { PersonDisplayNodeView } from "./personDisplay/PersonDisplayNodeView";
 
 /** Minimal settings shape used by chart content (compatible with v1 ChartSettings and v2 ChartSettingsV2). */
 export type ChartContentSettings = {
@@ -109,7 +110,7 @@ export const ChartContent = memo(function ChartContent({
   if (!viewSet) {
     return null;
   }
-  const { ConnectorLines, SpouseJoinLines, PersonNodeView, UnionNodeView } = viewSet;
+  const { ConnectorLines, SpouseJoinLines, UnionNodeView } = viewSet;
   const personHeight = getEffectivePersonHeight(settings, { chartStrategy, isMobile });
   const showTreeConnectors = shouldRenderConnectorsForStrategy(chartStrategy);
   return (
@@ -134,7 +135,7 @@ export const ChartContent = memo(function ChartContent({
         onNameClick={onNameClick}
         settings={settings}
         viewState={viewState}
-        personNodeView={PersonNodeView}
+        personNodeView={PersonDisplayNodeView}
         unionNodeView={UnionNodeView}
         chartStrategy={chartStrategy}
         isMobile={isMobile}

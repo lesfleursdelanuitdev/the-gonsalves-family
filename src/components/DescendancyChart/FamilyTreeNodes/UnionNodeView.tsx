@@ -13,6 +13,7 @@ import {
   SiblingAdoptiveUnionNode,
 } from "@/genealogy-visualization-engine";
 import type { ChartViewStrategyName, UnionNode, ViewState } from "@/genealogy-visualization-engine";
+import { memo } from "react";
 import { PersonCard } from "./PersonNodeView";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { PersonCardSettings } from "./PersonNodeView";
@@ -79,7 +80,7 @@ function isDashedLine(node: UnionNode): boolean {
  * Union row: left card, line, diamond, line, right card.
  * left.x = node.x - CONNECTOR_WIDTH/2 - PERSON_WIDTH/2, right.x = node.x + CONNECTOR_WIDTH/2 + PERSON_WIDTH/2.
  */
-export function UnionRow({
+export const UnionRow = memo(function UnionRow({
   node,
   rootId,
   onAction,
@@ -172,4 +173,4 @@ export function UnionRow({
       )}
     </g>
   );
-}
+});

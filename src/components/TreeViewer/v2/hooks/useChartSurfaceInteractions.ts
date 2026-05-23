@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
 import type { FanMoreClickPayload } from "../fan/fanPeekTypes";
@@ -42,10 +42,17 @@ export function useChartSurfaceInteractions({
     if (!isFanDisplayFamily) setFanPeek(null);
   }, [isFanDisplayFamily, setFanPeek]);
 
-  const onNameClick = isFanDisplayFamily
-    ? undefined
-    : (person: PersonDetailOverlayPerson) => setPersonDetailOverlay(person);
-  const onFanMoreClick = isFanDisplayFamily ? setFanPeek : undefined;
+  const onNameClick = useMemo(
+    () =>
+      isFanDisplayFamily
+        ? undefined
+        : (person: PersonDetailOverlayPerson) => setPersonDetailOverlay(person),
+    [isFanDisplayFamily, setPersonDetailOverlay],
+  );
+  const onFanMoreClick = useMemo(
+    () => (isFanDisplayFamily ? setFanPeek : undefined),
+    [isFanDisplayFamily, setFanPeek],
+  );
 
   const onFanPeekViewProfile = useCallback(() => {
     if (!fanPeek) return;

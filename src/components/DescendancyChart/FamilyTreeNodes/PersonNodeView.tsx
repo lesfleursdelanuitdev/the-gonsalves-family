@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { getPeople, getBirthUnionByChild, PERSON_WIDTH } from "@/genealogy-visualization-engine";
 import type { ChartViewStrategyName, DescendancyPerson, PersonCardAction } from "@/genealogy-visualization-engine";
 import { getEffectivePersonHeight } from "@/lib/personNodeHeight";
@@ -467,7 +467,7 @@ export interface PersonCardProps {
   pedigreeRootChildrenExpanded?: boolean;
 }
 
-export function PersonCard({
+export const PersonCard = memo(function PersonCard({
   cx,
   y,
   person,
@@ -1787,4 +1787,4 @@ export function PersonCard({
       {mobileOverflowMenuPortal}
     </>
   );
-}
+});
