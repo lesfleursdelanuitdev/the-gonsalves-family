@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NOTE_LINKED_LIST_VISIBLE_MAX } from "@/lib/notes/note-linked-limits";
+import { NOTE_LINKED_LIST_VISIBLE_MAX } from "@ligneous/gedcom-events";
 import type { PublicNote, PublicNoteLink, PublicNoteLinkKind } from "@/lib/notes/public-note-types";
 import "./note-card.css";
 

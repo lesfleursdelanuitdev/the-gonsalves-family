@@ -2,7 +2,7 @@ import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { fullPlaceLabelFromGedcomPlace, GEDCOM_PLACE_DISPLAY_SELECT } from "@/lib/gedcom-place-display";
 import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
-import { formatNoteLinkedEventLabel } from "@/lib/gedcom/gedcom-event-labels";
+import { formatNoteLinkedEventLabel } from "@ligneous/gedcom-events";
 import type { PublicEvent, PublicEventProfile } from "@/components/events/types";
 
 function familyTitle(

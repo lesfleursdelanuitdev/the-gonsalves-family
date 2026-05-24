@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Baby, CalendarDays, GitBranch, Heart, HelpCircle, Network, UsersRound } from "lucide-react";
+import { Baby, CalendarDays, Dna, GitBranch, Heart, HelpCircle, Network, UsersRound } from "lucide-react";
 import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
@@ -11,6 +11,7 @@ import { ProfileMediaSection } from "./ProfileMediaSection";
 import { ProfileNotes } from "./ProfileNotes";
 import { ProfileCharts } from "./ProfileCharts";
 import { ProfileTimeline } from "./ProfileTimeline";
+import { ProfileRelationshipCalculator } from "./ProfileRelationshipCalculator";
 import type { PublicIndividualProfile, PublicIndividualRelation } from "./types";
 
 const PERSON_CARD_FALLBACK_BG = "/images/personCardBg.png";
@@ -136,6 +137,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
     ...(hasMedia ? ["Media"] : []),
     "Charts",
     ...(hasOpenQuestions ? ["Open Questions"] : []),
+    "Relationship",
   ];
 
   return (
@@ -446,6 +448,28 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             </PageContainer>
           </Section>
         ) : null}
+        <Section className="min-w-0 overflow-x-hidden border-t border-border-subtle py-10 md:py-14">
+          <PageContainer narrow>
+            <section
+              id="relationship"
+              className="rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]"
+            >
+              <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
+                  <Dna className="h-5 w-5" aria-hidden />
+                </span>
+                <div>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Relationship</p>
+                  <h2 className="mt-1 font-heading text-2xl font-semibold text-heading">Find a Relationship</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">
+                    Select another person from the tree to find out how they are related to {person.fullName}.
+                  </p>
+                </div>
+              </div>
+              <ProfileRelationshipCalculator sourceId={person.id} sourceName={person.fullName} />
+            </section>
+          </PageContainer>
+        </Section>
         </div>
       </main>
       <Footer />

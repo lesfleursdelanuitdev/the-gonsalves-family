@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
-import { formatNoteLinkedEventLabel } from "@/lib/gedcom/gedcom-event-labels";
-import { markdownToPlainPreview } from "@/lib/notes/markdown-preview";
+import { formatNoteLinkedEventLabel } from "@ligneous/gedcom-events";
+import { markdownToPlainPreview } from "@ligneous/gedcom-events";
 import type { PublicNote, PublicNoteLink, PublicNoteLinkKind } from "@/lib/notes/public-note-types";
 import { stripSlashesFromName } from "@/lib/surnames/surname-query";
 import { resolveTreeFileUuid } from "@/lib/tree";

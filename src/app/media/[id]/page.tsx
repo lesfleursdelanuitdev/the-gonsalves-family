@@ -23,7 +23,7 @@ import { gedcomEventTypeDisplayLabel } from "@/lib/gedcom-event-display";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
 import { readJsonResponse } from "@/lib/read-json-response";
 import { buildPublicMediaPath, parseSourceFromSearchParams, sourceToAlbumPath } from "@/lib/album/public-album-links";
-import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
+import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
 
 type MediaViewPayload = {
   source: {

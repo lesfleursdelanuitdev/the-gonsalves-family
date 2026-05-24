@@ -249,6 +249,12 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
         description: "Ask analytics questions about the tree in plain language",
         icon: "search",
       },
+      {
+        label: "Relationship calculator",
+        href: "/research/relationship-calculator",
+        description: "Find out how any two people in the tree are related",
+        icon: "dna",
+      },
     ],
   },
   {

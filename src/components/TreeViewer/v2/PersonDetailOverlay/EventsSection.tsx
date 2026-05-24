@@ -32,7 +32,7 @@ import {
   iconSize,
 } from "./styles";
 import { gedcomEventTypeDisplayLabel, getGedcomEventLucideIcon } from "@/lib/gedcom-event-display";
-import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
+import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
 import type { DetailEvent, PersonDetailOverlayPerson } from "./types";
 
 const EVENTS_PAGE_SIZE = 5;

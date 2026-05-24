@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { MobileProfileNotes } from "@/components/notes/MobileProfileNotes";
 import { MobileProfileTimeline } from "@/components/timeline/MobileProfileTimeline";
 import { ProfileCharts } from "./ProfileCharts";
+import { ProfileRelationshipCalculator } from "./ProfileRelationshipCalculator";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import type {
   PublicIndividualAssociate,
@@ -294,6 +295,7 @@ function MobileBottomBar({
     links.push({ label: "Charts", href: "#charts" });
     if (hasNotes) links.push({ label: "Notes", href: "#notes" });
     if (hasResearch) links.push({ label: "Research", href: "#open-questions" });
+    links.push({ label: "Relationship", href: "#relationship" });
     links.push({ label: "Contribute", href: contributionHref });
     return links;
   }, [contributionHref, hasAssociates, hasMedia, hasNotes, hasResearch]);
@@ -884,6 +886,19 @@ export function MobileIndividualProfile({
           </ul>
         </section>
       ) : null}
+
+      <section id="relationship" className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
+        <div className="text-center">
+          <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Relationship</p>
+          <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Find a Relationship</h2>
+          <p className="mx-auto mt-2 max-w-sm font-body text-sm leading-relaxed text-muted">
+            Select another person from the tree to find out how they are related to {person.fullName}.
+          </p>
+        </div>
+        <div className="mt-6">
+          <ProfileRelationshipCalculator sourceId={person.id} sourceName={person.fullName} />
+        </div>
+      </section>
 
       <div className="px-4 pb-4 pt-2">
         <Link

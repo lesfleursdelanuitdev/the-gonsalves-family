@@ -4,7 +4,7 @@
  * so UI matches the canonical BIRT/DEAT event after admin edits.
  */
 
-import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
+import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
 
 type EventJoinRow = Record<string, unknown> | undefined;
 

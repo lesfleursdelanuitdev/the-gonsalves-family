@@ -51,7 +51,7 @@ import { LightboxZoomableImage } from "./LightboxZoomableImage";
 import { parseAlbumMediaFilterFromSearchParams } from "@/lib/album/album-media-url-filter";
 import { useAlbumMediaUrlSync } from "@/lib/album/use-album-media-url-sync";
 import { buildPublicMediaPath } from "@/lib/album/public-album-links";
-import { formatGedcomDateDisplayLabel } from "@/lib/gedcom/format-gedcom-date-display";
+import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
 
 function normalizeSiteMediaPath(ref: string): string {
   const t = ref.trim();

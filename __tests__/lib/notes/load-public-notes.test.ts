@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markdownToPlainPreview } from "@/lib/notes/markdown-preview";
+import { markdownToPlainPreview } from "@ligneous/gedcom-events";
 
 describe("markdownToPlainPreview", () => {
   it("strips markdown for card previews", () => {
