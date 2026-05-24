@@ -202,6 +202,8 @@ interface GeneralMediaItem {
   id: string; source: string; title: string | null; mediaType: string; kind: string | null; profileHref: string;
 }
 interface GeneralNameItem { id: string; name: string; frequency: number; }
+interface GeneralPlaceItem { id: string; displayName: string; eventCount: number; profileHref: string; }
+interface GeneralNoteItem { id: string; snippet: string; ownerName: string | null; ownerHref: string | null; }
 interface GeneralCategoryResult<T> { items: T[]; total: number; }
 interface GeneralResults {
   people:     GeneralCategoryResult<GeneralPersonItem>;
@@ -210,8 +212,10 @@ interface GeneralResults {
   media:      GeneralCategoryResult<GeneralMediaItem>;
   surnames:   GeneralCategoryResult<GeneralNameItem>;
   givenNames: GeneralCategoryResult<GeneralNameItem>;
+  places:     GeneralCategoryResult<GeneralPlaceItem>;
+  notes:      GeneralCategoryResult<GeneralNoteItem>;
 }
-type GeneralCategory = "people" | "givenNames" | "surnames" | "families" | "events" | "media";
+type GeneralCategory = "people" | "givenNames" | "surnames" | "families" | "events" | "media" | "places" | "notes";
 
 // Media tab types
 type MediaLinkedToKind = "none" | "person" | "family";
@@ -1211,17 +1215,54 @@ function GeneralNameCard({ item, kind }: { item: GeneralNameItem; kind: "surname
   );
 }
 
+function GeneralPlaceCard({ item }: { item: GeneralPlaceItem }) {
+  return (
+    <Link href={item.profileHref} className="block">
+      <article className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)] transition hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,45,25,0.1)]">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-[#f5f1ea]">
+          <MapPin size={15} className="text-muted" aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-heading text-sm font-semibold text-heading">{item.displayName || "Unknown place"}</p>
+          <p className="font-body text-xs text-muted">{item.eventCount} {item.eventCount === 1 ? "event" : "events"}</p>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function GeneralNoteCard({ item }: { item: GeneralNoteItem }) {
+  const inner = (
+    <article className="flex min-w-0 items-start gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)] transition hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,45,25,0.1)]">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-[#f5f1ea]">
+        <FileText size={15} className="text-muted" aria-hidden />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="line-clamp-2 font-body text-sm text-heading">{item.snippet || <span className="italic text-muted">No content</span>}</p>
+        {item.ownerName && (
+          <p className="mt-0.5 truncate font-body text-xs text-muted">Re: {item.ownerName}</p>
+        )}
+      </div>
+    </article>
+  );
+  return item.ownerHref
+    ? <Link href={item.ownerHref} className="block">{inner}</Link>
+    : inner;
+}
+
 // ---------------------------------------------------------------------------
 // General search — panel
 // ---------------------------------------------------------------------------
 const GENERAL_CATEGORY_LABELS: Record<GeneralCategory, string> = {
   people: "People", givenNames: "Given names", surnames: "Last names",
   families: "Families", events: "Events", media: "Media",
+  places: "Places", notes: "Notes",
 };
 
 function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
   const [query, setQuery] = useState(initialQ ?? "");
   const [matchType, setMatchType] = useState<MatchType>("contains");
+  const [keywordLogic, setKeywordLogic] = useState<"or" | "and">("or");
   const [categories, setCategories] = useState<GeneralCategory[]>([]);
   const [results, setResults] = useState<GeneralResults | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1239,7 +1280,7 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
   const show = useCallback((cat: GeneralCategory) =>
     categories.length === 0 || categories.includes(cat), [categories]);
 
-  const doSearch = useCallback(async (q: string, mt: MatchType) => {
+  const doSearch = useCallback(async (q: string, mt: MatchType, kl: "or" | "and") => {
     if (!q.trim()) return;
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -1247,7 +1288,7 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
     setLoading(true);
     setError(null);
     try {
-      const url = `/api/tree/advanced-search/general?q=${encodeURIComponent(q.trim())}&matchType=${mt}`;
+      const url = `/api/tree/advanced-search/general?q=${encodeURIComponent(q.trim())}&matchType=${mt}&keywordLogic=${kl}`;
       const res = await fetch(url, { signal: ctrl.signal });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -1265,19 +1306,20 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
 
   useEffect(() => {
     if (initialQ?.trim()) {
-      void doSearch(initialQ.trim(), "contains");
+      void doSearch(initialQ.trim(), "contains", "or");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSearch = useCallback(() => doSearch(query, matchType), [query, matchType, doSearch]);
+  const handleSearch = useCallback(() => doSearch(query, matchType, keywordLogic), [query, matchType, keywordLogic, doSearch]);
   const handleReset = useCallback(() => {
-    setQuery(""); setMatchType("contains"); setCategories([]); setResults(null); setHasSearched(false); setError(null);
+    setQuery(""); setMatchType("contains"); setKeywordLogic("or"); setCategories([]); setResults(null); setHasSearched(false); setError(null);
   }, []);
 
   const totalResults = results
     ? results.people.total + results.families.total + results.events.total +
-      results.media.total + results.surnames.total + results.givenNames.total
+      results.media.total + results.surnames.total + results.givenNames.total +
+      results.places.total + results.notes.total
     : 0;
 
   return (
@@ -1307,7 +1349,7 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
             </Button>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <ChipGroup label="Match type" value={matchType}
             options={[
               { value: "contains", label: "Contains" },
@@ -1315,6 +1357,13 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
               { value: "soundex",  label: "Sounds like" },
             ]}
             onChange={(v) => setMatchType(v as MatchType)}
+          />
+          <ChipGroup label="Multiple keywords" value={keywordLogic}
+            options={[
+              { value: "or",  label: "Match any" },
+              { value: "and", label: "Match all" },
+            ]}
+            onChange={(v) => setKeywordLogic(v as "or" | "and")}
           />
           <div>
             <p className={LABEL}>Filter by category</p>
@@ -1373,6 +1422,16 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
               {results.media.items.map((item) => <GeneralMediaCard key={`${item.source}-${item.id}`} item={item} />)}
             </GeneralSection>
           )}
+          {show("places") && results.places.total > 0 && (
+            <GeneralSection title="Places" count={results.places.total} icon={MapPin}>
+              {results.places.items.map((item) => <GeneralPlaceCard key={item.id} item={item} />)}
+            </GeneralSection>
+          )}
+          {show("notes") && results.notes.total > 0 && (
+            <GeneralSection title="Notes" count={results.notes.total} icon={FileText}>
+              {results.notes.items.map((item) => <GeneralNoteCard key={item.id} item={item} />)}
+            </GeneralSection>
+          )}
         </div>
       )}
 
@@ -1381,7 +1440,7 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
           <Search size={40} className="mx-auto mb-4 text-muted/40" aria-hidden />
           <p className="font-heading text-lg font-semibold text-heading">Search everything</p>
           <p className="mt-1 font-body text-sm text-muted">
-            Enter a keyword to search across people, names, families, events, and media at once.
+            Enter a keyword — or comma-separated keywords — to search across people, places, notes, events, and more.
           </p>
         </div>
       )}

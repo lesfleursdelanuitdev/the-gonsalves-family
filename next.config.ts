@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     "@ligneous/prisma",
     "@ligneous/album-view",
     "@ligneous/album-generated-queries",
+    "@ligneous/relationship-calculator",
     "@ligneous/visualization-engine",
     "konva",
     "react-konva",

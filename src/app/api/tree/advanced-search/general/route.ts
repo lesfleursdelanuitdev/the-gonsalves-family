@@ -7,20 +7,9 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import { type P, mc, parseTerms, termsBlock } from "./sql-helpers";
 
 const LIMIT = 5;
-
-function esc(s: string) { return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_"); }
-function pct(s: string) { return `%${esc(s)}%`; }
-type P = unknown[];
-function qp(p: P, v: unknown): string { p.push(v); return `$${p.length}`; }
-
-/** Build a match condition for a column given the match type. Appends the needed param(s) to `p`. */
-function mc(p: P, col: string, q: string, mt: string): string {
-  if (mt === "exact")   return `LOWER(${col}) = ${qp(p, q.toLowerCase())}`;
-  if (mt === "soundex") return `left(soundex(${col}), 3) = left(soundex(${qp(p, q)}), 3)`;
-  return `${col} ILIKE ${qp(p, pct(q.toLowerCase()))}`;
-}
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   BIRT: "Born", DEAT: "Died", BURI: "Buried", CHR: "Christened",
@@ -48,18 +37,24 @@ const EMPTY = {
   media:      { items: [], total: 0 },
   surnames:   { items: [], total: 0 },
   givenNames: { items: [], total: 0 },
+  places:     { items: [], total: 0 },
+  notes:      { items: [], total: 0 },
 };
 
 export async function GET(req: NextRequest) {
+  const sp = req.nextUrl.searchParams;
+  const q = sp.get("q")?.trim() || null;
+  if (!q) return NextResponse.json(EMPTY);
+
+  const matchType = sp.get("matchType") ?? "contains"; // "contains" | "exact" | "soundex"
+  const logic = (sp.get("keywordLogic") === "and" ? "and" : "or") as "or" | "and";
+  const terms = parseTerms(q);
+  if (terms.length === 0) return NextResponse.json(EMPTY);
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
   try {
-    const sp = req.nextUrl.searchParams;
-    const q = sp.get("q")?.trim() || null;
-    if (!q) return NextResponse.json(EMPTY);
-
-    const matchType = sp.get("matchType") ?? "contains"; // "contains" | "exact" | "soundex"
 
     const [fileUuid, treeId] = await Promise.all([resolveTreeFileUuid(), resolveTreeId()]);
     if (!fileUuid || !treeId) return NextResponse.json({ error: "Tree not found" }, { status: 404 });
@@ -70,37 +65,87 @@ export async function GET(req: NextRequest) {
 
     // PEOPLE
     const pPpl: P = [fileUuid];
-    const pplNameCond = mc(pPpl, "full_name_lower", q, matchType);
+    const pplCond = termsBlock(pPpl, ["full_name_lower"], terms, matchType, logic);
 
-    // FAMILIES
+    // FAMILIES — per-term condition covers both husband and wife
     const pFam: P = [fileUuid];
-    const famHCond = mc(pFam, "hi.full_name_lower", q, matchType);
-    const famWCond = mc(pFam, "wi.full_name_lower", q, matchType);
+    const famTermConds = terms.map(t => {
+      const h = mc(pFam, "hi.full_name_lower", t, matchType);
+      const w = mc(pFam, "wi.full_name_lower", t, matchType);
+      return `(${h} OR ${w})`;
+    });
+    const famCond = famTermConds.length === 1
+      ? famTermConds[0]!
+      : `(${famTermConds.join(logic === "and" ? " AND " : " OR ")})`;
 
-    // EVENTS
+    // EVENTS — per-term condition covers value, label, place name/original, and linked individual name
     const pEv: P = [fileUuid];
-    const evValCond   = mc(pEv, "ev.value",           q, matchType);
-    const evLabCond   = mc(pEv, "ev.event_label",     q, matchType);
-    const evPlNmCond  = mc(pEv, "pl.name",            q, matchType);
-    const evPlOrCond  = mc(pEv, "pl.original",        q, matchType);
-    const evIndCond   = mc(pEv, "ind.full_name_lower", q, matchType);
+    const evTermConds = terms.map(t => {
+      const vc  = mc(pEv, "ev.value",            t, matchType);
+      const lc  = mc(pEv, "ev.event_label",      t, matchType);
+      const pnc = mc(pEv, "pl.name",             t, matchType);
+      const poc = mc(pEv, "pl.original",         t, matchType);
+      const ic  = mc(pEv, "ind.full_name_lower", t, matchType);
+      return `(${vc} OR ${lc} OR ${pnc} OR ${poc} OR EXISTS (
+        SELECT 1 FROM gedcom_individual_events_v2 ie
+        JOIN gedcom_individuals_v2 ind ON ind.id = ie.individual_id
+        WHERE ie.event_id = ev.id AND ${ic}
+      ))`;
+    });
+    const evCond = evTermConds.length === 1
+      ? evTermConds[0]!
+      : `(${evTermConds.join(logic === "and" ? " AND " : " OR ")})`;
 
     // SURNAMES
     const pSur: P = [fileUuid];
-    const surCond = mc(pSur, "s.surname_lower", q, matchType);
+    const surCond = termsBlock(pSur, ["s.surname_lower"], terms, matchType, logic);
 
     // GIVEN NAMES
     const pGiv: P = [fileUuid];
-    const givCond = mc(pGiv, "gn.given_name_lower", q, matchType);
+    const givCond = termsBlock(pGiv, ["gn.given_name_lower"], terms, matchType, logic);
 
-    // MEDIA — tag expansion: search tag names with same match type, then pull in tagged media
-    // The tag match condition is embedded as a subquery within each UNION fragment so everything
-    // runs in a single query without a separate tag-lookup round-trip.
+    // PLACES
+    const pPl: P = [fileUuid];
+    const plTermConds = terms.map(t => {
+      const nc = mc(pPl, "pl.name",     t, matchType);
+      const oc = mc(pPl, "pl.original", t, matchType);
+      return `(${nc} OR ${oc})`;
+    });
+    const plCond = plTermConds.length === 1
+      ? plTermConds[0]!
+      : `(${plTermConds.join(logic === "and" ? " AND " : " OR ")})`;
+
+    // NOTES
+    const pNot: P = [fileUuid];
+    const notCond = termsBlock(pNot, ["n.content"], terms, matchType, logic);
+
+    // MEDIA — tag expansion: search tag names with same match type, then pull in tagged media.
+    // Per-term blocks are built inline in the CTE so everything runs in a single query.
     const pMed: P = [fileUuid, treeId];
-    const gedTitleCond = mc(pMed, "gm.title",  q, matchType);
-    const gedTagCond   = mc(pMed, "t.name",    q, matchType);
-    const strTitleCond = mc(pMed, "s.title",   q, matchType);
-    const strTagCond   = mc(pMed, "t2.name",   q, matchType);
+    const mediaTermBlocks = terms.map(t => {
+      const gedTitle = mc(pMed, "gm.title", t, matchType);
+      const gedTag   = mc(pMed, "t.name",   t, matchType);
+      const strTitle = mc(pMed, "s.title",  t, matchType);
+      const strTag   = mc(pMed, "t2.name",  t, matchType);
+      return { gedTitle, gedTag, strTitle, strTag };
+    });
+
+    const joinTermMediaConds = (blocks: typeof mediaTermBlocks, getGed: (b: typeof blocks[0]) => string, getStr: (b: typeof blocks[0]) => string): { ged: string; str: string } => {
+      if (blocks.length === 1) {
+        return { ged: getGed(blocks[0]!), str: getStr(blocks[0]!) };
+      }
+      const sep = logic === "and" ? " AND " : " OR ";
+      return {
+        ged: `(${blocks.map(b => `(${getGed(b)})`).join(sep)})`,
+        str: `(${blocks.map(b => `(${getStr(b)})`).join(sep)})`,
+      };
+    };
+
+    const mediaGedTagConds = joinTermMediaConds(
+      mediaTermBlocks,
+      b => `${b.gedTitle} OR EXISTS (SELECT 1 FROM gedcom_media_app_tags x JOIN tags t ON t.id = x.tag_id WHERE x.gedcom_media_id = gm.id AND ${b.gedTag})`,
+      b => `${b.strTitle} OR EXISTS (SELECT 1 FROM story_tags x JOIN tags t2 ON t2.id = x.tag_id WHERE x.story_id = s.id AND ${b.strTag})`,
+    );
 
     const mediaSql = `
       WITH res AS (
@@ -108,32 +153,18 @@ export async function GET(req: NextRequest) {
           NULL::text AS slug, NULL::text AS kind
         FROM gedcom_media_v2 gm
         WHERE gm.file_uuid = $1::uuid
-          AND (
-            ${gedTitleCond}
-            OR EXISTS (
-              SELECT 1 FROM gedcom_media_app_tags x
-              JOIN tags t ON t.id = x.tag_id
-              WHERE x.gedcom_media_id = gm.id AND ${gedTagCond}
-            )
-          )
+          AND (${mediaGedTagConds.ged})
         UNION ALL
         SELECT s.id::text, 'story'::text AS source, s.title, 'story'::text AS form,
           s.slug::text AS slug, s.kind::text AS kind
         FROM stories s
         WHERE s.tree_id = $2::uuid AND s.deleted_at IS NULL AND s.is_published = true
-          AND (
-            ${strTitleCond}
-            OR EXISTS (
-              SELECT 1 FROM story_tags x
-              JOIN tags t2 ON t2.id = x.tag_id
-              WHERE x.story_id = s.id AND ${strTagCond}
-            )
-          )
+          AND (${mediaGedTagConds.str})
       )
       SELECT *, COUNT(*) OVER() AS total FROM res ORDER BY LOWER(title) NULLS LAST LIMIT ${LIMIT}
     `;
 
-    // All ID/count queries run in parallel
+    // All queries run in parallel
     const [
       [personCountRows, personIdRows],
       [familyCountRows, familyIdRows],
@@ -141,15 +172,17 @@ export async function GET(req: NextRequest) {
       mediaRows,
       [surnameCountRows, surnameDataRows],
       [givenNameCountRows, givenNameDataRows],
+      placeRows,
+      noteRows,
     ] = await Promise.all([
       // PEOPLE ----------------------------------------------------------------
       Promise.all([
         prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
-          `SELECT COUNT(*) AS n FROM gedcom_individuals_v2 WHERE file_uuid = $1::uuid AND ${pplNameCond}`,
+          `SELECT COUNT(*) AS n FROM gedcom_individuals_v2 WHERE file_uuid = $1::uuid AND ${pplCond}`,
           ...pPpl,
         ),
         prisma.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT id FROM gedcom_individuals_v2 WHERE file_uuid = $1::uuid AND ${pplNameCond} ORDER BY full_name_lower NULLS LAST LIMIT ${LIMIT}`,
+          `SELECT id FROM gedcom_individuals_v2 WHERE file_uuid = $1::uuid AND ${pplCond} ORDER BY full_name_lower NULLS LAST LIMIT ${LIMIT}`,
           ...pPpl,
         ),
       ]),
@@ -159,14 +192,14 @@ export async function GET(req: NextRequest) {
           `SELECT COUNT(*) AS n FROM gedcom_families_v2 f
            LEFT JOIN gedcom_individuals_v2 hi ON hi.id = f.husband_id
            LEFT JOIN gedcom_individuals_v2 wi ON wi.id = f.wife_id
-           WHERE f.file_uuid = $1::uuid AND (${famHCond} OR ${famWCond})`,
+           WHERE f.file_uuid = $1::uuid AND ${famCond}`,
           ...pFam,
         ),
         prisma.$queryRawUnsafe<Array<{ id: string }>>(
           `SELECT f.id FROM gedcom_families_v2 f
            LEFT JOIN gedcom_individuals_v2 hi ON hi.id = f.husband_id
            LEFT JOIN gedcom_individuals_v2 wi ON wi.id = f.wife_id
-           WHERE f.file_uuid = $1::uuid AND (${famHCond} OR ${famWCond})
+           WHERE f.file_uuid = $1::uuid AND ${famCond}
            ORDER BY COALESCE(hi.full_name_lower, wi.full_name_lower) NULLS LAST LIMIT ${LIMIT}`,
           ...pFam,
         ),
@@ -176,31 +209,13 @@ export async function GET(req: NextRequest) {
         prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
           `SELECT COUNT(DISTINCT ev.id) AS n FROM gedcom_events_v2 ev
            LEFT JOIN gedcom_places_v2 pl ON pl.id = ev.place_id
-           WHERE ev.file_uuid = $1::uuid
-             AND (
-               ${evValCond} OR ${evLabCond}
-               OR ${evPlNmCond} OR ${evPlOrCond}
-               OR EXISTS (
-                 SELECT 1 FROM gedcom_individual_events_v2 ie
-                 JOIN gedcom_individuals_v2 ind ON ind.id = ie.individual_id
-                 WHERE ie.event_id = ev.id AND ${evIndCond}
-               )
-             )`,
+           WHERE ev.file_uuid = $1::uuid AND ${evCond}`,
           ...pEv,
         ),
         prisma.$queryRawUnsafe<Array<{ id: string }>>(
           `SELECT DISTINCT ev.id FROM gedcom_events_v2 ev
            LEFT JOIN gedcom_places_v2 pl ON pl.id = ev.place_id
-           WHERE ev.file_uuid = $1::uuid
-             AND (
-               ${evValCond} OR ${evLabCond}
-               OR ${evPlNmCond} OR ${evPlOrCond}
-               OR EXISTS (
-                 SELECT 1 FROM gedcom_individual_events_v2 ie
-                 JOIN gedcom_individuals_v2 ind ON ind.id = ie.individual_id
-                 WHERE ie.event_id = ev.id AND ${evIndCond}
-               )
-             )
+           WHERE ev.file_uuid = $1::uuid AND ${evCond}
            LIMIT ${LIMIT}`,
           ...pEv,
         ),
@@ -232,6 +247,40 @@ export async function GET(req: NextRequest) {
           ...pGiv,
         ),
       ]),
+      // PLACES ----------------------------------------------------------------
+      prisma.$queryRawUnsafe<Array<{
+        id: string; display_name: string | null; event_count: number; total: bigint;
+      }>>(
+        `SELECT pl.id, COALESCE(pl.original, pl.name) AS display_name,
+           COUNT(ev.id)::int AS event_count, COUNT(*) OVER() AS total
+         FROM gedcom_places_v2 pl
+         LEFT JOIN gedcom_events_v2 ev ON ev.place_id = pl.id AND ev.file_uuid = pl.file_uuid
+         WHERE pl.file_uuid = $1::uuid AND ${plCond}
+         GROUP BY pl.id, pl.original, pl.name
+         ORDER BY COUNT(ev.id) DESC NULLS LAST
+         LIMIT ${LIMIT}`,
+        ...pPl,
+      ),
+      // NOTES -----------------------------------------------------------------
+      prisma.$queryRawUnsafe<Array<{
+        id: string; snippet: string | null; total: bigint;
+        individual_id: string | null; individual_name: string | null;
+      }>>(
+        `SELECT n.id, LEFT(n.content, 150) AS snippet, COUNT(*) OVER() AS total,
+           owner.individual_id, owner.individual_name
+         FROM gedcom_notes_v2 n
+         LEFT JOIN LATERAL (
+           SELECT jin.individual_id, i.full_name AS individual_name
+           FROM gedcom_individual_notes_v2 jin
+           JOIN gedcom_individuals_v2 i ON i.id = jin.individual_id AND i.file_uuid = jin.file_uuid
+           WHERE jin.note_id = n.id AND jin.file_uuid = n.file_uuid
+           LIMIT 1
+         ) owner ON TRUE
+         WHERE n.file_uuid = $1::uuid AND ${notCond}
+         ORDER BY LENGTH(n.content) DESC NULLS LAST
+         LIMIT ${LIMIT}`,
+        ...pNot,
+      ),
     ]);
 
     const personIds = personIdRows.map((r) => r.id);
@@ -370,6 +419,28 @@ export async function GET(req: NextRequest) {
       id: r.id, name: r.given_name, frequency: Number(r.frequency),
     }));
 
+    const places = placeRows.map((r) => ({
+      id: r.id,
+      displayName: r.display_name ?? "",
+      eventCount: r.event_count,
+      total: undefined,
+      profileHref: `/tree/places/${encodeURIComponent(r.id)}`,
+    }));
+    const placesTotal = placeRows.length > 0 ? Number(placeRows[0]!.total) : 0;
+
+    const notes = noteRows.map((r) => ({
+      id: r.id,
+      snippet: r.snippet ?? "",
+      ownerName: r.individual_name
+        ? formatGedcomFullNameForDisplay(r.individual_name)
+        : null,
+      ownerHref: r.individual_id
+        ? `/individuals/${encodeURIComponent(r.individual_id)}`
+        : null,
+      total: undefined,
+    }));
+    const notesTotal = noteRows.length > 0 ? Number(noteRows[0]!.total) : 0;
+
     return NextResponse.json({
       people:     { items: people,     total: Number(personCountRows[0]?.n    ?? 0) },
       families:   { items: families,   total: Number(familyCountRows[0]?.n   ?? 0) },
@@ -377,6 +448,8 @@ export async function GET(req: NextRequest) {
       media:      { items: media,      total: mediaTotal },
       surnames:   { items: surnames,   total: Number(surnameCountRows[0]?.n   ?? 0) },
       givenNames: { items: givenNames, total: Number(givenNameCountRows[0]?.n ?? 0) },
+      places:     { items: places,     total: placesTotal },
+      notes:      { items: notes,      total: notesTotal },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database error";
