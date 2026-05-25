@@ -267,6 +267,12 @@ export const SITE_NAV_GROUPS: SiteNavGroup[] = [
     alignDropdownRight: true,
     items: [
       {
+        label: "What's New",
+        href: "/more/whats-new",
+        description: "Latest announcements and updates from the archive",
+        icon: "megaphone",
+      },
+      {
         label: "About Creators",
         href: "/more/about-creators",
         description: "Who built and maintains this family archive",

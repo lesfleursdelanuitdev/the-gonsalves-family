@@ -15,6 +15,7 @@ export default async function ResearchSourcesPage() {
     <ResearchPageShell
       title="Sources"
       description="GEDCOM source records linked to people, families, and events."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research", href: "/research" }, { label: "Sources" }]}
     >
       {sources.length === 0 ? (
         <p className="text-muted text-center text-sm">No sources in the published tree.</p>

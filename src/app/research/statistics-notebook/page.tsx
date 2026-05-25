@@ -15,6 +15,7 @@ export default async function ResearchStatisticsNotebookPage() {
     <ResearchPageShell
       title="Statistics notebook"
       description="Interactive charts and summaries from the tree analytics engine."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research", href: "/research" }, { label: "Statistics notebook" }]}
     >
       <StatisticsAnalyticsEnginePreview treeId={treeId} />
     </ResearchPageShell>

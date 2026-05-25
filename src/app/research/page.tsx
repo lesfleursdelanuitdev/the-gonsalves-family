@@ -18,6 +18,7 @@ export default function ResearchHubPage() {
     <ResearchPageShell
       title="Research"
       description="Evidence, gaps, and analytics for the published family tree."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research" }]}
     >
       <ul className="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface/40">
         {items.map((item) => {

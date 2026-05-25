@@ -14,6 +14,7 @@ export default async function ResearchOpenQuestionsPage() {
     <ResearchPageShell
       title="Open questions"
       description="Items that still need verification, sources, or clarification."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research", href: "/research" }, { label: "Open questions" }]}
     >
       {questions.length === 0 ? (
         <p className="text-muted text-center text-sm">No open questions in the published tree.</p>

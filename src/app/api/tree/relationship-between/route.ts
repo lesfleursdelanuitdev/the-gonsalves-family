@@ -8,7 +8,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
-  const fileUuid = await resolveTreeFileUuid();
+  let fileUuid: string | null;
+  try {
+    fileUuid = await resolveTreeFileUuid();
+  } catch (e) {
+    console.error("[relationship-between] resolveTreeFileUuid error:", e);
+    return NextResponse.json({ error: "Tree not available" }, { status: 503 });
+  }
+
   if (!fileUuid) {
     return NextResponse.json({ error: "Tree not found" }, { status: 404 });
   }
@@ -20,15 +27,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const res = await fetch(`${PYTHON_API_URL}/api/relationship/between`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ ...body, file_uuid: fileUuid }),
-  });
-
-  const text = await res.text();
-  return new NextResponse(text, {
-    status: res.status,
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const res = await fetch(`${PYTHON_API_URL}/api/relationship/between`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ ...body, file_uuid: fileUuid }),
+    });
+    const text = await res.text();
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("[relationship-between] Python API error:", e);
+    return NextResponse.json({ error: "Relationship service unavailable" }, { status: 503 });
+  }
 }

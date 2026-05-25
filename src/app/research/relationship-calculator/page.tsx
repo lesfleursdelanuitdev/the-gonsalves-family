@@ -12,6 +12,7 @@ export default function RelationshipCalculatorPage() {
     <ResearchPageShell
       title="Relationship calculator"
       description="Select two people from the tree to find out how they are related."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research", href: "/research" }, { label: "Relationship calculator" }]}
     >
       <RelationshipCalculator />
     </ResearchPageShell>

@@ -50,7 +50,7 @@ function createPrismaClient(): PrismaClient {
  */
 function prismaClientHasExpectedDelegates(client: PrismaClient): boolean {
   const o = client as unknown as Record<string, unknown>;
-  return o.resolvedPlace != null;
+  return o.resolvedPlace != null && o.whatsNew != null && o.glossaryEntry != null && o.recipe != null;
 }
 
 function getPrisma(): PrismaClient {

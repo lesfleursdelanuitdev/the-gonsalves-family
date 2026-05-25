@@ -15,6 +15,7 @@ export default async function ResearchRepositoriesPage() {
     <ResearchPageShell
       title="Repositories"
       description="Libraries, archives, and other institutions where sources are held."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research", href: "/research" }, { label: "Repositories" }]}
     >
       {repositories.length === 0 ? (
         <p className="text-muted text-center text-sm">No repositories in the published tree.</p>

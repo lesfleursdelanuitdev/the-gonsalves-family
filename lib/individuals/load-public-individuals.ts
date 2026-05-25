@@ -685,20 +685,22 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
       },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.gedcomIndividualAssociation.findMany({
+    prisma.individualRelationship.findMany({
       where: {
         fileUuid,
-        OR: [{ subjectIndividualId: r.id }, { associateIndividualId: r.id }],
+        participants: { some: { individualId: r.id } },
       },
-      select: {
-        rela: true,
-        sortOrder: true,
-        subjectIndividualId: true,
-        associateIndividualId: true,
-        subjectIndividual: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
-        associateIndividual: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
+      include: {
+        relationshipType: true,
+        participants: {
+          include: {
+            individual: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
+            role: true,
+          },
+          orderBy: { sortOrder: "asc" },
+        },
       },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: { updatedAt: "desc" },
     }),
     prisma.openQuestionIndividual.findMany({
       where: { individualId: r.id },
@@ -747,9 +749,10 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
   const familyRelationIds = new Set<string>([r.id]);
   for (const row of parentRows) familyRelationIds.add(row.parent.id);
   for (const row of siblingRows) familyRelationIds.add(row.child.id);
-  for (const row of associationRows) {
-    const associate = row.subjectIndividualId === r.id ? row.associateIndividual : row.subjectIndividual;
-    if (associate) familyRelationIds.add(associate.id);
+  for (const rel of associationRows) {
+    for (const p of rel.participants) {
+      if (p.individualId !== r.id) familyRelationIds.add(p.individualId);
+    }
   }
   for (const { family } of originFamilyLinks) {
     if (family.husband) familyRelationIds.add(family.husband.id);
@@ -821,22 +824,20 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
     xref: note.xref ?? null,
     content: note.content,
   }));
-  const associatesById = new Map<string, { associate: PublicIndividualAssociate; isDirect: boolean }>();
-  for (const row of associationRows) {
-    const isDirect = row.subjectIndividualId === r.id;
-    const associate = isDirect ? row.associateIndividual : row.subjectIndividual;
-    if (!associate) continue;
-
-    const item: PublicIndividualAssociate = {
-      ...relationFromIndividual(associate, row.rela || "Associate", familyPhotoMap),
-      relationLabel: row.rela || "Associate",
-    };
-    const existing = associatesById.get(item.id);
-    if (!existing || (!existing.isDirect && isDirect)) {
-      associatesById.set(item.id, { associate: item, isDirect });
+  const associatesById = new Map<string, PublicIndividualAssociate>();
+  for (const rel of associationRows) {
+    const others = rel.participants.filter((p) => p.individualId !== r.id);
+    for (const other of others) {
+      if (associatesById.has(other.individualId)) continue;
+      const relationLabel = other.role.label || rel.relationshipType.label;
+      const item: PublicIndividualAssociate = {
+        ...relationFromIndividual(other.individual, relationLabel, familyPhotoMap),
+        relationLabel,
+      };
+      associatesById.set(other.individualId, item);
     }
   }
-  const associates = [...associatesById.values()].map(({ associate }) => associate);
+  const associates = [...associatesById.values()];
   const openQuestions: PublicIndividualOpenQuestion[] = openQuestionRows.map(({ openQuestion }) => ({
     id: openQuestion.id,
     question: openQuestion.question,

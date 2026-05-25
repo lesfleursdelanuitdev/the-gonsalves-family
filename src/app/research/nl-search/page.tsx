@@ -15,6 +15,7 @@ export default async function ResearchNlSearchPage() {
     <ResearchPageShell
       title="Analytics search"
       description="Ask questions about names, places, events, and more in plain language."
+      breadcrumbs={[{ label: "Home", href: "/" }, { label: "Research", href: "/research" }, { label: "Analytics search" }]}
     >
       <NlSearchPlayground treeId={treeId} />
     </ResearchPageShell>
