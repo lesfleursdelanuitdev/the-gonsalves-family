@@ -4,11 +4,15 @@ import { FileSignature, RefreshCw } from "lucide-react";
 import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PersonCard } from "@/components/individuals/PersonCard";
-import { PageContainer, Section } from "@/components/wireframe";
+import { Section } from "@/components/wireframe";
 import { GivenNameProfileStatistics } from "./GivenNameProfileStatistics";
 import type { PublicGivenNameProfile } from "./types";
 
 const PERSON_CARD_FALLBACK_BG = "/images/personCardBg.png";
+
+/** Match statistics and sample sections (wider than list-page `PageContainer narrow`). */
+const PROFILE_SECTION_INNER =
+  "mx-auto w-full min-w-0 max-w-[min(100%,1680px)] px-5 sm:px-6 md:px-8 lg:px-10";
 
 export function GivenNameProfilePage({ givenName }: { givenName: PublicGivenNameProfile }) {
   const samplePeople = givenName.samplePeople;
@@ -31,7 +35,7 @@ export function GivenNameProfilePage({ givenName }: { givenName: PublicGivenName
           </div>
 
           <div className="relative z-10 min-w-0 max-w-full">
-            <PageContainer narrow>
+            <div className={`${PROFILE_SECTION_INNER} py-4 md:py-6`}>
               <nav
                 aria-label="Breadcrumb"
                 className="mb-5 flex min-w-0 flex-wrap items-center gap-2 text-xs tracking-[0.06em] text-muted"
@@ -78,14 +82,14 @@ export function GivenNameProfilePage({ givenName }: { givenName: PublicGivenName
                   </div>
                 </div>
               </div>
-            </PageContainer>
+            </div>
           </div>
         </Section>
 
         <GivenNameProfileStatistics statistics={givenName.statistics} />
 
         <Section noPadding className="min-w-0 overflow-x-hidden py-8 md:py-12">
-          <div className="mx-auto w-full min-w-0 max-w-[min(100%,1680px)] px-5 sm:px-6 md:px-8 lg:px-10">
+          <div className={PROFILE_SECTION_INNER}>
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h2 className="font-heading text-2xl font-semibold text-heading sm:text-3xl">A few people at random</h2>

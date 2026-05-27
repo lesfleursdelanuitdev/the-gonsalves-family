@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPersonAgeLabel, parseDisplayDateParts } from "@/lib/individuals/person-age";
+import { formatPersonAgeLabel, parseDisplayDateParts, personAgeYears } from "@/lib/individuals/person-age";
 
 describe("parseDisplayDateParts", () => {
   it("parses day month year labels", () => {
@@ -53,5 +53,49 @@ describe("formatPersonAgeLabel", () => {
       new Date(2026, 4, 16),
     );
     expect(label).toBe("50 years, 6 months");
+  });
+});
+
+describe("personAgeYears", () => {
+  it("subtracts one year when birthday has not occurred yet", () => {
+    expect(
+      personAgeYears(
+        {
+          birthDateLabel: "15 DEC 1994",
+          birthYear: 1994,
+          deathDateLabel: null,
+          deathYear: null,
+        },
+        new Date(2026, 4, 16),
+      ),
+    ).toBe(31);
+  });
+
+  it("uses full birthday when it has already occurred this year", () => {
+    expect(
+      personAgeYears(
+        {
+          birthDateLabel: "15 MAR 1994",
+          birthYear: 1994,
+          deathDateLabel: null,
+          deathYear: null,
+        },
+        new Date(2026, 4, 16),
+      ),
+    ).toBe(32);
+  });
+
+  it("falls back to year difference when only birth year is known", () => {
+    expect(
+      personAgeYears(
+        {
+          birthDateLabel: "1994",
+          birthYear: 1994,
+          deathDateLabel: null,
+          deathYear: null,
+        },
+        new Date(2026, 4, 16),
+      ),
+    ).toBe(32);
   });
 });

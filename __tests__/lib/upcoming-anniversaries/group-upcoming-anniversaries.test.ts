@@ -20,6 +20,7 @@ const person: PublicIndividual = {
   sex: null,
   hasPartner: false,
   hasChildren: false,
+  hasDeathCause: false,
   portraitSrc: null,
 };
 

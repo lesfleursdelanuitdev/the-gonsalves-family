@@ -1,12 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { StoryKind } from "@ligneous/prisma";
 import { StoryViewerShell } from "@/components/stories/StoryViewerShell";
+import { StoryArticlePage } from "@/components/stories/StoryArticlePage";
 import { fetchPublishedStoryBySlug } from "@/lib/stories/story-queries";
 import { formatPublicAuthorLines, parseStoryBodyMeta } from "@/lib/stories/story-public-meta";
 import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
 import { buildViewerPages, buildViewerToc } from "@/lib/stories/story-viewer-utils";
 
 const STORY_KINDS = new Set<StoryKind>([StoryKind.story, StoryKind.folklore]);
+const ARTICLE_KINDS = new Set<StoryKind>([StoryKind.article, StoryKind.post]);
 
 export default async function StoryPublicPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
@@ -19,7 +21,10 @@ export default async function StoryPublicPage(props: { params: Promise<{ slug: s
   }
   if (!story) notFound();
 
-  // Non-story/folklore kinds will eventually live on their own routes
+  if (ARTICLE_KINDS.has(story.kind)) {
+    return <StoryArticlePage story={story} urlSlug={slug} />;
+  }
+
   if (!STORY_KINDS.has(story.kind)) {
     redirect(`/`);
   }

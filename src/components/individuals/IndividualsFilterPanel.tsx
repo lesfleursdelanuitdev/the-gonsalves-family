@@ -31,6 +31,7 @@ export type IndividualsFilterState = {
   maxDeathYear: string;
   married: BooleanFilter;
   hasKids: BooleanFilter;
+  deathCause: BooleanFilter;
 };
 
 type IndividualsFilterSection = "life" | "age" | "birth" | "death";
@@ -46,6 +47,7 @@ export const EMPTY_INDIVIDUALS_FILTERS: IndividualsFilterState = {
   maxDeathYear: "",
   married: "all",
   hasKids: "all",
+  deathCause: "all",
 };
 
 const SELECTED_ROW = "bg-[#f2ece4]";
@@ -72,7 +74,8 @@ export function hasActiveIndividualsFilters(filters: IndividualsFilterState): bo
     filters.minDeathYear.trim() !== "" ||
     filters.maxDeathYear.trim() !== "" ||
     filters.married !== "all" ||
-    filters.hasKids !== "all"
+    filters.hasKids !== "all" ||
+    filters.deathCause !== "all"
   );
 }
 
@@ -85,6 +88,7 @@ function activeFilterCount(filters: IndividualsFilterState): number {
   if (filters.minDeathYear.trim() || filters.maxDeathYear.trim()) count++;
   if (filters.married !== "all") count++;
   if (filters.hasKids !== "all") count++;
+  if (filters.deathCause !== "all") count++;
   return count;
 }
 
@@ -118,11 +122,25 @@ function lifeSummary(filters: IndividualsFilterState): string {
   return parts.length > 0 ? parts.join(" · ") : "No life filters";
 }
 
+function deathSummary(filters: IndividualsFilterState): string {
+  const parts = [
+    filters.deathCause === "yes"
+      ? "Has cause of death"
+      : filters.deathCause === "no"
+        ? "No cause of death"
+        : null,
+    filters.minDeathYear.trim() || filters.maxDeathYear.trim()
+      ? rangeSummary(filters.minDeathYear, filters.maxDeathYear, "")
+      : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : "No death filters";
+}
+
 function sectionSummary(section: IndividualsFilterSection, filters: IndividualsFilterState): string {
   if (section === "life") return lifeSummary(filters);
   if (section === "age") return rangeSummary(filters.minAge, filters.maxAge, "No age range");
   if (section === "birth") return rangeSummary(filters.minBirthYear, filters.maxBirthYear, "No birth range");
-  return rangeSummary(filters.minDeathYear, filters.maxDeathYear, "No death range");
+  return deathSummary(filters);
 }
 
 function FilterNavRow({
@@ -329,8 +347,15 @@ function ActiveIndividualsFilterChips({
       maxBirthYear: "",
     });
   }
+  if (filters.deathCause !== "all") {
+    pushChip(
+      "death-cause",
+      filters.deathCause === "yes" ? "Has cause of death" : "No cause of death",
+      { deathCause: "all" },
+    );
+  }
   if (filters.minDeathYear.trim() || filters.maxDeathYear.trim()) {
-    pushChip("death", `Died ${rangeSummary(filters.minDeathYear, filters.maxDeathYear, "")}`, {
+    pushChip("death-year", `Died ${rangeSummary(filters.minDeathYear, filters.maxDeathYear, "")}`, {
       minDeathYear: "",
       maxDeathYear: "",
     });
@@ -417,7 +442,7 @@ function LeftNavColumn({
         <p className="font-body text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">Death</p>
         <FilterNavRow
           icon={Heart}
-          label="Death range"
+          label="Death details"
           summary={sectionSummary("death", filters)}
           selected={activeSection === "death"}
           onClick={() => onSelectSection("death")}
@@ -538,22 +563,34 @@ function SectionDetail({
   }
 
   return (
-    <RangeDetail
-      title="Custom death range"
-      from={filters.minDeathYear}
-      to={filters.maxDeathYear}
-      fromLabel="From"
-      toLabel="To"
-      fromPlaceholder="e.g. 1900"
-      toPlaceholder="e.g. 1980"
-      presets={[
-        { label: "1800s", from: "1800", to: "1899" },
-        { label: "1900s", from: "1900", to: "1999" },
-        { label: "Before 1950", from: "", to: "1949" },
-        { label: "After 1950", from: "1950", to: "" },
-      ]}
-      onChange={(minDeathYear, maxDeathYear) => onChange(withFilter(filters, { minDeathYear, maxDeathYear }))}
-    />
+    <div className="space-y-5">
+      <ChoiceGroup
+        label="Cause of death"
+        value={filters.deathCause}
+        onChange={(deathCause) => onChange(withFilter(filters, { deathCause }))}
+        options={[
+          { value: "all", label: "With or without cause" },
+          { value: "yes", label: "Has cause of death" },
+          { value: "no", label: "No cause of death recorded" },
+        ]}
+      />
+      <RangeDetail
+        title="Custom death range"
+        from={filters.minDeathYear}
+        to={filters.maxDeathYear}
+        fromLabel="From"
+        toLabel="To"
+        fromPlaceholder="e.g. 1900"
+        toPlaceholder="e.g. 1980"
+        presets={[
+          { label: "1800s", from: "1800", to: "1899" },
+          { label: "1900s", from: "1900", to: "1999" },
+          { label: "Before 1950", from: "", to: "1949" },
+          { label: "After 1950", from: "1950", to: "" },
+        ]}
+        onChange={(minDeathYear, maxDeathYear) => onChange(withFilter(filters, { minDeathYear, maxDeathYear }))}
+      />
+    </div>
   );
 }
 
@@ -577,7 +614,7 @@ function RightDetailColumn({
         ? "Age range"
         : activeSection === "birth"
           ? "Birth range"
-          : "Death range";
+          : "Death details";
 
   return (
     <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-t border-[#ebe4d9] px-4 py-5 sm:border-t-0 sm:pl-5">

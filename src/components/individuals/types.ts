@@ -21,6 +21,8 @@ export type PublicIndividual = {
   sex: string | null;
   hasPartner: boolean;
   hasChildren: boolean;
+  /** GEDCOM DEAT event has a non-empty `CAUS` / cause field. */
+  hasDeathCause: boolean;
   portraitSrc: string | null;
 };
 

@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowRight, ArrowUp, PieChart } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, List, PieChart } from "lucide-react";
 import type { ChartViewStrategyName } from "@/genealogy-visualization-engine";
 import { IndividualChartEmbed } from "./IndividualChartEmbed";
+import { AhnentafelChart } from "./AhnentafelChart";
 
-type ChartTab = "pedigree" | "descendancy" | "fan_chart" | "vertical_pedigree";
+type ChartTab = "pedigree" | "descendancy" | "fan_chart" | "vertical_pedigree" | "ahnentafel";
 
 const CHART_TABS: Array<{ id: ChartTab; label: string; Icon: typeof ArrowRight }> = [
   { id: "pedigree", label: "Pedigree", Icon: ArrowRight },
   { id: "descendancy", label: "Descendancy", Icon: ArrowDown },
   { id: "fan_chart", label: "Fan Chart", Icon: PieChart },
   { id: "vertical_pedigree", label: "Vertical Pedigree", Icon: ArrowUp },
+  { id: "ahnentafel", label: "Ahnentafel", Icon: List },
 ];
 
 export function ProfileCharts({
@@ -44,12 +46,16 @@ export function ProfileCharts({
         ))}
       </div>
 
-      <IndividualChartEmbed
-        key={activeTab}
-        xref={xref}
-        chart={activeTab as ChartViewStrategyName}
-        fullName={fullName}
-      />
+      {activeTab === "ahnentafel" ? (
+        <AhnentafelChart xref={xref} />
+      ) : (
+        <IndividualChartEmbed
+          key={activeTab}
+          xref={xref}
+          chart={activeTab as ChartViewStrategyName}
+          fullName={fullName}
+        />
+      )}
     </div>
   );
 }

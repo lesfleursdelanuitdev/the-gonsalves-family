@@ -42,12 +42,6 @@ function parseYear(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function personAge(person: PublicIndividual, currentYear: number): number | null {
-  if (person.birthYear == null) return null;
-  const endYear = person.deathYear ?? currentYear;
-  return Math.max(0, endYear - person.birthYear);
-}
-
 function personGenderBucket(person: PublicIndividual): Exclude<GenderFilter, "all"> {
   const value = `${person.gender ?? ""} ${person.sex ?? ""}`.trim().toLowerCase();
   if (value === "f" || value.includes("female")) return "female";
@@ -101,20 +95,21 @@ export function IndividualsPage({
     const birthMax = parseYear(filters.maxBirthYear);
     const deathMin = parseYear(filters.minDeathYear);
     const deathMax = parseYear(filters.maxDeathYear);
-    const currentYear = new Date().getFullYear();
 
     const byFilters = individuals.filter((person) => {
       if (q && !person.fullName.toLowerCase().includes(q)) return false;
       if (filters.lifeStatus === "living" && person.deathYear != null) return false;
       if (filters.lifeStatus === "dead" && person.deathYear == null) return false;
       if (filters.gender !== "all" && personGenderBucket(person) !== filters.gender) return false;
-      if (!matchesRange(personAge(person, currentYear), ageMin, ageMax)) return false;
+      if (!matchesRange(person.age, ageMin, ageMax)) return false;
       if (!matchesRange(person.birthYear, birthMin, birthMax)) return false;
       if (!matchesRange(person.deathYear, deathMin, deathMax)) return false;
       if (filters.married === "yes" && !person.hasPartner) return false;
       if (filters.married === "no" && person.hasPartner) return false;
       if (filters.hasKids === "yes" && !person.hasChildren) return false;
       if (filters.hasKids === "no" && person.hasChildren) return false;
+      if (filters.deathCause === "yes" && !person.hasDeathCause) return false;
+      if (filters.deathCause === "no" && person.hasDeathCause) return false;
       return true;
     });
 

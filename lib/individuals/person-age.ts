@@ -111,6 +111,32 @@ function yearOnlyAge(birthYear: number, endYear: number): string {
   return years === 1 ? "1 year" : `${years} years`;
 }
 
+/** Whole years for list cards and filters; uses month/day when birth (or death) dates include them. */
+export function personAgeYears(
+  person: PersonAgeInput,
+  referenceDate: Date = new Date(),
+): number | null {
+  const birthParts =
+    parseDisplayDateParts(person.birthDateLabel) ??
+    (person.birthYear != null ? { year: person.birthYear, month: 0, day: 0 } : null);
+  if (!birthParts) return null;
+
+  const endParts =
+    parseDisplayDateParts(person.deathDateLabel) ??
+    (person.deathYear != null ? { year: person.deathYear, month: 0, day: 0 } : null);
+  const endDate = endParts ? toLocalDate(endParts) : referenceDate;
+
+  const birthPrecision = datePrecision(birthParts);
+  const endPrecision = endParts ? datePrecision(endParts) : "day";
+
+  if (birthPrecision === "year" && (!endParts || endPrecision === "year")) {
+    const endYear = endParts?.year ?? referenceDate.getFullYear();
+    return Math.max(0, endYear - birthParts.year);
+  }
+
+  return ageBetweenDates(toLocalDate(birthParts), endDate).years;
+}
+
 /** Human-readable age using month/day when birth (and death) dates include them. */
 export function formatPersonAgeLabel(
   person: PersonAgeInput,

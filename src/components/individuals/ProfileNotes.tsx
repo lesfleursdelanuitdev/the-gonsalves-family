@@ -22,7 +22,7 @@ export function ProfileNotes({
   }, [notes, pageIndex]);
 
   return (
-    <section id="notes" className="rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
+    <section id="notes" className="scroll-mt-28 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
       <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
           <FileText className="h-5 w-5" aria-hidden />

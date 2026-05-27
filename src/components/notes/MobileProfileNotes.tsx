@@ -5,6 +5,7 @@ import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { MOBILE_PROFILE_SECTION_ID } from "@/lib/individuals/profile-section-ids";
 import type { PublicProfileNote } from "@/lib/notes/public-profile-note";
 
 const MOBILE_NOTES_PAGE_SIZE = 3;
@@ -56,7 +57,7 @@ export function MobileProfileNotes({
   if (notes.length === 0) return null;
 
   return (
-    <section id="notes" className="scroll-mt-[7.5rem] px-4 py-8 md:hidden">
+    <section id={MOBILE_PROFILE_SECTION_ID.notes} className="scroll-mt-[7.5rem] px-4 py-8 md:hidden">
       <div className="text-center">
         <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Notes</p>
         <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Notes</h2>

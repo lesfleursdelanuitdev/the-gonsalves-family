@@ -7,7 +7,6 @@ import { formatPublicAuthorLine, parseStoryBodyMeta } from "@/lib/stories/story-
 import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
 import { StoryKind } from "@ligneous/prisma";
 import { buildToc, flattenDbSectionRows, sectionToBlocks } from "@/lib/stories/story-reader-utils";
-import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 
 export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicPayload; urlSlug: string }) {
   const hero = await resolveStoryHeroUrls({
@@ -26,10 +25,10 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
   const pathSlug = story.slug ?? urlSlug;
   const canonicalUrl = `${siteBase}/stories/${encodeURIComponent(pathSlug)}`;
 
-  const storyFieldHtml = (field: StoryFieldKey) => {
-    if (field === "title") return story.title;
-    if (field === "subtitle") return (story.excerpt ?? "").trim();
-    return authorDb ?? "";
+  const storyFields = {
+    title: story.title,
+    subtitle: (story.excerpt ?? "").trim(),
+    author: authorDb ?? "",
   };
 
   const toc = buildToc(story);
@@ -71,7 +70,7 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
               {sec.subtitle && !sec.hideSubtitle ? <p className="mt-2 text-sm uppercase tracking-[0.22em] text-text/55">{sec.subtitle}</p> : null}
               <div className={sec.hideTitle && (!sec.subtitle || sec.hideSubtitle) ? "space-y-6" : "mt-4 space-y-6"}>
                 {sectionToBlocks(sec).map((b) => (
-                  <StoryBlockRenderer key={b.id} block={b} storyFieldHtml={storyFieldHtml} />
+                  <StoryBlockRenderer key={b.id} block={b} storyFields={storyFields} />
                 ))}
               </div>
             </section>

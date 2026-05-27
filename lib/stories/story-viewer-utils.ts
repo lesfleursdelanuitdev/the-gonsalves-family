@@ -122,6 +122,18 @@ export function buildViewerPages(story: StoryPublicPayload): ViewerPage[] {
             subtitle: s.subtitle ?? null,
             folio,
           });
+          // If the opener section itself has content, emit it as a body page too.
+          const openerBlocks = parseBlocksFromJson(s.contentJson);
+          if (openerBlocks.length > 0) {
+            pages.push({
+              pageKind: "body",
+              id: `${s.id}-body`,
+              chapterId: group.chapterId,
+              title: s.title,
+              blocks: openerBlocks,
+              folio: pages.length,
+            });
+          }
         } else {
           pages.push({
             pageKind: "body",

@@ -23,6 +23,7 @@ const person = {
   sex: "F",
   hasPartner: false,
   hasChildren: false,
+  hasDeathCause: false,
   portraitSrc: null,
 };
 

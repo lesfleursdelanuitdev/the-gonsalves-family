@@ -116,21 +116,37 @@ function VerseBlock({ block, storyFieldHtml }: { block: ReaderStoryBlock; storyF
   );
 }
 
+export type StoryFields = { title: string; subtitle: string; author: string };
+
 export function StoryBlockRenderer({
   block,
   storyFieldHtml,
+  storyFields,
   highlight,
 }: {
   block: ReaderStoryBlock;
+  /** Pass a pre-built function when already on the client (e.g. inside StoryViewerShell). */
   storyFieldHtml?: (field: StoryFieldKey) => string;
+  /** Pass plain strings when calling from a server component — the function is created here. */
+  storyFields?: StoryFields;
   highlight?: boolean;
 }) {
+  const resolvedFieldHtml = useMemo<((f: StoryFieldKey) => string) | undefined>(() => {
+    if (storyFieldHtml) return storyFieldHtml;
+    if (storyFields) return (f) => {
+      if (f === "title") return storyFields.title;
+      if (f === "subtitle") return storyFields.subtitle;
+      return storyFields.author;
+    };
+    return undefined;
+  }, [storyFieldHtml, storyFields]);
+
   const html = useMemo(() => {
     if (block.type !== "richText") return "";
     const doc = block.doc as JSONContent | undefined;
     if (!doc) return "";
-    return renderStoryRichTextToHtml(doc, storyFieldHtml);
-  }, [block, storyFieldHtml]);
+    return renderStoryRichTextToHtml(doc, resolvedFieldHtml);
+  }, [block, resolvedFieldHtml]);
 
   const wrap = (inner: ReactNode) => (
     <div
@@ -144,7 +160,7 @@ export function StoryBlockRenderer({
   if (block.type === "richText") {
     const preset = block.preset ?? block.textPreset;
     if (preset === "verse") {
-      return wrap(<VerseBlock block={block} storyFieldHtml={storyFieldHtml} />);
+      return wrap(<VerseBlock block={block} storyFieldHtml={resolvedFieldHtml} />);
     }
     return wrap(
       <div
@@ -154,9 +170,39 @@ export function StoryBlockRenderer({
     );
   }
 
-  if (block.type === "media") {
+  if (block.type === "splitContent") {
+    const textBlock = block.text as ReaderStoryBlock | undefined;
+    const supporting = block.supporting as { blocks?: ReaderStoryBlock[] } | undefined;
+    const supportBlocks = supporting?.blocks ?? [];
+    const supportPct = typeof block.supportingWidthPct === "number" ? block.supportingWidthPct : 35;
+    const textPct = 100 - supportPct;
+    const isLeft = block.supportingSide === "left";
     return wrap(
-      <div className="my-6 rounded-xl border border-border bg-surface-2/50 p-4 text-sm text-text/75">Media block</div>,
+      <div className={`my-4 flex gap-6 ${isLeft ? "flex-row-reverse" : "flex-row"}`}>
+        <div style={{ flexBasis: `${textPct}%` }} className="min-w-0 shrink">
+          {textBlock ? <StoryBlockRenderer block={textBlock} storyFieldHtml={resolvedFieldHtml} /> : null}
+        </div>
+        {supportBlocks.length > 0 ? (
+          <div style={{ flexBasis: `${supportPct}%` }} className="shrink-0">
+            {supportBlocks.map((b, i) => (
+              <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} />
+            ))}
+          </div>
+        ) : null}
+      </div>,
+    );
+  }
+
+  if (block.type === "media") {
+    const label = typeof block.label === "string" && block.label.trim() ? block.label.trim() : "Image";
+    const caption = typeof block.caption === "string" ? block.caption.trim() : "";
+    return wrap(
+      <figure className="my-6">
+        <div className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/50 px-4 py-8 text-sm text-text/60">
+          {label}
+        </div>
+        {caption ? <figcaption className="mt-2 text-center text-xs text-text/55">{caption}</figcaption> : null}
+      </figure>,
     );
   }
 
@@ -169,10 +215,21 @@ export function StoryBlockRenderer({
   }
 
   if (block.type === "columns") {
+    const cols = (block.columns as Array<{ id: string; blocks: ReaderStoryBlock[] }> | undefined) ?? [];
+    const widths = (block.columnWidthPercents as number[] | undefined) ?? cols.map(() => 100 / Math.max(cols.length, 1));
+    const templateCols = widths.map((w) => `${w}fr`).join(" ");
     return wrap(
-      <div className={`my-6 grid gap-4 ${columnsMobileClass(block)}`}>
-        <div className="rounded-lg border border-border/60 bg-surface-2/40 p-3 text-xs text-text/60">Column A</div>
-        <div className="rounded-lg border border-border/60 bg-surface-2/40 p-3 text-xs text-text/60">Column B</div>
+      <div
+        className={`my-6 gap-4 ${columnsMobileClass(block)}`}
+        style={{ display: "grid", gridTemplateColumns: templateCols }}
+      >
+        {cols.map((col) => (
+          <div key={col.id} className="min-w-0">
+            {col.blocks.map((b, j) => (
+              <StoryBlockRenderer key={b.id ?? j} block={b} storyFieldHtml={resolvedFieldHtml} />
+            ))}
+          </div>
+        ))}
       </div>,
     );
   }
@@ -182,8 +239,13 @@ export function StoryBlockRenderer({
   }
 
   if (block.type === "container") {
+    const children = (block.children as ReaderStoryBlock[] | undefined) ?? [];
     return wrap(
-      <div className="my-4 rounded-xl border border-border/70 bg-surface-2/30 p-4 text-sm text-text/70">Container</div>,
+      <div className="my-4 rounded-xl border border-border/60 bg-surface-2/30 p-4">
+        {children.map((b, i) => (
+          <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} />
+        ))}
+      </div>,
     );
   }
 

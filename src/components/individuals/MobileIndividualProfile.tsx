@@ -26,6 +26,10 @@ import {
 import { IconGenderAgender, IconGenderFemale, IconGenderMale } from "@tabler/icons-react";
 import { formatGender } from "@/lib/individual-mapper";
 import { formatPersonAgeLabel } from "@/lib/individuals/person-age";
+import {
+  MOBILE_PROFILE_SECTION_ID,
+  mobileProfileSectionHref,
+} from "@/lib/individuals/profile-section-ids";
 import { cn } from "@/lib/utils";
 import { MobileProfileNotes } from "@/components/notes/MobileProfileNotes";
 import { MobileProfileTimeline } from "@/components/timeline/MobileProfileTimeline";
@@ -260,7 +264,6 @@ function MobileBottomBar({
   const [navOpen, setNavOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
   const [active, setActive] = useState("Overview");
-  const [treeModalOpen, setTreeModalOpen] = useState(false);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -290,12 +293,11 @@ function MobileBottomBar({
 
   const moreLinks = useMemo(() => {
     const links: { label: string; href: string }[] = [];
-    if (hasAssociates) links.push({ label: "Associates", href: "#associates" });
-    if (hasMedia) links.push({ label: "Media", href: "#media" });
-    links.push({ label: "Charts", href: "#charts" });
-    if (hasNotes) links.push({ label: "Notes", href: "#notes" });
-    if (hasResearch) links.push({ label: "Research", href: "#open-questions" });
-    links.push({ label: "Relationship", href: "#relationship" });
+    if (hasAssociates) links.push({ label: "Associates", href: mobileProfileSectionHref("associates") });
+    if (hasMedia) links.push({ label: "Media", href: mobileProfileSectionHref("media") });
+    if (hasNotes) links.push({ label: "Notes", href: mobileProfileSectionHref("notes") });
+    if (hasResearch) links.push({ label: "Research", href: mobileProfileSectionHref("openQuestions") });
+    links.push({ label: "Relationship", href: mobileProfileSectionHref("relationship") });
     links.push({ label: "Contribute", href: contributionHref });
     return links;
   }, [contributionHref, hasAssociates, hasMedia, hasNotes, hasResearch]);
@@ -340,6 +342,24 @@ function MobileBottomBar({
                 </Link>
               </li>
             ))}
+            <li>
+              <PersonCardTreeModalTrigger
+                personId={person.id}
+                xref={person.xref}
+                fullName={person.fullName}
+                triggerAriaLabel="View in tree"
+                onOpenChange={(open) => {
+                  if (open) setMoreOpen(false);
+                }}
+                triggerClassName="flex w-full items-center justify-between py-2.5 text-left text-sm font-medium text-link"
+                triggerChildren={
+                  <>
+                    View in tree
+                    <ChevronRight className="h-4 w-4 opacity-60" aria-hidden />
+                  </>
+                }
+              />
+            </li>
             <li>
               <button
                 type="button"
@@ -391,7 +411,7 @@ function MobileBottomBar({
         aria-hidden={!navOpen}
       >
         <Link
-          href="#overview"
+          href={mobileProfileSectionHref("overview")}
           onClick={() => setActive("Overview")}
           className={navBtnClass(active === "Overview")}
         >
@@ -402,30 +422,20 @@ function MobileBottomBar({
           <span className="font-body text-[0.56rem] font-semibold uppercase tracking-[0.14em]">Overview</span>
         </Link>
 
-        <PersonCardTreeModalTrigger
-          personId={person.id}
-          xref={person.xref}
-          fullName={person.fullName}
-          triggerAriaLabel="In tree"
-          active={active === "In Tree" || treeModalOpen}
-          onOpenChange={(open) => {
-            setTreeModalOpen(open);
-            if (open) setActive("In Tree");
-          }}
-          triggerClassName={navBtnClass(active === "In Tree" || treeModalOpen)}
-          triggerChildren={
-            <>
-              {active === "In Tree" || treeModalOpen ? (
-                <span className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-crimson" aria-hidden />
-              ) : null}
-              <GitBranch className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
-              <span className="font-body text-[0.56rem] font-semibold uppercase tracking-[0.14em]">In tree</span>
-            </>
-          }
-        />
+        <Link
+          href={mobileProfileSectionHref("charts")}
+          onClick={() => setActive("Charts")}
+          className={navBtnClass(active === "Charts")}
+        >
+          {active === "Charts" ? (
+            <span className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-crimson" aria-hidden />
+          ) : null}
+          <GitBranch className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+          <span className="font-body text-[0.56rem] font-semibold uppercase tracking-[0.14em]">Charts</span>
+        </Link>
 
         <Link
-          href="#events"
+          href={mobileProfileSectionHref("events")}
           onClick={() => setActive("Events")}
           className={navBtnClass(active === "Events")}
         >
@@ -585,7 +595,7 @@ export function MobileIndividualProfile({
             <span className="truncate text-heading">{person.fullName}</span>
           </nav>
 
-          <div id="overview" className="scroll-mt-[7.5rem]">
+          <div id={MOBILE_PROFILE_SECTION_ID.overview} className="scroll-mt-[7.5rem]">
             <div className="mt-6 flex items-center gap-3.5">
               <div className="relative aspect-square h-32 w-32 shrink-0 overflow-hidden rounded-full border-[5px] border-[color-mix(in_srgb,var(--link)_7%,var(--bg))] bg-surface/90">
                 {avatarSrc ? (
@@ -671,7 +681,7 @@ export function MobileIndividualProfile({
       </section>
 
 
-      <section id="family" className="scroll-mt-[7.5rem] px-4 py-8">
+      <section id={MOBILE_PROFILE_SECTION_ID.family} className="scroll-mt-[7.5rem] px-4 py-8">
         <div className="text-center">
           <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Family</p>
           <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Closest Relations</h2>
@@ -783,7 +793,7 @@ export function MobileIndividualProfile({
       </section>
 
       {hasAssociates ? (
-        <section id="associates" className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
+        <section id={MOBILE_PROFILE_SECTION_ID.associates} className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
           <RelationsGroup
             label="Other associations"
             items={associates}
@@ -793,7 +803,7 @@ export function MobileIndividualProfile({
       ) : null}
 
       <section
-        id="events"
+        id={MOBILE_PROFILE_SECTION_ID.events}
         className="scroll-mt-[7.5rem] border-y border-border-subtle bg-[linear-gradient(180deg,color-mix(in_srgb,var(--link)_7%,var(--bg)),color-mix(in_srgb,var(--link)_3%,var(--bg)))] px-4 py-8"
       >
         <div className="text-center">
@@ -807,7 +817,7 @@ export function MobileIndividualProfile({
 
 
       {hasMedia ? (
-        <section id="media" className="scroll-mt-[7.5rem] px-4 py-8">
+        <section id={MOBILE_PROFILE_SECTION_ID.media} className="scroll-mt-[7.5rem] px-4 py-8">
           <div className="text-center">
             <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Media</p>
             <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">
@@ -856,7 +866,7 @@ export function MobileIndividualProfile({
       ) : null}
 
       <section
-        id="charts"
+        id={MOBILE_PROFILE_SECTION_ID.charts}
         className="scroll-mt-[7.5rem] border-y border-border-subtle bg-[linear-gradient(180deg,color-mix(in_srgb,var(--link)_7%,var(--bg)),color-mix(in_srgb,var(--link)_3%,var(--bg)))] px-4 py-8"
       >
         <div className="text-center">
@@ -871,7 +881,7 @@ export function MobileIndividualProfile({
       {hasNotes ? <MobileProfileNotes notes={notes} subjectName={person.fullName} /> : null}
 
       {hasResearch ? (
-        <section id="open-questions" className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
+        <section id={MOBILE_PROFILE_SECTION_ID.openQuestions} className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
           <div className="text-center">
             <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Research</p>
             <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Open questions</h2>
@@ -887,7 +897,7 @@ export function MobileIndividualProfile({
         </section>
       ) : null}
 
-      <section id="relationship" className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
+      <section id={MOBILE_PROFILE_SECTION_ID.relationship} className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
         <div className="text-center">
           <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Relationship</p>
           <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Find a Relationship</h2>

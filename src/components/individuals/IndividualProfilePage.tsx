@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Baby, CalendarDays, Dna, GitBranch, Heart, HelpCircle, Network, UsersRound } from "lucide-react";
+import { Baby, CalendarCheck, CalendarDays, Dna, GitBranch, HelpCircle, Network, UsersRound } from "lucide-react";
+import { formatPersonAgeLabel } from "@/lib/individuals/person-age";
 import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
@@ -28,13 +29,6 @@ function initials(name: string): string {
   const first = parts[0][0]?.toUpperCase() ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1][0]?.toUpperCase() ?? "") : "";
   return (first + last) || "?";
-}
-
-function summarizePartners(partners: PublicIndividualRelation[]): string | null {
-  if (partners.length === 0) return null;
-  const visible = partners.slice(0, 2).map((partner) => partner.fullName);
-  const remaining = partners.length - visible.length;
-  return remaining > 0 ? `${visible.join(", ")}, +${remaining}` : visible.join(", ");
 }
 
 function Portrait({ person, className }: { person: PublicIndividualProfile | PublicIndividualRelation; className?: string }) {
@@ -124,7 +118,12 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
   const hasNotes = notes.length > 0;
   const hasAssociates = associates.length > 0;
   const hasOpenQuestions = openQuestions.length > 0;
-  const partnerLabel = summarizePartners(partners);
+  const ageLabel = formatPersonAgeLabel({
+    birthDateLabel: person.birthDateLabel,
+    birthYear: person.birthYear,
+    deathDateLabel: person.deathDateLabel,
+    deathYear: person.deathYear,
+  });
   const childrenLabel = children.length > 0 ? `${children.length} recorded` : null;
   const contributeHref = contributionHref(person);
   const profileTabs = [
@@ -210,7 +209,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                   <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
                     <MetadataRow icon={Baby} label="Born" value={[person.birthDateLabel, person.birthPlace].filter(Boolean).join(" · ") || null} />
                     <MetadataRow icon={CalendarDays} label="Died" value={[person.deathDateLabel, person.deathPlace].filter(Boolean).join(" · ") || null} />
-                    <MetadataRow icon={Heart} label="Partner" value={partnerLabel} />
+                    <MetadataRow icon={CalendarCheck} label="Age" value={ageLabel} />
                     <MetadataRow icon={UsersRound} label="Children" value={childrenLabel} />
                   </div>
                 </div>
@@ -244,7 +243,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
         </div>
 
 
-        <Section id="overview" noPadding className="min-w-0 overflow-x-hidden pb-8 pt-2 md:py-12">
+        <Section id="overview" noPadding className="scroll-mt-28 min-w-0 overflow-x-hidden pb-8 pt-2 md:py-12">
           <PageContainer narrow>
             <aside className="rounded-2xl border border-border/80 bg-surface-elevated/90 p-5 shadow-[0_18px_48px_rgba(40,28,18,0.14)] sm:p-6 md:shadow-[0_8px_24px_rgba(60,45,25,0.06)]">
               <h2 className="font-heading text-2xl font-semibold text-heading">Quick Facts</h2>
@@ -255,7 +254,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
               </div>
             </aside>
 
-            <section id="family" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
+            <section id="family" className="scroll-mt-28 mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
               <div className="flex items-start justify-between gap-3 border-b border-border-subtle pb-4">
                 <div className="min-w-0">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Family</p>
@@ -292,7 +291,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             </section>
 
             {hasAssociates ? (
-              <section id="associates" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
+              <section id="associates" className="scroll-mt-28 mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
                 <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
                     <Network className="h-5 w-5" aria-hidden />
@@ -331,7 +330,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             ) : null}
 
             {linkedAccounts.length > 0 ? (
-              <section id="linked-accounts" className="mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
+              <section id="linked-accounts" className="scroll-mt-28 mt-6 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]">
                 <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
                     <UsersRound className="h-5 w-5" aria-hidden />
@@ -375,7 +374,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
           </PageContainer>
         </Section>
 
-        <Section id="events" className="min-w-0 overflow-x-hidden border-y border-border-subtle bg-[linear-gradient(180deg,rgba(129,89,58,0.07),rgba(129,89,58,0.03))] py-10 md:py-14">
+        <Section id="events" className="scroll-mt-28 min-w-0 overflow-x-hidden border-y border-border-subtle bg-[linear-gradient(180deg,rgba(129,89,58,0.07),rgba(129,89,58,0.03))] py-10 md:py-14">
           <PageContainer narrow>
             <div className="mb-6 text-center">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#8b2e2e]">Events</p>
@@ -389,7 +388,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
         </Section>
 
         {hasMedia ? (
-          <Section id="media" className="min-w-0 overflow-x-hidden py-10 md:py-14">
+          <Section id="media" className="scroll-mt-28 min-w-0 overflow-x-hidden py-10 md:py-14">
             <PageContainer narrow>
               <ProfileMediaSection xref={person.xref} individualId={person.id} />
             </PageContainer>
@@ -398,7 +397,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
 
         <Section
           id="charts"
-          className="min-w-0 overflow-x-hidden border-y border-border-subtle bg-[linear-gradient(180deg,rgba(129,89,58,0.07),rgba(129,89,58,0.03))] py-10 md:py-14"
+          className="scroll-mt-28 min-w-0 overflow-x-hidden border-y border-border-subtle bg-[linear-gradient(180deg,rgba(129,89,58,0.07),rgba(129,89,58,0.03))] py-10 md:py-14"
         >
           <PageContainer narrow>
             <div className="mb-6 text-center">
@@ -414,7 +413,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
             <PageContainer narrow>
               <section
                 id="open-questions"
-                className="rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]"
+                className="scroll-mt-28 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]"
               >
               <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">
@@ -452,7 +451,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
           <PageContainer narrow>
             <section
               id="relationship"
-              className="rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]"
+              className="scroll-mt-28 rounded-2xl border border-border/80 bg-surface/90 p-5 shadow-[0_20px_52px_rgba(40,28,18,0.15)] sm:p-6 md:shadow-[0_10px_26px_rgba(60,45,25,0.08)]"
             >
               <div className="mb-5 flex items-start gap-3 border-b border-border-subtle pb-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-link/20 bg-link-soft-bg text-link">

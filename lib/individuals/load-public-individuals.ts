@@ -21,6 +21,7 @@ import {
   individualDisplayPhotoMediaToPublicUrl,
   isRasterGedcomMediaForm,
 } from "@/lib/tree/individual-display-photo";
+import { personAgeYears } from "@/lib/individuals/person-age";
 import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
 import type {
   PublicIndividual,
@@ -137,12 +138,6 @@ function uniquePlaceLabels(labels: Array<string | null | undefined>): string[] {
     places.push(normalized);
   }
   return places;
-}
-
-function ageLabelYears(birthYear: number | null, deathYear: number | null): number | null {
-  if (birthYear == null) return null;
-  const endYear = deathYear ?? new Date().getFullYear();
-  return Math.max(0, endYear - birthYear);
 }
 
 function pedigreeLabelFromParentChildRows(rows: { relationshipType: string | null; pedigree: string | null }[]): string | null {
@@ -268,9 +263,11 @@ const PUBLIC_INDIVIDUAL_LIST_SELECT = {
   xref: true,
   fullName: true,
   birthYear: true,
+  birthDateDisplay: true,
   birthPlaceDisplay: true,
   birthPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
   deathYear: true,
+  deathDateDisplay: true,
   deathPlaceDisplay: true,
   deathPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
   ageAtDeath: true,
@@ -280,10 +277,12 @@ const PUBLIC_INDIVIDUAL_LIST_SELECT = {
   sex: true,
   gender: true,
   individualEvents: {
-    where: { event: { eventType: "RESI" } },
+    where: { event: { eventType: { in: ["RESI", "DEAT"] } } },
     select: {
       event: {
         select: {
+          eventType: true,
+          cause: true,
           date: { select: { year: true, month: true, day: true } },
           place: { select: GEDCOM_PLACE_DISPLAY_SELECT },
           value: true,
@@ -303,9 +302,11 @@ type PublicIndividualListRow = {
   xref: string;
   fullName: string | null;
   birthYear: number | null;
+  birthDateDisplay: string | null;
   birthPlaceDisplay: string | null;
   birthPlace: GedcomPlaceDisplayRow | null;
   deathYear: number | null;
+  deathDateDisplay: string | null;
   deathPlaceDisplay: string | null;
   deathPlace: GedcomPlaceDisplayRow | null;
   ageAtDeath: number | null;
@@ -316,6 +317,8 @@ type PublicIndividualListRow = {
   gender: string | null;
   individualEvents: Array<{
     event: {
+      eventType: string;
+      cause: string | null;
       date: { year: number | null; month: number | null; day: number | null } | null;
       place: GedcomPlaceDisplayRow | null;
       value: string | null;
@@ -324,11 +327,20 @@ type PublicIndividualListRow = {
   familyPartnerships: Array<{ family: { childrenCount: number } }>;
 };
 
+function hasRecordedDeathCause(
+  individualEvents: PublicIndividualListRow["individualEvents"],
+): boolean {
+  return individualEvents.some(
+    (link) => link.event.eventType.toUpperCase() === "DEAT" && Boolean(link.event.cause?.trim()),
+  );
+}
+
 function mapPublicIndividualListRow(
   r: PublicIndividualListRow,
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
 ): PublicIndividual {
   const residences = [...r.individualEvents]
+    .filter(({ event }) => event.eventType.toUpperCase() === "RESI")
     .map(({ event }) => ({
       label: fullPlaceLabel(event.place, event.value),
       year: event.date?.year ?? Number.NEGATIVE_INFINITY,
@@ -352,7 +364,14 @@ function mapPublicIndividualListRow(
     deathYear: r.deathYear ?? null,
     currentLocationLabel: placeLabels[0] ?? null,
     placeLabels,
-    age: r.ageAtDeath ?? ageLabelYears(r.birthYear ?? null, r.deathYear ?? null),
+    age:
+      r.ageAtDeath ??
+      personAgeYears({
+        birthDateLabel: r.birthDateDisplay ?? (r.birthYear != null ? String(r.birthYear) : null),
+        birthYear: r.birthYear ?? null,
+        deathDateLabel: r.deathDateDisplay ?? (r.deathYear != null ? String(r.deathYear) : null),
+        deathYear: r.deathYear ?? null,
+      }),
     childrenCount,
     role: inferRole({
       sex: r.sex ?? null,
@@ -364,6 +383,7 @@ function mapPublicIndividualListRow(
     sex: r.sex ?? null,
     hasPartner: Boolean(r.hasSpouse),
     hasChildren: Boolean(r.hasChildren),
+    hasDeathCause: hasRecordedDeathCause(r.individualEvents),
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
   };
 }
@@ -1051,7 +1071,14 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
     deathYear: r.deathYear ?? null,
     currentLocationLabel: placeLabels[0] ?? null,
     placeLabels,
-    age: r.ageAtDeath ?? ageLabelYears(r.birthYear ?? null, r.deathYear ?? null),
+    age:
+      r.ageAtDeath ??
+      personAgeYears({
+        birthDateLabel: r.birthDateDisplay ?? (r.birthYear ? String(r.birthYear) : null),
+        birthYear: r.birthYear ?? null,
+        deathDateLabel: r.deathDateDisplay ?? (r.deathYear ? String(r.deathYear) : null),
+        deathYear: r.deathYear ?? null,
+      }),
     childrenCount: children.length,
     role,
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
