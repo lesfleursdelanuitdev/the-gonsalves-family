@@ -577,6 +577,7 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
           id: true,
           eventType: true,
           customType: true,
+          cause: true,
           value: true,
           date: { select: { original: true, year: true, month: true, day: true } },
           place: { select: GEDCOM_PLACE_DISPLAY_SELECT },
@@ -1098,6 +1099,9 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
     sex: r.sex ?? null,
     hasPartner: Boolean(r.hasSpouse),
     hasChildren: Boolean(r.hasChildren),
+    hasDeathCause: directEventRows.some(
+      ({ event }) => event.eventType.toUpperCase() === "DEAT" && Boolean(event.cause?.trim()),
+    ),
     religion: r.religion ?? null,
     occupation: r.occupation ?? null,
     nationality: r.nationality ?? null,
