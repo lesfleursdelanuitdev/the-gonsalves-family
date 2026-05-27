@@ -83,7 +83,7 @@ export function StoryCover({
           style={{ background: "linear-gradient(to top, rgba(0,0,0,0.22) 0%, transparent 50%)" }}
         />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pb-10 pt-16 md:pb-14 md:pt-20">
-          <div className="relative -mb-10 mt-4 md:-mb-12">
+          <div className="relative -mb-10 mt-16 md:-mb-12 md:mt-20">
             {profileSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

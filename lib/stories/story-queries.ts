@@ -81,3 +81,23 @@ export function prismaKindToPublic(kind: StoryKind): "story" | "article" | "post
   if (kind === StoryKind.folklore) return "folklore";
   return "story";
 }
+
+const STORY_LIST_INCLUDE = {
+  author: { select: { id: true, name: true, username: true } },
+} satisfies Prisma.StoryInclude;
+
+export type StoryListItem = Prisma.StoryGetPayload<{ include: typeof STORY_LIST_INCLUDE }>;
+
+export async function fetchPublishedStoriesList(kinds: StoryKind[]): Promise<StoryListItem[]> {
+  const treeId = requirePublicTreeId();
+  return prisma.story.findMany({
+    where: {
+      treeId,
+      kind: { in: kinds },
+      deletedAt: null,
+      status: StoryStatus.published,
+    },
+    include: STORY_LIST_INCLUDE,
+    orderBy: { updatedAt: "desc" },
+  });
+}

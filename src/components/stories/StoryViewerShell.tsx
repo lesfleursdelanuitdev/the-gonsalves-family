@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArticleView, ViewerPageRenderer } from "@/components/stories/StoryViewerPages";
+import { Crest } from "@/components/wireframe/Crest";
+import { cn } from "@/lib/utils";
 import type { ViewerPage, ViewerTocEntry } from "@/lib/stories/story-viewer-utils";
 import "./story-viewer.css";
 
@@ -16,7 +18,7 @@ type CoverMeta = {
   pages: number | null;
   coverSrc: string | null;
   coverCaption: string | null;
-  credits: { role: string; name: string; note?: string | null }[];
+  credits: { role: string | null; name: string; note?: string | null }[];
 };
 
 type StoryFields = { title: string; subtitle: string; author: string };
@@ -46,7 +48,7 @@ function Topbar({
         >
           {tocOpen ? "‹" : "›"}
         </button>
-        <div className="sv-brand-mark" aria-hidden><em>G</em></div>
+        <Crest size="xs" alt="Gonsalves family crest" />
         <span>StoryViewer · The Family Archive</span>
       </div>
 
@@ -137,7 +139,7 @@ function TocSidebar({
         <div className="sv-toc-credits">
           {meta.credits.map((c, i) => (
             <div key={i} className="sv-toc-credit">
-              <span className="sv-toc-credit-role">{c.role}</span>
+              {c.role ? <span className="sv-toc-credit-role">{c.role}</span> : null}
               <span className="sv-toc-credit-name">{c.name}</span>
             </div>
           ))}
@@ -219,11 +221,17 @@ function Byline({ credits, hide }: { credits: CoverMeta["credits"]; hide: boolea
   return (
     <div className="sv-byline" aria-label="Authorship">
       {credits.map((c, i) => (
-        <span key={i} className="sv-byline-credit">
-          <span className="sv-byline-role">{c.role}</span>
-          <span className="sv-byline-name">{c.name}</span>
-          {i < credits.length - 1 ? <span className="sv-byline-sep">◦</span> : null}
-        </span>
+        <Fragment key={i}>
+          {i > 0 ? (
+            <span className="sv-byline-sep" aria-hidden>
+              ◦
+            </span>
+          ) : null}
+          <span className="sv-byline-credit">
+            {c.role ? <span className="sv-byline-role">{c.role}</span> : null}
+            <span className="sv-byline-name">{c.name}</span>
+          </span>
+        </Fragment>
       ))}
     </div>
   );
@@ -465,20 +473,27 @@ export function StoryViewerShell({
   const isCover = cur?.pageKind === "cover";
 
   return (
-    <div className="sv-root">
-      <div className="sv-grid" data-toc={tocOpen ? "1" : "0"} data-view={viewMode}>
-        {/* Topbar */}
-        <div className="sv-topbar-slot">
-          <Topbar
-            tocOpen={tocOpen}
-            viewMode={viewMode}
-            onToggleToc={() => setTocOpen((o) => !o)}
-            onChangeView={changeView}
-          />
-        </div>
+    <div className="sv-root fixed inset-0 z-0 flex h-dvh max-h-dvh flex-col overflow-hidden">
+      <div className="sv-topbar-slot shrink-0">
+        <Topbar
+          tocOpen={tocOpen}
+          viewMode={viewMode}
+          onToggleToc={() => setTocOpen((o) => !o)}
+          onChangeView={changeView}
+        />
+      </div>
 
-        {/* TOC */}
-        <div className="sv-toc-slot">
+      <div
+        className="sv-body flex min-h-0 flex-1 flex-row overflow-hidden"
+        data-toc={tocOpen ? "1" : "0"}
+        data-view={viewMode}
+      >
+        <div
+          className={cn(
+            "sv-toc-slot h-full min-h-0 shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
+            tocOpen ? "w-[280px]" : "pointer-events-none w-0",
+          )}
+        >
           <TocSidebar
             meta={meta}
             toc={toc}
@@ -490,8 +505,7 @@ export function StoryViewerShell({
           />
         </div>
 
-        {/* Stage */}
-        <div className="sv-stage-slot">
+        <div className="sv-stage-slot min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
           {viewMode === "story" ? (
             <div className="sv-stage">
               {/* Breadcrumb + folio header */}
@@ -521,12 +535,6 @@ export function StoryViewerShell({
                   )}
                 </div>
                 <div>
-                  {cur?.pageKind !== "cover" ? (
-                    <>
-                      <span>Folio {(cur as { folio?: number }).folio ?? "—"}</span>
-                      <span className="sep">·</span>
-                    </>
-                  ) : null}
                   <span>{pageIdx + 1} / {total}</span>
                 </div>
               </div>

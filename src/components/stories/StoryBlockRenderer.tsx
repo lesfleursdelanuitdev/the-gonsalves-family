@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { JSONContent } from "@tiptap/core";
 import { PublicStoryTimelineEmbed } from "@/components/stories/PublicStoryTimelineEmbed";
+import { PublicStoryMediaBlock } from "@/components/stories/PublicStoryMediaBlock";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
 import { renderStoryRichTextToHtml } from "@/lib/stories/render-story-rich-text";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
@@ -14,6 +15,11 @@ const EMBED_LABELS: Record<string, string> = {
   map: "Map",
   tree: "Tree",
   graph: "Graph",
+  recipe: "Recipe",
+  gallery: "Gallery",
+  personSpotlight: "Person spotlight",
+  familyGroup: "Family group",
+  event: "Event",
 };
 
 function EmbedPlaceholder({ label }: { label: string }) {
@@ -82,9 +88,17 @@ function VerseBlock({ block, storyFieldHtml }: { block: ReaderStoryBlock; storyF
   const docText = textFromTipTapDoc(block.doc);
   const content = typeof block.verseContent === "string" ? block.verseContent : docText;
   const lines = content ? content.split(/\r?\n/) : [];
-  const richLineHtml = docText.trim()
-    ? lineDocsFromTipTapDoc(block.doc).map((lineDoc) => renderStoryRichTextToHtml(lineDoc, storyFieldHtml))
-    : [];
+  const [richLineHtml, setRichLineHtml] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!docText.trim()) {
+      setRichLineHtml([]);
+      return;
+    }
+    setRichLineHtml(
+      lineDocsFromTipTapDoc(block.doc).map((lineDoc) => renderStoryRichTextToHtml(lineDoc, storyFieldHtml)),
+    );
+  }, [block.doc, docText, storyFieldHtml]);
   const contentAlign = block.verseContentAlign;
   const staggered = block.verseLineLayout === "staggered";
   const gap = block.verseSpacing === "compact" ? "gap-0.5" : "gap-2";
@@ -141,11 +155,19 @@ export function StoryBlockRenderer({
     return undefined;
   }, [storyFieldHtml, storyFields]);
 
-  const html = useMemo(() => {
-    if (block.type !== "richText") return "";
+  const [html, setHtml] = useState("");
+
+  useEffect(() => {
+    if (block.type !== "richText") {
+      setHtml("");
+      return;
+    }
     const doc = block.doc as JSONContent | undefined;
-    if (!doc) return "";
-    return renderStoryRichTextToHtml(doc, resolvedFieldHtml);
+    if (!doc) {
+      setHtml("");
+      return;
+    }
+    setHtml(renderStoryRichTextToHtml(doc, resolvedFieldHtml));
   }, [block, resolvedFieldHtml]);
 
   const wrap = (inner: ReactNode) => (
@@ -164,7 +186,7 @@ export function StoryBlockRenderer({
     }
     return wrap(
       <div
-        className="story-rich-text prose prose-neutral max-w-none text-text dark:prose-invert"
+        className="story-rich-text max-w-none text-text"
         dangerouslySetInnerHTML={{ __html: html }}
       />,
     );
@@ -175,35 +197,31 @@ export function StoryBlockRenderer({
     const supporting = block.supporting as { blocks?: ReaderStoryBlock[] } | undefined;
     const supportBlocks = supporting?.blocks ?? [];
     const supportPct = typeof block.supportingWidthPct === "number" ? block.supportingWidthPct : 35;
-    const textPct = 100 - supportPct;
-    const isLeft = block.supportingSide === "left";
+    const floatDir = block.supportingSide === "left" ? "left" : "right";
     return wrap(
-      <div className={`my-4 flex gap-6 ${isLeft ? "flex-row-reverse" : "flex-row"}`}>
-        <div style={{ flexBasis: `${textPct}%` }} className="min-w-0 shrink">
-          {textBlock ? <StoryBlockRenderer block={textBlock} storyFieldHtml={resolvedFieldHtml} /> : null}
-        </div>
+      <div className="my-4" style={{ overflow: "hidden" }}>
         {supportBlocks.length > 0 ? (
-          <div style={{ flexBasis: `${supportPct}%` }} className="shrink-0">
+          <div
+            style={{
+              float: floatDir,
+              width: `${supportPct}%`,
+              marginLeft: floatDir === "right" ? "1.5rem" : 0,
+              marginRight: floatDir === "left" ? "1.5rem" : 0,
+              marginBottom: "0.5rem",
+            }}
+          >
             {supportBlocks.map((b, i) => (
               <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} />
             ))}
           </div>
         ) : null}
+        {textBlock ? <StoryBlockRenderer block={textBlock} storyFieldHtml={resolvedFieldHtml} /> : null}
       </div>,
     );
   }
 
   if (block.type === "media") {
-    const label = typeof block.label === "string" && block.label.trim() ? block.label.trim() : "Image";
-    const caption = typeof block.caption === "string" ? block.caption.trim() : "";
-    return wrap(
-      <figure className="my-6">
-        <div className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-border bg-surface-2/50 px-4 py-8 text-sm text-text/60">
-          {label}
-        </div>
-        {caption ? <figcaption className="mt-2 text-center text-xs text-text/55">{caption}</figcaption> : null}
-      </figure>,
-    );
+    return wrap(<PublicStoryMediaBlock block={block} />);
   }
 
   if (block.type === "embed") {

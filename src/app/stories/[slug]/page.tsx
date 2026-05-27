@@ -1,9 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { StoryKind } from "@ligneous/prisma";
 import { StoryViewerShell } from "@/components/stories/StoryViewerShell";
-import { StoryArticlePage } from "@/components/stories/StoryArticlePage";
 import { fetchPublishedStoryBySlug } from "@/lib/stories/story-queries";
-import { formatPublicAuthorLines, parseStoryBodyMeta } from "@/lib/stories/story-public-meta";
+import { parseStoryBodyMeta, publicAuthorCredits } from "@/lib/stories/story-public-meta";
 import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
 import { buildViewerPages, buildViewerToc } from "@/lib/stories/story-viewer-utils";
 
@@ -22,7 +21,7 @@ export default async function StoryPublicPage(props: { params: Promise<{ slug: s
   if (!story) notFound();
 
   if (ARTICLE_KINDS.has(story.kind)) {
-    return <StoryArticlePage story={story} urlSlug={slug} />;
+    redirect(`/culture/articles/${encodeURIComponent(story.slug ?? slug)}`);
   }
 
   if (!STORY_KINDS.has(story.kind)) {
@@ -40,7 +39,6 @@ export default async function StoryPublicPage(props: { params: Promise<{ slug: s
   ]);
 
   const authorDb = story.author?.name?.trim() || story.author?.username?.trim() || null;
-  const authorLines = formatPublicAuthorLines(meta, authorDb);
 
   const pages = buildViewerPages(story);
   const toc = buildViewerToc(pages);
@@ -55,7 +53,7 @@ export default async function StoryPublicPage(props: { params: Promise<{ slug: s
     pages: null,
     coverSrc: hero.coverSrc,
     coverCaption: null,
-    credits: authorLines.map((line) => ({ role: "By", name: line })),
+    credits: publicAuthorCredits(meta, authorDb),
   };
 
   const storyFields = {

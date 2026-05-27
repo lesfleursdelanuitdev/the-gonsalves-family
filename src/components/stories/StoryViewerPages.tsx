@@ -38,7 +38,7 @@ type CoverMeta = {
   pages: number | null;
   coverSrc: string | null;
   coverCaption: string | null;
-  credits: { role: string; name: string; note?: string | null }[];
+  credits: { role: string | null; name: string; note?: string | null }[];
 };
 
 export function CoverPage({ page, meta }: { page: ViewerCoverPage; meta: CoverMeta }) {
@@ -71,7 +71,7 @@ export function CoverPage({ page, meta }: { page: ViewerCoverPage; meta: CoverMe
         <div className="sv-cover-credits">
           {meta.credits.map((c, i) => (
             <div key={i} className="sv-credit">
-              <div className="sv-credit-role">{c.role}</div>
+              {c.role ? <div className="sv-credit-role">{c.role}</div> : null}
               <div className="sv-credit-name">{c.name}</div>
               {c.note ? <div className="sv-credit-note">{c.note}</div> : null}
             </div>
@@ -97,17 +97,19 @@ export function ChapterOpenerPage({ page }: { page: ViewerChapterOpenerPage }) {
       <RegMarks />
       <div className="sv-running-head">{page.chapterNumber}</div>
 
-      <div className="sv-chapter-num-block">
-        <span className="ch-label">{page.chapterNumber.toUpperCase()}</span>
-        <span>·</span>
-        <span>p. {page.folio}</span>
+      <div className="sv-chapter-body">
+        <div className="sv-chapter-num-block">
+          <span className="ch-label">{page.chapterNumber.toUpperCase()}</span>
+          <span>·</span>
+          <span>p. {page.folio}</span>
+        </div>
+
+        <h2 className="sv-chapter-title" dangerouslySetInnerHTML={{ __html: page.title }} />
+
+        {page.subtitle ? (
+          <p className="sv-chapter-dek">{page.subtitle}</p>
+        ) : null}
       </div>
-
-      <h2 className="sv-chapter-title" dangerouslySetInnerHTML={{ __html: page.title }} />
-
-      {page.subtitle ? (
-        <p className="sv-chapter-dek">{page.subtitle}</p>
-      ) : null}
 
       <div className="sv-folio">— {page.folio} —</div>
     </article>
@@ -259,7 +261,7 @@ export function ArticleView({
           <div className="sv-article-credits">
             {meta.credits.map((c, i) => (
               <div key={i} className="sv-article-credit">
-                <span className="sv-credit-role">{c.role}</span>
+                {c.role ? <span className="sv-credit-role">{c.role}</span> : null}
                 <span className="sv-credit-name">{c.name}</span>
                 {c.note ? <span className="sv-credit-note">{c.note}</span> : null}
               </div>

@@ -61,16 +61,46 @@ export function parseStoryBodyMeta(body: string | null | undefined): StoryBodyMe
   }
 }
 
+export type PublicStoryAuthorCredit = {
+  role: string | null;
+  name: string;
+};
+
+/** Role label for split credit UI (TOC, byline, cover). */
+export function publicAuthorCreditRole(c: ParsedStoryAuthor): string | null {
+  const mode = c.authorPrefixMode ?? "by";
+  if (mode === "none") return null;
+  if (mode === "by") return "By";
+  if (mode === "author_label") return "Author:";
+  const custom = (c.authorPrefixCustom ?? "").trim();
+  return custom || null;
+}
+
+/** Structured credits for story viewer chrome (role + name, not a combined line). */
+export function publicAuthorCredits(
+  meta: StoryBodyMetaParsed,
+  dbAuthorName: string | null | undefined,
+): PublicStoryAuthorCredit[] {
+  let credits = meta.authors;
+  if (credits.length === 0) {
+    const n = dbAuthorName?.trim();
+    if (n) credits = [{ name: n, authorPrefixMode: "by" }];
+  }
+  return credits
+    .map((c) => {
+      const name = c.name?.trim();
+      if (!name) return null;
+      return { role: publicAuthorCreditRole(c), name };
+    })
+    .filter((c): c is PublicStoryAuthorCredit => c != null);
+}
+
 function formatPublicAuthorCreditLine(c: ParsedStoryAuthor): string | null {
   const name = c.name?.trim();
   if (!name) return null;
-  const mode = c.authorPrefixMode ?? "by";
-  if (mode === "none") return name;
-  if (mode === "by") return `By ${name}`;
-  if (mode === "author_label") return `Author: ${name}`;
-  const custom = (c.authorPrefixCustom ?? "").trim();
-  if (!custom) return name;
-  return /\s$/.test(custom) ? `${custom}${name}` : `${custom} ${name}`;
+  const role = publicAuthorCreditRole(c);
+  if (!role) return name;
+  return /\s$/.test(role) ? `${role}${name}` : `${role} ${name}`;
 }
 
 export function formatPublicAuthorLines(meta: StoryBodyMetaParsed, dbAuthorName: string | null | undefined): string[] {

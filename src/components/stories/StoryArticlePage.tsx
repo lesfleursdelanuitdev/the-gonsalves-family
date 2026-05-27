@@ -2,6 +2,8 @@ import Link from "next/link";
 import { StoryBlockRenderer } from "@/components/stories/StoryBlockRenderer";
 import { StoryCover } from "@/components/stories/StoryCover";
 import { StoryTocNav } from "@/components/stories/StoryTocNav";
+import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
+import { Footer } from "@/components/homepage";
 import type { StoryPublicPayload } from "@/lib/stories/story-queries";
 import { formatPublicAuthorLine, parseStoryBodyMeta } from "@/lib/stories/story-public-meta";
 import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
@@ -23,7 +25,7 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
 
   const siteBase = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gonsalves.family").replace(/\/$/, "");
   const pathSlug = story.slug ?? urlSlug;
-  const canonicalUrl = `${siteBase}/stories/${encodeURIComponent(pathSlug)}`;
+  const canonicalUrl = `${siteBase}/culture/articles/${encodeURIComponent(pathSlug)}`;
 
   const storyFields = {
     title: story.title,
@@ -37,6 +39,7 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
 
   return (
     <>
+      <Navbar />
       <StoryCover
         coverSrc={hero.coverSrc}
         profileSrc={hero.profileSrc}
@@ -56,14 +59,14 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
           </Link>
         </div>
       ) : null}
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-[240px_minmax(0,1fr)_minmax(0,0.35fr)]">
-        <aside className="hidden lg:block">
+      <div className="flex gap-8 px-8 py-10">
+        <aside className="hidden lg:block w-60 shrink-0">
           <div className="sticky top-24">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text/45">On this page</p>
             <StoryTocNav slug={pathSlug} entries={toc} />
           </div>
         </aside>
-        <main className="min-w-0">
+        <main className="min-w-0 flex-1">
           {flatSections.map((sec) => (
             <section key={sec.id} id={`section-${sec.id}`} className="mb-14 scroll-mt-28">
               {!sec.hideTitle ? <h2 className="font-display text-2xl font-semibold text-text">{sec.title}</h2> : null}
@@ -76,9 +79,9 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
             </section>
           ))}
         </main>
-        <div className="hidden lg:block" />
       </div>
       <StoryTocNav slug={pathSlug} entries={toc} mobileFloating />
+      <Footer />
     </>
   );
 }

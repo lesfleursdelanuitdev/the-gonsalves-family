@@ -8,6 +8,8 @@ export function renderStoryRichTextToHtml(
   doc: JSONContent | Record<string, unknown>,
   storyFieldHtml?: (field: StoryFieldKey) => string,
 ): string {
+  // TipTap's generateHTML uses the DOM (document.implementation) — client only.
+  if (typeof document === "undefined") return "";
   const exts = storyFieldHtml ? createStoryTipTapReadExtensions({ storyFieldHtml }) : extensions;
   return generateHTML(doc as JSONContent, exts);
 }
