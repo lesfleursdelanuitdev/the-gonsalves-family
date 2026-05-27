@@ -295,7 +295,7 @@ const PUBLIC_INDIVIDUAL_LIST_SELECT = {
       family: { select: { childrenCount: true } },
     },
   },
-} as const;
+};
 
 type PublicIndividualListRow = {
   id: string;
