@@ -423,6 +423,12 @@ export function StoryViewerShell({
 
   const cur = enrichedPages[pageIdx];
 
+  // A body/essay page is loading when its sectionId is not yet in the cache.
+  const isCurrentPageLoading =
+    !!cur && (cur.pageKind === "body" || cur.pageKind === "essay") && !blockCache[cur.sectionId];
+
+  const loadedSectionIds = useMemo(() => new Set(Object.keys(blockCache)), [blockCache]);
+
   const setQuery = useCallback(
     (next: Record<string, string | undefined>) => {
       const p = new URLSearchParams(sp.toString());
@@ -640,13 +646,14 @@ export function StoryViewerShell({
         {viewMode === "story" ? (
           <div className="sv-stage">
             <Byline credits={meta.credits} hide={isCover} />
-            {cur ? <ViewerPageRenderer page={cur} meta={meta} fields={fields} /> : null}
+            {cur ? <ViewerPageRenderer page={cur} meta={meta} fields={fields} loading={isCurrentPageLoading} /> : null}
           </div>
         ) : (
           <ArticleView
             pages={enrichedPages}
             meta={meta}
             fields={fields}
+            loadedSectionIds={loadedSectionIds}
             registerSection={registerSection}
           />
         )}

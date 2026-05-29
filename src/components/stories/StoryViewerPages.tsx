@@ -4,6 +4,20 @@ import { StoryBlockRenderer } from "@/components/stories/StoryBlockRenderer";
 import type { ViewerCoverPage, ViewerChapterOpenerPage, ViewerBodyPage, ViewerEssayPage, ViewerPage } from "@/lib/stories/story-viewer-utils";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 
+function BlocksSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3 py-2" aria-hidden aria-label="Loading content">
+      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "100%" }} />
+      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "92%" }} />
+      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "86%" }} />
+      <div className="mt-5 h-4 rounded bg-current opacity-[0.08]" style={{ width: "100%" }} />
+      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "95%" }} />
+      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "80%" }} />
+      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "89%" }} />
+    </div>
+  );
+}
+
 type StoryFields = { title: string; subtitle: string; author: string };
 type StoryFieldFn = (field: StoryFieldKey) => string;
 
@@ -109,18 +123,24 @@ export function ChapterOpenerPage({ page }: { page: ViewerChapterOpenerPage }) {
 export function BodyPage({
   page,
   fields,
+  loading,
 }: {
   page: ViewerBodyPage;
   fields: StoryFields;
+  loading?: boolean;
 }) {
   const storyFieldHtml = makeFieldFn(fields);
   return (
     <article className="sv-page-card">
       <div className="sv-running-head">{page.title}</div>
       <div className="sv-prose">
-        {page.blocks.map((b, i) => (
-          <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
-        ))}
+        {loading ? (
+          <BlocksSkeleton />
+        ) : (
+          page.blocks.map((b, i) => (
+            <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
+          ))
+        )}
       </div>
       <div className="sv-folio">— {page.folio} —</div>
     </article>
@@ -132,9 +152,11 @@ export function BodyPage({
 export function EssayPage({
   page,
   fields,
+  loading,
 }: {
   page: ViewerEssayPage;
   fields: StoryFields;
+  loading?: boolean;
 }) {
   const storyFieldHtml = makeFieldFn(fields);
   return (
@@ -150,9 +172,13 @@ export function EssayPage({
       ) : null}
 
       <div className="sv-prose">
-        {page.blocks.map((b, i) => (
-          <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
-        ))}
+        {loading ? (
+          <BlocksSkeleton />
+        ) : (
+          page.blocks.map((b, i) => (
+            <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
+          ))
+        )}
       </div>
 
       <div className="sv-folio">— {page.folio} —</div>
@@ -166,15 +192,17 @@ export function ViewerPageRenderer({
   page,
   meta,
   fields,
+  loading,
 }: {
   page: ViewerPage;
   meta: CoverMeta;
   fields: StoryFields;
+  loading?: boolean;
 }) {
   if (page.pageKind === "cover") return <CoverPage page={page} meta={meta} />;
   if (page.pageKind === "chapter-opener") return <ChapterOpenerPage page={page} />;
-  if (page.pageKind === "body") return <BodyPage page={page} fields={fields} />;
-  if (page.pageKind === "essay") return <EssayPage page={page} fields={fields} />;
+  if (page.pageKind === "body") return <BodyPage page={page} fields={fields} loading={loading} />;
+  if (page.pageKind === "essay") return <EssayPage page={page} fields={fields} loading={loading} />;
   return null;
 }
 
@@ -209,11 +237,13 @@ export function ArticleView({
   pages,
   meta,
   fields,
+  loadedSectionIds,
   registerSection,
 }: {
   pages: ViewerPage[];
   meta: CoverMeta;
   fields: StoryFields;
+  loadedSectionIds?: Set<string>;
   registerSection?: (id: string, el: HTMLElement | null) => void;
 }) {
   const storyFieldHtml = makeFieldFn(fields);
@@ -273,6 +303,7 @@ export function ArticleView({
       {/* Sections */}
       {sections.map((s) => {
         if (s.kind === "chapter") {
+          const isLoading = s.bodies.some((b) => loadedSectionIds && !loadedSectionIds.has(b.sectionId));
           const allBlocks = s.bodies.flatMap((b) => b.blocks);
           return (
             <section
@@ -295,15 +326,20 @@ export function ArticleView({
                 ) : null}
               </header>
               <div className="sv-prose">
-                {allBlocks.map((b, i) => (
-                  <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
-                ))}
+                {isLoading ? (
+                  <BlocksSkeleton />
+                ) : (
+                  allBlocks.map((b, i) => (
+                    <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
+                  ))
+                )}
               </div>
             </section>
           );
         }
 
         const p = s.page;
+        const isLoading = loadedSectionIds ? !loadedSectionIds.has(p.sectionId) : false;
         return (
           <section
             key={s.id}
@@ -316,9 +352,13 @@ export function ArticleView({
               {!p.hideTitle ? <h2 className="sv-article-essay-title">{p.title}</h2> : null}
             </header>
             <div className="sv-prose">
-              {p.blocks.map((b, i) => (
-                <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
-              ))}
+              {isLoading ? (
+                <BlocksSkeleton />
+              ) : (
+                p.blocks.map((b, i) => (
+                  <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={storyFieldHtml} />
+                ))
+              )}
             </div>
           </section>
         );
