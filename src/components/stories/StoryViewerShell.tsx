@@ -1,10 +1,10 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArticleView, ViewerPageRenderer } from "@/components/stories/StoryViewerPages";
-import { Crest } from "@/components/wireframe/Crest";
 import { cn } from "@/lib/utils";
+import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
 import type { ViewerPage, ViewerTocEntry } from "@/lib/stories/story-viewer-utils";
 import "./story-viewer.css";
 
@@ -28,189 +28,234 @@ type StoryFields = { title: string; subtitle: string; author: string };
 function Topbar({
   tocOpen,
   viewMode,
+  idle,
+  title,
   onToggleToc,
   onChangeView,
 }: {
   tocOpen: boolean;
   viewMode: "story" | "article";
+  idle: boolean;
+  title: string;
   onToggleToc: () => void;
   onChangeView: (v: "story" | "article") => void;
 }) {
   return (
-    <header className="sv-topbar">
-      {/* Left: toggle + brand */}
-      <div className="sv-brand">
+    <header className={cn("sv-topbar", idle && "sv-chrome-idle")}>
+      {/* Left: hamburger + eyebrow */}
+      <div className="sv-topbar-left">
         <button
           type="button"
-          className="sv-toc-toggle"
+          className="sv-icon-btn"
           onClick={onToggleToc}
           aria-label={tocOpen ? "Hide contents" : "Show contents"}
         >
-          {tocOpen ? "‹" : "›"}
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden width="16" height="16">
+            <path d="M3 4h10M3 8h10M3 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
         </button>
-        <Crest size="xs" alt="Gonsalves family crest" />
-        <span>StoryViewer · The Family Archive</span>
+        <span className="sv-brand-eyebrow">The Family Archive</span>
       </div>
 
-      {/* Center: view toggle */}
-      <div className="sv-view-toggle" role="radiogroup" aria-label="View mode">
-        <div
-          className="sv-vt-thumb"
-          style={{ left: viewMode === "story" ? "3px" : "calc(50%)" }}
-          aria-hidden
-        />
-        <button
-          type="button"
-          role="radio"
-          aria-checked={viewMode === "story"}
-          data-active={viewMode === "story" ? "1" : "0"}
-          onClick={() => onChangeView("story")}
-        >
-          <svg viewBox="0 0 16 16" aria-hidden fill="none">
-            <rect x="3" y="3" width="10" height="11" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <path d="M5.5 6h5M5.5 8h5M5.5 10h3.5" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
-          </svg>
-          Story
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={viewMode === "article"}
-          data-active={viewMode === "article" ? "1" : "0"}
-          onClick={() => onChangeView("article")}
-        >
-          <svg viewBox="0 0 16 16" aria-hidden fill="none">
-            <path d="M3 3h10M3 5.5h10M3 7.5h7M3 9.5h10M3 11.5h10M3 13.5h6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-          </svg>
-          Article
-        </button>
+      {/* Center: crest + title */}
+      <div className="sv-topbar-center">
+        <span className="sv-crest-mark" aria-hidden>G</span>
+        <span className="sv-topbar-title">{title}</span>
       </div>
 
-      {/* Right: chrome actions */}
+      {/* Right: view toggle (desktop) + share */}
       <div className="sv-topbar-right">
-        <button type="button" className="sv-tb-item" aria-label="Share">
-          <svg viewBox="0 0 16 16" aria-hidden fill="none">
+        <div className="sv-view-toggle" role="radiogroup" aria-label="View mode">
+          <div
+            className="sv-vt-thumb"
+            style={{ left: viewMode === "story" ? "3px" : "calc(50%)" }}
+            aria-hidden
+          />
+          <button
+            type="button"
+            role="radio"
+            aria-checked={viewMode === "story"}
+            data-active={viewMode === "story" ? "1" : "0"}
+            onClick={() => onChangeView("story")}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden fill="none" width="13" height="13">
+              <rect x="3" y="3" width="10" height="11" rx="0.5" stroke="currentColor" strokeWidth="1" />
+              <path d="M5.5 6h5M5.5 8h5M5.5 10h3.5" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+            </svg>
+            Story
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={viewMode === "article"}
+            data-active={viewMode === "article" ? "1" : "0"}
+            onClick={() => onChangeView("article")}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden fill="none" width="13" height="13">
+              <path d="M3 3h10M3 5.5h10M3 7.5h7M3 9.5h10M3 11.5h10M3 13.5h6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+            </svg>
+            Article
+          </button>
+        </div>
+        <button type="button" className="sv-icon-btn" aria-label="Share">
+          <svg viewBox="0 0 16 16" aria-hidden fill="none" width="16" height="16">
             <circle cx="4" cy="8" r="1.6" stroke="currentColor" strokeWidth="1.1" />
             <circle cx="12" cy="4" r="1.6" stroke="currentColor" strokeWidth="1.1" />
             <circle cx="12" cy="12" r="1.6" stroke="currentColor" strokeWidth="1.1" />
             <path d="M5.4 7.2 10.6 4.6M5.4 8.8l5.2 2.6" stroke="currentColor" strokeWidth="1.1" />
           </svg>
-          <span>Share</span>
         </button>
       </div>
     </header>
   );
 }
 
-// ── TOC sidebar ───────────────────────────────────────────────────────────────
+// ── TOC Drawer ────────────────────────────────────────────────────────────────
 
-function TocSidebar({
+function TocDrawer({
+  open,
   meta,
   toc,
   pages,
-  pageIdx,
   activeId,
   viewMode,
   onGo,
+  onClose,
+  onChangeView,
 }: {
+  open: boolean;
   meta: CoverMeta;
   toc: ViewerTocEntry[];
   pages: ViewerPage[];
-  pageIdx: number;
   activeId: string;
   viewMode: "story" | "article";
   onGo: (pageIndex: number) => void;
+  onClose: () => void;
+  onChangeView: (v: "story" | "article") => void;
 }) {
-  const total = pages.length;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   return (
-    <nav className="sv-toc" aria-label="Table of contents">
-      <div className="sv-toc-eyebrow">
-        <span>Contents</span>
-        {meta.pages ? <span>{meta.pages} pp.</span> : null}
-      </div>
-
-      <h3
-        className="sv-toc-title"
-        dangerouslySetInnerHTML={{ __html: meta.collection }}
+    <>
+      <div
+        className={cn("sv-drawer-backdrop", open && "sv-drawer-backdrop--open")}
+        onClick={onClose}
+        aria-hidden
       />
-
-      {meta.credits.length > 0 ? (
-        <div className="sv-toc-credits">
-          {meta.credits.map((c, i) => (
-            <div key={i} className="sv-toc-credit">
-              {c.role ? <span className="sv-toc-credit-role">{c.role}</span> : null}
-              <span className="sv-toc-credit-name">{c.name}</span>
+      <div
+        className={cn("sv-drawer", open && "sv-drawer--open")}
+        role="dialog"
+        aria-label="Table of contents"
+        aria-modal="true"
+      >
+        <div className="sv-drawer-header">
+          <div className="sv-drawer-eyebrow">
+            CONTENTS{meta.pages ? ` · ${meta.pages} pp.` : ""}
+          </div>
+          <h3 className="sv-drawer-title" dangerouslySetInnerHTML={{ __html: meta.collection }} />
+          {meta.credits.length > 0 ? (
+            <div className="sv-drawer-credits">
+              {meta.credits.map((c, i) => (
+                <div key={i} className="sv-drawer-credit">
+                  {c.role ? <span className="sv-drawer-credit-role">{c.role}</span> : null}
+                  <span className="sv-drawer-credit-name">{c.name}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : null}
+          <div className="sv-drawer-divider" />
         </div>
-      ) : null}
 
-      <div className="sv-toc-divider" />
-
-      <ul className="sv-toc-list">
-        {/* Cover row */}
-        <li>
-          <button
-            type="button"
-            className="sv-toc-item"
-            data-active={activeId === "cover" ? "1" : "0"}
-            onClick={() => onGo(0)}
-          >
-            <span className="sv-toc-num">00</span>
-            <span className="sv-toc-label">
-              <span className="kind">Cover</span>
-              <span className="ttl">Frontispiece</span>
-            </span>
-            <span className="sv-toc-folio">—</span>
-          </button>
-        </li>
-
-        {toc.map((row, i) => {
-          const isChapterActive =
-            row.kind === "chapter"
-              ? activeId === row.chapterId
-              : activeId === pages[row.pageIndex]?.id;
-
-          return (
-            <li key={`toc-${i}`}>
+        <nav className="sv-drawer-nav" aria-label="Table of contents">
+          <ul className="sv-drawer-list">
+            <li>
               <button
                 type="button"
-                className="sv-toc-item"
-                data-active={isChapterActive ? "1" : "0"}
-                onClick={() => onGo(row.pageIndex)}
+                className="sv-drawer-item"
+                data-active={activeId === "cover" ? "1" : "0"}
+                onClick={() => { onGo(0); onClose(); }}
               >
-                <span className="sv-toc-num">{String(i + 1).padStart(2, "0")}</span>
-                <span className="sv-toc-label">
-                  <span className="kind">{row.label}</span>
-                  <span className="ttl">{row.title}</span>
+                <span className="sv-drawer-folio sv-drawer-folio--left">—</span>
+                <span className="sv-drawer-label">
+                  <span className="kind">Cover</span>
+                  <span className="ttl">Frontispiece</span>
                 </span>
-                <span className="sv-toc-folio">{row.folio ?? "—"}</span>
+                <span className="sv-drawer-folio sv-drawer-folio--right">—</span>
               </button>
-
-              {/* Body page sub-rows (story mode only) */}
-              {viewMode === "story" && row.kind === "chapter" && row.children.length > 0 ? (
-                <ul className="sv-toc-sub-list">
-                  {row.children.map((ch, j) => (
-                    <li key={j}>
-                      <button
-                        type="button"
-                        className="sv-toc-sub"
-                        data-active={pageIdx === ch.pageIndex ? "1" : "0"}
-                        onClick={() => onGo(ch.pageIndex)}
-                      >
-                        <span>{ch.title.replace(/ — continued$/, "")} <span style={{ fontStyle: "normal", fontSize: "9px", color: "var(--sv-ink-quiet)" }}>cont.</span></span>
-                        <span className="f">{ch.folio}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </li>
-          );
-        })}
-      </ul>
-    </nav>
+            {toc.map((row, i) => {
+              const isActive =
+                row.kind === "chapter"
+                  ? activeId === row.chapterId
+                  : activeId === pages[row.pageIndex]?.id;
+              return (
+                <li key={i}>
+                  <button
+                    type="button"
+                    className="sv-drawer-item"
+                    data-active={isActive ? "1" : "0"}
+                    onClick={() => { onGo(row.pageIndex); onClose(); }}
+                  >
+                    <span className="sv-drawer-folio sv-drawer-folio--left">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="sv-drawer-label">
+                      <span className="kind">{row.label}</span>
+                      <span className="ttl">{row.title}</span>
+                    </span>
+                    <span className="sv-drawer-folio sv-drawer-folio--right">
+                      {row.folio ?? "—"}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Mobile-only footer: Story/Article toggle */}
+        <div className="sv-drawer-footer">
+          <div className="sv-drawer-footer-divider" />
+          <div className="sv-view-toggle" role="radiogroup" aria-label="View mode">
+            <div
+              className="sv-vt-thumb"
+              style={{ left: viewMode === "story" ? "3px" : "calc(50%)" }}
+              aria-hidden
+            />
+            <button
+              type="button"
+              role="radio"
+              aria-checked={viewMode === "story"}
+              data-active={viewMode === "story" ? "1" : "0"}
+              onClick={() => { onChangeView("story"); onClose(); }}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden fill="none" width="13" height="13">
+                <rect x="3" y="3" width="10" height="11" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                <path d="M5.5 6h5M5.5 8h5M5.5 10h3.5" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+              </svg>
+              Story
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={viewMode === "article"}
+              data-active={viewMode === "article" ? "1" : "0"}
+              onClick={() => { onChangeView("article"); onClose(); }}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden fill="none" width="13" height="13">
+                <path d="M3 3h10M3 5.5h10M3 7.5h7M3 9.5h10M3 11.5h10M3 13.5h6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+              </svg>
+              Article
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -222,11 +267,7 @@ function Byline({ credits, hide }: { credits: CoverMeta["credits"]; hide: boolea
     <div className="sv-byline" aria-label="Authorship">
       {credits.map((c, i) => (
         <Fragment key={i}>
-          {i > 0 ? (
-            <span className="sv-byline-sep" aria-hidden>
-              ◦
-            </span>
-          ) : null}
+          {i > 0 ? <span className="sv-byline-sep" aria-hidden>◦</span> : null}
           <span className="sv-byline-credit">
             {c.role ? <span className="sv-byline-role">{c.role}</span> : null}
             <span className="sv-byline-name">{c.name}</span>
@@ -237,80 +278,67 @@ function Byline({ credits, hide }: { credits: CoverMeta["credits"]; hide: boolea
   );
 }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
+// ── Progress rail ─────────────────────────────────────────────────────────────
 
-function Pagination({
+function ProgressRail({
   pageIdx,
   total,
   pages,
+  idle,
   onPrev,
   onNext,
 }: {
   pageIdx: number;
   total: number;
   pages: ViewerPage[];
+  idle: boolean;
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const prev = pageIdx > 0 ? pages[pageIdx - 1] : null;
-  const next = pageIdx < total - 1 ? pages[pageIdx + 1] : null;
-  const pct = ((pageIdx + 1) / total) * 100;
-
-  const prevTitle = prev
-    ? prev.pageKind === "cover"
-      ? "Cover"
-      : (prev as { title: string }).title
-    : null;
-  const nextTitle = next
-    ? next.pageKind === "cover"
-      ? "Cover"
-      : (next as { title: string }).title
-    : null;
-
   return (
-    <div className="sv-pagination-bar">
-      <nav className="sv-pagination" aria-label="Page navigation">
+    <div className={cn("sv-progress-bar", idle && "sv-chrome-idle")}>
+      <div className="sv-progress-inner">
         <button
           type="button"
-          className="sv-pg-btn"
+          className="sv-nav-btn"
           data-side="prev"
-          disabled={!prev}
+          disabled={pageIdx === 0}
           onClick={onPrev}
           aria-label="Previous page"
         >
-          <span className="sv-pg-arrow">‹</span>
-          <span className="sv-pg-label">
-            <span>Previous</span>
-            {prevTitle ? <span className="ttl">{prevTitle}</span> : null}
-          </span>
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden>
+            <path d="M10 3.5 5.5 8 10 12.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="sv-nav-label">Previous</span>
         </button>
 
-        <div className="sv-pg-center">
-          <div className="sv-pg-counter">
-            <span className="now">{String(pageIdx + 1).padStart(2, "0")}</span>
-            <span>/</span>
-            <span>{String(total).padStart(2, "0")}</span>
+        <div className="sv-progress-center">
+          <div className="sv-folio-counter">
+            <span className="sv-folio-now">{String(pageIdx + 1).padStart(2, "0")}</span>
+            <span className="sv-folio-sep"> / </span>
+            <span className="sv-folio-total">{String(total).padStart(2, "0")}</span>
           </div>
-          <div className="sv-pg-bar">
-            <i style={{ width: `${pct}%` }} aria-hidden />
+          <div className="sv-dot-rail" aria-hidden>
+            {pages.map((_, i) => (
+              <span key={i} className={cn("sv-dot", i === pageIdx && "sv-dot-active")} />
+            ))}
           </div>
         </div>
 
         <button
           type="button"
-          className="sv-pg-btn"
+          className="sv-nav-btn"
           data-side="next"
-          disabled={!next}
+          disabled={pageIdx >= total - 1}
           onClick={onNext}
           aria-label="Next page"
         >
-          <span className="sv-pg-label">
-            <span>Next</span>
-            {nextTitle ? <span className="ttl">{nextTitle}</span> : null}
-          </span>
-          <span className="sv-pg-arrow">›</span>
+          <span className="sv-nav-label">Next</span>
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden>
+            <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-      </nav>
+      </div>
     </div>
   );
 }
@@ -338,11 +366,62 @@ export function StoryViewerShell({
     sp.get("view") === "article" ? "article" : "story";
   const pageIdx = Math.max(0, Math.min(total - 1, Number(sp.get("page") ?? 0) || 0));
 
-  const [tocOpen, setTocOpen] = useState(true);
+  const [tocOpen, setTocOpen] = useState(false);
+  const [idle, setIdle] = useState(false);
   const [activeSection, setActiveSection] = useState("cover");
   const sectionRefs = useRef<Record<string, HTMLElement>>({});
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const cur = pages[pageIdx];
+  // Block cache — blocks are not included in the initial page payload and are fetched lazily.
+  const [blockCache, setBlockCache] = useState<Record<string, ReaderStoryBlock[]>>({});
+  const cacheRef = useRef<Record<string, ReaderStoryBlock[]>>({});
+  const fetchingRef = useRef<Set<string>>(new Set());
+
+  const fetchSection = useCallback(async (sectionId: string) => {
+    if (!sectionId || cacheRef.current[sectionId] || fetchingRef.current.has(sectionId)) return;
+    fetchingRef.current.add(sectionId);
+    try {
+      const res = await fetch(`/api/story-section/${encodeURIComponent(sectionId)}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { blocks: ReaderStoryBlock[] };
+      const blocks = Array.isArray(data.blocks) ? data.blocks : [];
+      cacheRef.current = { ...cacheRef.current, [sectionId]: blocks };
+      setBlockCache(cacheRef.current);
+    } finally {
+      fetchingRef.current.delete(sectionId);
+    }
+  }, []);
+
+  const enrichedPages = useMemo(
+    () =>
+      pages.map((p) => {
+        if ((p.pageKind === "body" || p.pageKind === "essay") && blockCache[p.sectionId]) {
+          return { ...p, blocks: blockCache[p.sectionId]! };
+        }
+        return p;
+      }),
+    [pages, blockCache],
+  );
+
+  // Fetch blocks for current page + prefetch adjacent pages on navigation.
+  useEffect(() => {
+    const fetchIfNeeded = (p: ViewerPage | undefined) => {
+      if (p && (p.pageKind === "body" || p.pageKind === "essay")) fetchSection(p.sectionId);
+    };
+    fetchIfNeeded(pages[pageIdx]);
+    fetchIfNeeded(pages[pageIdx + 1]);
+    fetchIfNeeded(pages[pageIdx - 1]);
+  }, [pageIdx, pages, fetchSection]);
+
+  // When switching to article mode, batch-fetch all sections.
+  useEffect(() => {
+    if (viewMode !== "article") return;
+    for (const p of pages) {
+      if (p.pageKind === "body" || p.pageKind === "essay") fetchSection(p.sectionId);
+    }
+  }, [viewMode, pages, fetchSection]);
+
+  const cur = enrichedPages[pageIdx];
 
   const setQuery = useCallback(
     (next: Record<string, string | undefined>) => {
@@ -362,8 +441,7 @@ export function StoryViewerShell({
         setQuery({ view: "story", page: String(idx) });
         return;
       }
-      // Article mode: scroll to section
-      const p = pages[idx];
+      const p = enrichedPages[idx];
       if (!p) return;
       const sectionId =
         p.pageKind === "cover"
@@ -380,7 +458,6 @@ export function StoryViewerShell({
     [viewMode, pages, setQuery],
   );
 
-  // View mode switch
   const changeView = useCallback(
     (v: "story" | "article") => {
       window.scrollTo({ top: 0, behavior: "instant" });
@@ -389,7 +466,52 @@ export function StoryViewerShell({
     [pageIdx, setQuery],
   );
 
-  // Keyboard navigation (story mode only)
+  const onPrev = useCallback(
+    () => setQuery({ view: "story", page: String(Math.max(0, pageIdx - 1)) }),
+    [pageIdx, setQuery],
+  );
+  const onNext = useCallback(
+    () => setQuery({ view: "story", page: String(Math.min(total - 1, pageIdx + 1)) }),
+    [pageIdx, total, setQuery],
+  );
+
+  // Touch swipe → page navigation (story mode only)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (viewMode !== "story") return;
+    const t = e.touches[0];
+    if (t) touchStartRef.current = { x: t.clientX, y: t.clientY };
+  }, [viewMode]);
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (viewMode !== "story" || !touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    if (!t) { touchStartRef.current = null; return; }
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) <= Math.abs(dy)) return;
+    if (dx < 0) onNext();
+    else onPrev();
+  }, [viewMode, onNext, onPrev]);
+
+  // Idle mode: 3s no input → fade chrome
+  const resetIdle = useCallback(() => {
+    setIdle(false);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => setIdle(true), 3000);
+  }, []);
+
+  useEffect(() => {
+    resetIdle();
+    const events = ["pointermove", "pointerdown", "keydown", "scroll"] as const;
+    events.forEach((e) => window.addEventListener(e, resetIdle, { passive: true }));
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, resetIdle));
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  }, [resetIdle]);
+
+  // Keyboard navigation (story mode)
   useEffect(() => {
     if (viewMode !== "story") return;
     const onKey = (e: KeyboardEvent) => {
@@ -416,7 +538,7 @@ export function StoryViewerShell({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pageIdx, viewMode]);
 
-  // Reset scroll when switching views
+  // Reset scroll on view switch
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     if (viewMode === "story") setActiveSection("cover");
@@ -460,7 +582,6 @@ export function StoryViewerShell({
     else delete sectionRefs.current[id];
   }, []);
 
-  // Derive active TOC id
   const activeId =
     viewMode === "article"
       ? activeSection
@@ -473,99 +594,88 @@ export function StoryViewerShell({
   const isCover = cur?.pageKind === "cover";
 
   return (
-    <div className="sv-root fixed inset-0 z-0 flex h-dvh max-h-dvh flex-col overflow-hidden">
+    <div
+      className="sv-root fixed inset-0 z-0 flex h-dvh max-h-dvh flex-col overflow-hidden"
+      data-idle={idle ? "1" : "0"}
+    >
+      {/* Topbar */}
       <div className="sv-topbar-slot shrink-0">
         <Topbar
           tocOpen={tocOpen}
           viewMode={viewMode}
+          idle={idle}
+          title={fields.title}
           onToggleToc={() => setTocOpen((o) => !o)}
           onChangeView={changeView}
         />
       </div>
 
+      {/* Stage — full width (TOC is now a drawer overlay) */}
       <div
-        className="sv-body flex min-h-0 flex-1 flex-row overflow-hidden"
-        data-toc={tocOpen ? "1" : "0"}
-        data-view={viewMode}
+        className="sv-stage-slot min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
-        <div
-          className={cn(
-            "sv-toc-slot h-full min-h-0 shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
-            tocOpen ? "w-[280px]" : "pointer-events-none w-0",
-          )}
-        >
-          <TocSidebar
-            meta={meta}
-            toc={toc}
-            pages={pages}
-            pageIdx={pageIdx}
-            activeId={activeId}
-            viewMode={viewMode}
-            onGo={goToPage}
-          />
-        </div>
-
-        <div className="sv-stage-slot min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
-          {viewMode === "story" ? (
-            <div className="sv-stage">
-              {/* Breadcrumb + folio header */}
-              <div className="sv-stage-head">
-                <div>
-                  {cur?.pageKind === "chapter-opener" || cur?.pageKind === "body" ? (
-                    <>
-                      <span>{meta.catalog}</span>
-                      <span className="sep">/</span>
-                      <span>{cur.pageKind === "chapter-opener"
-                        ? cur.chapterNumber
-                        : (pages.find(
-                            (p) =>
-                              p.pageKind === "chapter-opener" &&
-                              p.chapterId === (cur as { chapterId: string }).chapterId,
-                          ) as import("@/lib/stories/story-viewer-utils").ViewerChapterOpenerPage | undefined)?.chapterNumber ?? ""
-                      }</span>
-                      <span className="sep">/</span>
-                      <span className="hl">{(cur as { title: string }).title}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{meta.catalog}</span>
-                      <span className="sep">/</span>
-                      <span className="hl">{cur?.pageKind === "cover" ? "Cover" : (cur as { title?: string }).title ?? ""}</span>
-                    </>
-                  )}
-                </div>
-                <div>
-                  <span>{pageIdx + 1} / {total}</span>
-                </div>
-              </div>
-
-              {/* Byline (hidden on cover) */}
-              <Byline credits={meta.credits} hide={isCover} />
-
-              {/* Page card */}
-              {cur ? (
-                <ViewerPageRenderer page={cur} meta={meta} fields={fields} />
-              ) : null}
-
-              {/* Pagination footer */}
-              <Pagination
-                pageIdx={pageIdx}
-                total={total}
-                pages={pages}
-                onPrev={() => setQuery({ view: "story", page: String(Math.max(0, pageIdx - 1)) })}
-                onNext={() => setQuery({ view: "story", page: String(Math.min(total - 1, pageIdx + 1)) })}
-              />
-            </div>
-          ) : (
-            <ArticleView
-              pages={pages}
-              meta={meta}
-              fields={fields}
-              registerSection={registerSection}
+        {/* Mobile tap zones live inside the scroll container so touch events bubble up to it */}
+        {viewMode === "story" ? (
+          <>
+            <button
+              type="button"
+              className="sv-tap-zone sv-tap-prev"
+              onClick={onPrev}
+              aria-label="Previous page"
+              tabIndex={-1}
+              disabled={pageIdx === 0}
             />
-          )}
-        </div>
+            <button
+              type="button"
+              className="sv-tap-zone sv-tap-next"
+              onClick={onNext}
+              aria-label="Next page"
+              tabIndex={-1}
+              disabled={pageIdx >= total - 1}
+            />
+          </>
+        ) : null}
+        {viewMode === "story" ? (
+          <div className="sv-stage">
+            <Byline credits={meta.credits} hide={isCover} />
+            {cur ? <ViewerPageRenderer page={cur} meta={meta} fields={fields} /> : null}
+          </div>
+        ) : (
+          <ArticleView
+            pages={enrichedPages}
+            meta={meta}
+            fields={fields}
+            registerSection={registerSection}
+          />
+        )}
       </div>
+
+      {/* Progress rail (story mode only) */}
+      {viewMode === "story" ? (
+        <ProgressRail
+          pageIdx={pageIdx}
+          total={total}
+          pages={enrichedPages}
+          idle={idle}
+          onPrev={onPrev}
+          onNext={onNext}
+        />
+      ) : null}
+
+      {/* TOC drawer + backdrop */}
+      <TocDrawer
+        open={tocOpen}
+        meta={meta}
+        toc={toc}
+        pages={enrichedPages}
+        activeId={activeId}
+        viewMode={viewMode}
+        onGo={goToPage}
+        onClose={() => setTocOpen(false)}
+        onChangeView={changeView}
+      />
     </div>
   );
 }

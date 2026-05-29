@@ -75,6 +75,20 @@ export async function fetchPublishedStoryBySlug(slug: string): Promise<StoryPubl
   });
 }
 
+export async function fetchPublishedSectionBlocks(sectionId: string): Promise<unknown[] | null> {
+  const treeId = requirePublicTreeId();
+  const section = await prisma.storySection.findFirst({
+    where: {
+      id: sectionId,
+      chapter: { story: { treeId, status: StoryStatus.published, deletedAt: null } },
+    },
+    select: { contentJson: true },
+  });
+  if (!section) return null;
+  const raw = (section.contentJson as { blocks?: unknown })?.blocks;
+  return Array.isArray(raw) ? raw : [];
+}
+
 export function prismaKindToPublic(kind: StoryKind): "story" | "article" | "post" | "folklore" {
   if (kind === StoryKind.article) return "article";
   if (kind === StoryKind.post) return "post";

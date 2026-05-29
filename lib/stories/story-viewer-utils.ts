@@ -32,6 +32,8 @@ export type ViewerChapterOpenerPage = {
   chapterNumber: string;
   title: string;
   subtitle: string | null;
+  hideTitle: boolean;
+  hideSubtitle: boolean;
   folio: number;
 };
 
@@ -39,7 +41,9 @@ export type ViewerBodyPage = {
   pageKind: "body";
   id: string;
   chapterId: string;
+  sectionId: string;
   title: string;
+  hideTitle: boolean;
   blocks: ReaderStoryBlock[];
   folio: number;
 };
@@ -48,8 +52,11 @@ export type ViewerEssayPage = {
   pageKind: "essay";
   id: string;
   chapterId: null;
+  sectionId: string;
   title: string;
   subtitle: string | null;
+  hideTitle: boolean;
+  hideSubtitle: boolean;
   kindLabel: string;
   blocks: ReaderStoryBlock[];
   folio: number;
@@ -120,17 +127,21 @@ export function buildViewerPages(story: StoryPublicPayload): ViewerPage[] {
             chapterNumber,
             title: s.title,
             subtitle: s.subtitle ?? null,
+            hideTitle: s.hideTitle ?? false,
+            hideSubtitle: s.hideSubtitle ?? false,
             folio,
           });
           // If the opener section itself has content, emit it as a body page too.
-          const openerBlocks = parseBlocksFromJson(s.contentJson);
-          if (openerBlocks.length > 0) {
+          // Parse only to detect presence; blocks are loaded lazily on the client.
+          if (parseBlocksFromJson(s.contentJson).length > 0) {
             pages.push({
               pageKind: "body",
               id: `${s.id}-body`,
               chapterId: group.chapterId,
+              sectionId: s.id,
               title: s.title,
-              blocks: openerBlocks,
+              hideTitle: s.hideTitle ?? false,
+              blocks: [],
               folio: pages.length,
             });
           }
@@ -139,8 +150,10 @@ export function buildViewerPages(story: StoryPublicPayload): ViewerPage[] {
             pageKind: "body",
             id: s.id,
             chapterId: group.chapterId,
+            sectionId: s.id,
             title: s.title,
-            blocks: parseBlocksFromJson(s.contentJson),
+            hideTitle: s.hideTitle ?? false,
+            blocks: [],
             folio,
           });
         }
@@ -155,10 +168,13 @@ export function buildViewerPages(story: StoryPublicPayload): ViewerPage[] {
           pageKind: "essay",
           id: s.id,
           chapterId: null,
+          sectionId: s.id,
           title: s.title,
           subtitle: s.subtitle ?? null,
+          hideTitle: s.hideTitle ?? false,
+          hideSubtitle: s.hideSubtitle ?? false,
           kindLabel,
-          blocks: parseBlocksFromJson(s.contentJson),
+          blocks: [],
           folio,
         });
       }

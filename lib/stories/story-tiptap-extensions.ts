@@ -7,6 +7,7 @@ import { TableKit } from "@tiptap/extension-table";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 import { StoryField } from "@/lib/stories/tiptap/story-field-extension";
 import { StoryTable } from "@/lib/stories/tiptap/story-table";
+import { StoryBulletList } from "@/lib/stories/tiptap/story-bullet-list";
 import { StoryLink } from "@/lib/stories/tiptap/story-link-extension";
 import { PublicStoryFlowEmbed, PublicStoryFlowMedia } from "@/lib/stories/story-flow-node-extensions";
 
@@ -20,6 +21,7 @@ export function createStoryTipTapReadExtensions(opts?: CreateStoryTipTapExtensio
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
       link: false,
+      bulletList: false,
       codeBlock: {
         HTMLAttributes: {
           class: "rounded-lg bg-surface-2 p-3 font-mono text-sm",
@@ -68,6 +70,7 @@ export function createStoryTipTapReadExtensions(opts?: CreateStoryTipTapExtensio
       resizable: false,
       HTMLAttributes: { class: "story-table" },
     }),
+    StoryBulletList,
     StoryField.configure({
       resolveFieldForHtml: opts?.storyFieldHtml ?? (() => ""),
     }),

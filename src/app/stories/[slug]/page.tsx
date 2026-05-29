@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { StoryKind } from "@ligneous/prisma";
 import { StoryViewerShell } from "@/components/stories/StoryViewerShell";
@@ -63,12 +64,14 @@ export default async function StoryPublicPage(props: { params: Promise<{ slug: s
   };
 
   return (
-    <StoryViewerShell
-      slug={pathSlug}
-      pages={pages}
-      toc={toc}
-      meta={coverMeta}
-      fields={storyFields}
-    />
+    <Suspense>
+      <StoryViewerShell
+        slug={pathSlug}
+        pages={pages}
+        toc={toc}
+        meta={coverMeta}
+        fields={storyFields}
+      />
+    </Suspense>
   );
 }

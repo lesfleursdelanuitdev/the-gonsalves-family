@@ -15,19 +15,6 @@ function makeFieldFn(fields: StoryFields): StoryFieldFn {
   };
 }
 
-// ── Registration marks ───────────────────────────────────────────────────────
-
-function RegMarks() {
-  return (
-    <>
-      <span className="sv-reg tl" aria-hidden />
-      <span className="sv-reg tr" aria-hidden />
-      <span className="sv-reg bl" aria-hidden />
-      <span className="sv-reg br" aria-hidden />
-    </>
-  );
-}
-
 // ── Cover page ───────────────────────────────────────────────────────────────
 
 type CoverMeta = {
@@ -94,7 +81,6 @@ export function CoverPage({ page, meta }: { page: ViewerCoverPage; meta: CoverMe
 export function ChapterOpenerPage({ page }: { page: ViewerChapterOpenerPage }) {
   return (
     <article className="sv-page-card">
-      <RegMarks />
       <div className="sv-running-head">{page.chapterNumber}</div>
 
       <div className="sv-chapter-body">
@@ -104,9 +90,11 @@ export function ChapterOpenerPage({ page }: { page: ViewerChapterOpenerPage }) {
           <span>p. {page.folio}</span>
         </div>
 
-        <h2 className="sv-chapter-title" dangerouslySetInnerHTML={{ __html: page.title }} />
+        {!page.hideTitle ? (
+          <h2 className="sv-chapter-title" dangerouslySetInnerHTML={{ __html: page.title }} />
+        ) : null}
 
-        {page.subtitle ? (
+        {page.subtitle && !page.hideSubtitle ? (
           <p className="sv-chapter-dek">{page.subtitle}</p>
         ) : null}
       </div>
@@ -128,7 +116,6 @@ export function BodyPage({
   const storyFieldHtml = makeFieldFn(fields);
   return (
     <article className="sv-page-card">
-      <RegMarks />
       <div className="sv-running-head">{page.title}</div>
       <div className="sv-prose">
         {page.blocks.map((b, i) => (
@@ -152,14 +139,15 @@ export function EssayPage({
   const storyFieldHtml = makeFieldFn(fields);
   return (
     <article className="sv-page-card">
-      <RegMarks />
       <div className="sv-running-head">{page.title}</div>
 
-      {page.subtitle ? (
+      {page.subtitle && !page.hideSubtitle ? (
         <div className="sv-essay-eyebrow">{page.subtitle}</div>
       ) : null}
 
-      <h2 className="sv-essay-title">{page.title}</h2>
+      {!page.hideTitle ? (
+        <h2 className="sv-essay-title">{page.title}</h2>
+      ) : null}
 
       <div className="sv-prose">
         {page.blocks.map((b, i) => (
@@ -299,8 +287,10 @@ export function ArticleView({
                   <span>·</span>
                   <span>from p. {s.opener.folio}</span>
                 </div>
-                <h2 className="sv-article-chapter-title" dangerouslySetInnerHTML={{ __html: s.opener.title }} />
-                {s.opener.subtitle ? (
+                {!s.opener.hideTitle ? (
+                  <h2 className="sv-article-chapter-title" dangerouslySetInnerHTML={{ __html: s.opener.title }} />
+                ) : null}
+                {s.opener.subtitle && !s.opener.hideSubtitle ? (
                   <p className="sv-article-chapter-dek">{s.opener.subtitle}</p>
                 ) : null}
               </header>
@@ -322,8 +312,8 @@ export function ArticleView({
             ref={(el) => registerSection?.(s.id, el)}
           >
             <header className="sv-article-section-head">
-              {p.subtitle ? <div className="sv-essay-eyebrow">{p.subtitle}</div> : null}
-              <h2 className="sv-article-essay-title">{p.title}</h2>
+              {p.subtitle && !p.hideSubtitle ? <div className="sv-essay-eyebrow">{p.subtitle}</div> : null}
+              {!p.hideTitle ? <h2 className="sv-article-essay-title">{p.title}</h2> : null}
             </header>
             <div className="sv-prose">
               {p.blocks.map((b, i) => (

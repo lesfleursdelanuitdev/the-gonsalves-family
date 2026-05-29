@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
 
-type MediaData = { url: string; form: string | null; title: string | null };
+type MediaData = { url: string; form: string | null; mimeType: string | null; title: string | null };
 
-function isImageForm(form: string | null | undefined): boolean {
-  if (!form) return true;
-  const f = form.toLowerCase();
+function isImageMedia(media: MediaData): boolean {
+  if (media.mimeType) return media.mimeType.startsWith("image/");
+  // Fallback for gedcom_media whose form is a raw GEDCOM extension string.
+  const f = (media.form ?? "").toLowerCase();
+  if (!f) return true;
   return f === "jpg" || f === "jpeg" || f === "png" || f === "gif" || f === "webp" || f === "avif" || f === "bmp" || f === "tiff" || f === "svg";
 }
 
@@ -80,7 +82,7 @@ export function PublicStoryMediaBlock({ block }: { block: ReaderStoryBlock }) {
     );
   }
 
-  if (!isImageForm(media.form)) {
+  if (!isImageMedia(media)) {
     return (
       <figure className="my-6">
         {showTitle && titlePlacement === "above" ? <MediaTitle label={rawLabel} placement="above" /> : null}

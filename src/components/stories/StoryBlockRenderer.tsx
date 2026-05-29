@@ -60,12 +60,10 @@ function alignClass(value: unknown): string {
   return "text-center";
 }
 
-function columnsMobileClass(block: ReaderStoryBlock): string {
-  if (block.mobileBehavior === "keepSideBySide") return "grid-cols-2";
-  if (block.mobileBehavior === "stackRightFirst") {
-    return "grid-cols-1 md:grid-cols-2 [&>*:first-child]:order-2 [&>*:last-child]:order-1 md:[&>*:first-child]:order-none md:[&>*:last-child]:order-none";
-  }
-  return "grid-cols-1 md:grid-cols-2";
+function columnsBehaviorClass(block: ReaderStoryBlock): string {
+  if (block.mobileBehavior === "keepSideBySide") return "sv-cols-keep-side-by-side";
+  if (block.mobileBehavior === "stackRightFirst") return "sv-cols-stack-right-first";
+  return "";
 }
 
 function staggerStyle(align: unknown, index: number): CSSProperties | undefined {
@@ -238,8 +236,8 @@ export function StoryBlockRenderer({
     const templateCols = widths.map((w) => `${w}fr`).join(" ");
     return wrap(
       <div
-        className={`my-6 gap-4 ${columnsMobileClass(block)}`}
-        style={{ display: "grid", gridTemplateColumns: templateCols }}
+        className={`my-6 gap-4 sv-cols-block ${columnsBehaviorClass(block)}`}
+        style={{ "--sv-col-template": templateCols } as CSSProperties}
       >
         {cols.map((col) => (
           <div key={col.id} className="min-w-0">

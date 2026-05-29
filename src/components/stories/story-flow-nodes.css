@@ -84,6 +84,35 @@
   }
 }
 
+/* ── Columns block: responsive grid-template-columns via CSS variable ────────
+   The custom column widths are passed as --sv-col-template (inline style).
+   On mobile we default to a single column; at ≥768px we apply the template.
+   keepSideBySide overrides and always uses the template.
+─────────────────────────────────────────────────────────────────────────── */
+
+.sv-cols-block {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .sv-cols-block {
+    grid-template-columns: var(--sv-col-template, 1fr 1fr);
+  }
+}
+
+.sv-cols-block.sv-cols-keep-side-by-side {
+  grid-template-columns: var(--sv-col-template, 1fr 1fr);
+}
+
+/* stackRightFirst: swap child order on mobile, reset on desktop */
+.sv-cols-block.sv-cols-stack-right-first > *:first-child { order: 2; }
+.sv-cols-block.sv-cols-stack-right-first > *:last-child  { order: 1; }
+@media (min-width: 768px) {
+  .sv-cols-block.sv-cols-stack-right-first > *:first-child { order: unset; }
+  .sv-cols-block.sv-cols-stack-right-first > *:last-child  { order: unset; }
+}
+
 /* ── story-rich-text: rendered block HTML ───────────────────────────────────
    Tailwind Typography is not installed; these rules replace the prose classes
    for headings, lists, blockquotes, and code inside richText story blocks.
