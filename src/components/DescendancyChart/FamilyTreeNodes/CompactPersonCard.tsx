@@ -21,7 +21,7 @@ import {
 import { IconPerson, IconX } from "../../TreeViewer/Misc/SvgIcons";
 import type { ActionBtn, PersonCardSettings } from "./PersonNodeView";
 
-const CARD_W = PERSON_WIDTH;
+const DEFAULT_CARD_W = PERSON_WIDTH;
 const MOBILE_OVERFLOW_MENU_W = 186;
 
 function compactDisplayName(person: DescendancyPerson, size: PersonCompactCardSize): string {
@@ -66,6 +66,7 @@ export interface CompactPersonCardProps {
   overlayPerson: { name: string; xref: string; uuid: string | null };
   initials: string;
   variant: PersonCardVariant;
+  cardWidth?: number;
 }
 
 export function CompactPersonCard({
@@ -86,6 +87,7 @@ export function CompactPersonCard({
   overlayPerson,
   initials,
   variant,
+  cardWidth,
 }: CompactPersonCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ left: number; top: number } | null>(null);
@@ -96,6 +98,7 @@ export function CompactPersonCard({
     portalHostEl ?? (typeof document !== "undefined" ? document.body : null);
   const useFixedMenuPosition = portalHostEl == null;
 
+  const CARD_W = cardWidth ?? DEFAULT_CARD_W;
   const size: PersonCompactCardSize = settings.compactCardSize ?? DEFAULT_COMPACT_CARD_SIZE;
   const fontPx = COMPACT_CARD_FONT_PX[size];
   const displayName = compactDisplayName(person, size);

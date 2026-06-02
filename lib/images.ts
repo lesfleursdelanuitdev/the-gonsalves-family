@@ -38,7 +38,9 @@ export function resolveGedcomMediaFileRef(fileRef: string | null | undefined): s
   if (/^https?:\/\//i.test(ref)) return ref;
   const path = ref.startsWith("/") ? ref : `/${ref}`;
   const base = LIGNOUS_BASE.replace(/\/$/, "");
-  if (base && path.startsWith("/uploads/")) {
+  // All non-absolute GEDCOM media paths live on the admin/ligneous server,
+  // regardless of whether they are under /uploads/ or another directory.
+  if (base) {
     return `${base}${path}`;
   }
   return path;

@@ -15,7 +15,8 @@ export interface UseChartLayoutDepthParams {
   isMobile: boolean;
   effectiveRootId: string;
   effectiveBuildDepth: number;
-  settings: Pick<ChartSettingsV2, "parentPairGap"> & Partial<ChartSettingsV2>;
+  settings: Pick<ChartSettingsV2, "parentPairGap" | "pedigreeConnectorCxWidth" | "compactCardWidth"> & Partial<ChartSettingsV2>;
+  showRootSiblings?: boolean;
 }
 
 export function useChartLayoutDepth({
@@ -29,6 +30,7 @@ export function useChartLayoutDepth({
   effectiveRootId,
   effectiveBuildDepth,
   settings,
+  showRootSiblings,
 }: UseChartLayoutDepthParams) {
   const effectivePersonHeight = getEffectivePersonHeight(settings, {
     chartStrategy,
@@ -43,6 +45,9 @@ export function useChartLayoutDepth({
     chartAdapter,
     effectivePersonHeight,
     parentPairGap: settings.parentPairGap,
+    pedigreeGenerationGap: settings.pedigreeConnectorCxWidth,
+    personWidth: settings.compactCardWidth,
+    showRootSiblings,
   });
 
   const depth = useDepth({

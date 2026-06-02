@@ -1,19 +1,47 @@
 "use client";
 
 import { StoryBlockRenderer } from "@/components/stories/StoryBlockRenderer";
-import type { ViewerCoverPage, ViewerChapterOpenerPage, ViewerBodyPage, ViewerEssayPage, ViewerPage } from "@/lib/stories/story-viewer-utils";
+import type { ViewerCoverPage, ViewerChapterOpenerPage, ViewerBodyPage, ViewerEssayPage, ViewerPage, ViewerSectionEntityLink } from "@/lib/stories/story-viewer-utils";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
+
+function entityLinkHref(link: ViewerSectionEntityLink): string {
+  switch (link.entityType) {
+    case "person": return `/individuals/${encodeURIComponent(link.entityId)}`;
+    case "family": return `/families/${encodeURIComponent(link.entityId)}`;
+    case "event": return `/tree/events/${encodeURIComponent(link.entityId)}`;
+    case "place": return `/tree/places/${encodeURIComponent(link.entityId)}`;
+  }
+}
+
+function SectionEntityChips({ links }: { links: ViewerSectionEntityLink[] }) {
+  if (!links.length) return null;
+  return (
+    <div className="sv-section-entity-links">
+      {links.map((link) => (
+        <a key={link.entityId} href={entityLinkHref(link)} className="sv-section-entity-chip">
+          {link.label}
+        </a>
+      ))}
+    </div>
+  );
+}
 
 function BlocksSkeleton() {
   return (
-    <div className="animate-pulse space-y-3 py-2" aria-hidden aria-label="Loading content">
-      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "100%" }} />
-      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "92%" }} />
-      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "86%" }} />
-      <div className="mt-5 h-4 rounded bg-current opacity-[0.08]" style={{ width: "100%" }} />
-      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "95%" }} />
-      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "80%" }} />
-      <div className="h-4 rounded bg-current opacity-[0.08]" style={{ width: "89%" }} />
+    <div className="sv-skeleton" role="status" aria-label="Loading content">
+      {/* Paragraph 1 */}
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--medium" />
+      {/* Paragraph break */}
+      <div className="sv-skeleton-gap" />
+      {/* Paragraph 2 */}
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--wide" />
+      <div className="sv-skeleton-line sv-skeleton-line--narrow" />
     </div>
   );
 }
@@ -39,7 +67,7 @@ type CoverMeta = {
   pages: number | null;
   coverSrc: string | null;
   coverCaption: string | null;
-  credits: { role: string | null; name: string; note?: string | null }[];
+  credits: { role: string | null; name: string; note?: string | null; personId?: string }[];
 };
 
 export function CoverPage({ page, meta }: { page: ViewerCoverPage; meta: CoverMeta }) {
@@ -73,7 +101,15 @@ export function CoverPage({ page, meta }: { page: ViewerCoverPage; meta: CoverMe
           {meta.credits.map((c, i) => (
             <div key={i} className="sv-credit">
               {c.role ? <div className="sv-credit-role">{c.role}</div> : null}
-              <div className="sv-credit-name">{c.name}</div>
+              <div className="sv-credit-name">
+                {c.personId ? (
+                  <a href={`/individuals/${encodeURIComponent(c.personId)}`} className="sv-credit-name--linked">
+                    {c.name}
+                  </a>
+                ) : (
+                  c.name
+                )}
+              </div>
               {c.note ? <div className="sv-credit-note">{c.note}</div> : null}
             </div>
           ))}
@@ -94,7 +130,7 @@ export function CoverPage({ page, meta }: { page: ViewerCoverPage; meta: CoverMe
 
 export function ChapterOpenerPage({ page }: { page: ViewerChapterOpenerPage }) {
   return (
-    <article className="sv-page-card">
+    <article className="sv-page-card sv-chapter-opener-card">
       <div className="sv-running-head">{page.chapterNumber}</div>
 
       <div className="sv-chapter-body">
@@ -111,6 +147,7 @@ export function ChapterOpenerPage({ page }: { page: ViewerChapterOpenerPage }) {
         {page.subtitle && !page.hideSubtitle ? (
           <p className="sv-chapter-dek">{page.subtitle}</p>
         ) : null}
+        <SectionEntityChips links={page.entityLinks} />
       </div>
 
       <div className="sv-folio">— {page.folio} —</div>
@@ -170,6 +207,7 @@ export function EssayPage({
       {!page.hideTitle ? (
         <h2 className="sv-essay-title">{page.title}</h2>
       ) : null}
+      <SectionEntityChips links={page.entityLinks} />
 
       <div className="sv-prose">
         {loading ? (

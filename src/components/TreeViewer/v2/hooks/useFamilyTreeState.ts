@@ -3,6 +3,7 @@
 import { useMemo, useState, useReducer, useEffect, useCallback, useRef } from "react";
 import {
   DEFAULT_PEDIGREE_PARENT_PAIR_GAP,
+  PERSON_WIDTH,
   FAN_CHART_DEFAULTS,
   treeReducer,
   createInitialState,
@@ -52,8 +53,10 @@ const defaultSettings: ChartSettingsV2 = {
   personCardLayout: DEFAULT_PERSON_CARD_LAYOUT,
   personCardVariant: DEFAULT_PERSON_CARD_VARIANT,
   compactCardSize: DEFAULT_COMPACT_CARD_SIZE,
+  compactCardWidth: PERSON_WIDTH,
   parentPairGap: DEFAULT_PEDIGREE_PARENT_PAIR_GAP,
   pedigreeConnectorStyle: "classic",
+  pedigreeConnectorCxWidth: 72,
   fanRootRadius: FAN_CHART_DEFAULTS.rootRadius,
 };
 

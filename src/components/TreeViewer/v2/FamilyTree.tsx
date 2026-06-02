@@ -178,6 +178,17 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     });
   const search = useChartSearch({ useTreeIndividuals });
   const {
+    togglePedigreeRootSiblings,
+    togglePedigreeRootChildren,
+    pedigreeRootSiblingsForViewport,
+    pedigreeRootChildrenForViewport,
+  } = usePedigreeRootExpansion({
+    allowsPedigreeRootExpansion,
+    effectiveRootId,
+    loadFamiliesAsChild,
+    loadFamiliesAsSpouse,
+  });
+  const {
     effectivePersonHeight,
     root,
     baseX,
@@ -200,6 +211,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     effectiveRootId,
     effectiveBuildDepth,
     settings,
+    showRootSiblings: (pedigreeRootSiblingsForViewport?.length ?? 0) > 0,
   });
   const familyTreeViewportInteractionsInput = useFamilyTreeViewportInteractionsInput({
     svgRef,
@@ -253,17 +265,6 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     initialFamilyXref,
   });
   const { handleChartStrategyChange } = useFamilyTreeSyncEffects(familyTreeSyncEffectsInput);
-  const {
-    togglePedigreeRootSiblings,
-    togglePedigreeRootChildren,
-    pedigreeRootSiblingsForViewport,
-    pedigreeRootChildrenForViewport,
-  } = usePedigreeRootExpansion({
-    allowsPedigreeRootExpansion,
-    effectiveRootId,
-    loadFamiliesAsChild,
-    loadFamiliesAsSpouse,
-  });
   const { treePeople, rootDisplayName, historyHandlers } = useFamilyTreeDerivedData({
     dispatch,
     closeSpouseDrawer: spouseDrawer.closeDrawer,

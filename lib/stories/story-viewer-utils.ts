@@ -10,10 +10,27 @@ function chapterOrdinalLabel(n: number): string {
   return CHAPTER_ORDINALS[n] ? `Chapter ${CHAPTER_ORDINALS[n]}` : `Chapter ${n + 1}`;
 }
 
+export type ViewerSectionEntityLink = {
+  entityType: "person" | "family" | "event" | "place";
+  entityId: string;
+  label: string;
+};
+
 function parseBlocksFromJson(json: unknown): ReaderStoryBlock[] {
   if (!json || typeof json !== "object") return [];
   const blocks = (json as { blocks?: unknown }).blocks;
   return Array.isArray(blocks) ? (blocks as ReaderStoryBlock[]) : [];
+}
+
+function parseEntityLinksFromJson(json: unknown): ViewerSectionEntityLink[] {
+  if (!json || typeof json !== "object") return [];
+  const raw = (json as { entityLinks?: unknown }).entityLinks;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is ViewerSectionEntityLink => {
+    if (!item || typeof item !== "object") return false;
+    const r = item as Record<string, unknown>;
+    return typeof r.entityType === "string" && typeof r.entityId === "string" && typeof r.label === "string";
+  });
 }
 
 // ── Page kinds ────────────────────────────────────────────────────────────────
@@ -35,6 +52,7 @@ export type ViewerChapterOpenerPage = {
   hideTitle: boolean;
   hideSubtitle: boolean;
   folio: number;
+  entityLinks: ViewerSectionEntityLink[];
 };
 
 export type ViewerBodyPage = {
@@ -60,6 +78,7 @@ export type ViewerEssayPage = {
   kindLabel: string;
   blocks: ReaderStoryBlock[];
   folio: number;
+  entityLinks: ViewerSectionEntityLink[];
 };
 
 export type ViewerPage =
@@ -130,6 +149,7 @@ export function buildViewerPages(story: StoryPublicPayload): ViewerPage[] {
             hideTitle: s.hideTitle ?? false,
             hideSubtitle: s.hideSubtitle ?? false,
             folio,
+            entityLinks: parseEntityLinksFromJson(s.contentJson),
           });
           // If the opener section itself has content, emit it as a body page too.
           // Parse only to detect presence; blocks are loaded lazily on the client.
@@ -176,6 +196,7 @@ export function buildViewerPages(story: StoryPublicPayload): ViewerPage[] {
           kindLabel,
           blocks: [],
           folio,
+          entityLinks: parseEntityLinksFromJson(s.contentJson),
         });
       }
     }

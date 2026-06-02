@@ -105,7 +105,7 @@ function VerseBlock({ block, storyFieldHtml }: { block: ReaderStoryBlock; storyF
 
   return (
     <div className={verseOuterClass(block)}>
-      {title ? <p className={`font-semibold leading-snug ${alignClass(block.verseTitleAlign)}`}>{title}</p> : null}
+      {title ? <p className={`italic leading-snug ${alignClass(block.verseTitleAlign)}`}>{title}</p> : null}
       {hasLines ? (
         <div className={`flex flex-col whitespace-pre-wrap text-[0.98rem] italic leading-[1.75] ${gap} ${title ? "mt-6" : ""} ${alignClass(contentAlign)}`}>
           {hasRichLines

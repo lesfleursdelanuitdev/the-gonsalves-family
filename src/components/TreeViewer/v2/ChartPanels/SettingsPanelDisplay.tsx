@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { SettingsSection } from "./SettingsSection";
 import {
   COLORS,
@@ -19,6 +19,7 @@ export interface SettingsPanelDisplaySettings {
   personCardLayout: PersonCardLayout;
   personCardVariant: PersonCardVariant;
   compactCardSize: PersonCompactCardSize;
+  compactCardWidth: number;
 }
 
 const COMPACT_STYLE_OPTIONS: { value: PersonCardVariant; label: string; hint: string }[] = [
@@ -48,16 +49,9 @@ const toggleRowStyle: CSSProperties = {
   marginBottom: 10,
 };
 
-const SKETCH_INNER: CSSProperties = {
-  height: 76,
-  width: "100%",
-  boxSizing: "border-box",
-  borderRadius: 8,
-  border: `1px solid ${COLORS.cardStroke}`,
-  background: COLORS.card,
-  padding: 5,
-  display: "flex",
-};
+// SVG dimensions for card thumbnails
+const THUMB_W = 96;
+const THUMB_H = 62;
 
 function ToggleButton({
   checked,
@@ -98,163 +92,130 @@ function ToggleButton({
   );
 }
 
-function dot(): CSSProperties {
-  return {
-    width: 11,
-    height: 11,
-    borderRadius: "50%",
-    background: COLORS.muted,
-    flexShrink: 0,
-  };
-}
-
-function bar(widthPct: string): CSSProperties {
-  return {
-    height: 3,
-    borderRadius: 2,
-    background: COLORS.divider,
-    width: widthPct,
-    maxWidth: "100%",
-  };
-}
-
-function actionPip(): CSSProperties {
-  return {
-    width: 5,
-    height: 5,
-    borderRadius: 1,
-    background: COLORS.iconStroke,
-    flexShrink: 0,
-  };
-}
-
-function menuLines(): ReactNode {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end" }}>
-      {[10, 8, 6].map((w, i) => (
-        <div
-          key={i}
-          style={{
-            height: 2,
-            width: w,
-            borderRadius: 1,
-            background: COLORS.iconStroke,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-/** Wireframe thumbnail for one {@link PersonCardLayout} option. */
+/** SVG person-card thumbnail for one {@link PersonCardLayout} option. */
 function PersonCardLayoutSkeleton({ layout }: { layout: PersonCardLayout }) {
+  const W = THUMB_W;
+  const H = THUMB_H;
+  const card = COLORS.card;
+  const stroke = COLORS.cardStroke;
+  const av = COLORS.muted;       // avatar fill
+  const bar = COLORS.divider;    // name/date bars
+  const act = COLORS.iconStroke; // action icons
+  const r = 5;                   // card corner radius
+
+  // Shared action pip: three small rounded rects
+  const hPips = (x: number, y: number) => (
+    <>
+      {[0, 7, 14].map((dx) => (
+        <rect key={dx} x={x + dx} y={y} width={5} height={5} rx={1.5} fill={act} opacity={0.55} />
+      ))}
+    </>
+  );
+  const vPips = (x: number, y: number) => (
+    <>
+      {[0, 7, 14].map((dy) => (
+        <rect key={dy} x={x} y={y + dy} width={5} height={5} rx={1.5} fill={act} opacity={0.55} />
+      ))}
+    </>
+  );
+  const menuChevron = (x: number, y: number) => (
+    <>
+      {[0, 4, 8].map((dy, i) => (
+        <rect key={i} x={x} y={y + dy} width={[10, 8, 6][i]} height={2} rx={1} fill={act} opacity={0.5} />
+      ))}
+    </>
+  );
+
+  const svgProps = {
+    width: W, height: H, viewBox: `0 0 ${W} ${H}`,
+    style: { display: "block", width: "100%", height: "auto" } as const,
+  };
+
   switch (layout) {
     case "avatarTopActionsBottom":
       return (
-        <div
-          style={{
-            ...SKETCH_INNER,
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 4,
-          }}
-        >
-          <div style={dot()} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "center", width: "100%" }}>
-            <div style={bar("78%")} />
-            <div style={bar("52%")} />
-          </div>
-          <div style={{ display: "flex", gap: 3, justifyContent: "center" }}>
-            <div style={actionPip()} />
-            <div style={actionPip()} />
-            <div style={actionPip()} />
-          </div>
-        </div>
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+          <circle cx={W / 2} cy={14} r={8} fill={av} opacity={0.7} />
+          <rect x={14} y={27} width={W - 28} height={5} rx={2.5} fill={bar} opacity={0.6} />
+          <rect x={22} y={35} width={W - 44} height={4} rx={2} fill={bar} opacity={0.4} />
+          {hPips(W / 2 - 9, H - 13)}
+        </svg>
       );
+
     case "avatarLeftActionsRight":
       return (
-        <div style={{ ...SKETCH_INNER, flexDirection: "row", alignItems: "stretch", gap: 5 }}>
-          <div style={{ ...dot(), alignSelf: "center" }} />
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, justifyContent: "center" }}>
-            <div style={bar("100%")} />
-            <div style={bar("70%")} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, justifyContent: "center" }}>
-            <div style={actionPip()} />
-            <div style={actionPip()} />
-            <div style={actionPip()} />
-          </div>
-        </div>
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+          <circle cx={16} cy={H / 2} r={9} fill={av} opacity={0.7} />
+          <rect x={30} y={H / 2 - 9} width={W - 52} height={5} rx={2.5} fill={bar} opacity={0.6} />
+          <rect x={30} y={H / 2 - 1} width={(W - 52) * 0.65} height={4} rx={2} fill={bar} opacity={0.4} />
+          {vPips(W - 16, H / 2 - 11)}
+        </svg>
       );
+
     case "avatarLeftActionsBottom":
       return (
-        <div style={{ ...SKETCH_INNER, flexDirection: "column", gap: 4 }}>
-          <div style={{ display: "flex", flexDirection: "row", gap: 5, alignItems: "center" }}>
-            <div style={dot()} />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-              <div style={bar("100%")} />
-              <div style={bar("65%")} />
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 3, justifyContent: "center" }}>
-            <div style={actionPip()} />
-            <div style={actionPip()} />
-            <div style={actionPip()} />
-          </div>
-        </div>
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+          <circle cx={15} cy={H / 2 - 6} r={9} fill={av} opacity={0.7} />
+          <rect x={29} y={H / 2 - 14} width={W - 36} height={5} rx={2.5} fill={bar} opacity={0.6} />
+          <rect x={29} y={H / 2 - 6} width={(W - 36) * 0.65} height={4} rx={2} fill={bar} opacity={0.4} />
+          {hPips(W / 2 - 9, H - 13)}
+        </svg>
       );
+
     case "avatarTopActionsRight":
       return (
-        <div style={{ ...SKETCH_INNER, flexDirection: "column", gap: 4 }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={dot()} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "row", gap: 5, flex: 1, alignItems: "stretch" }}>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, justifyContent: "center" }}>
-              <div style={bar("100%")} />
-              <div style={bar("58%")} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, justifyContent: "center" }}>
-              <div style={actionPip()} />
-              <div style={actionPip()} />
-              <div style={actionPip()} />
-            </div>
-          </div>
-        </div>
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+          <circle cx={W / 2 - 8} cy={13} r={8} fill={av} opacity={0.7} />
+          <rect x={10} y={27} width={W - 30} height={5} rx={2.5} fill={bar} opacity={0.6} />
+          <rect x={10} y={35} width={(W - 30) * 0.65} height={4} rx={2} fill={bar} opacity={0.4} />
+          {vPips(W - 16, H / 2 - 4)}
+        </svg>
       );
+
     case "avatarTopMobileMenu":
       return (
-        <div
-          style={{
-            ...SKETCH_INNER,
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 4,
-          }}
-        >
-          <div style={dot()} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "center", width: "100%" }}>
-            <div style={bar("80%")} />
-            <div style={bar("50%")} />
-          </div>
-          <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>{menuLines()}</div>
-        </div>
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+          {/* Three-dot overflow button — top-right corner (mobile portrait) */}
+          {[0, 4, 8].map((dy) => (
+            <circle key={dy} cx={W - 8} cy={8 + dy} r={1.4} fill={act} opacity={0.5} />
+          ))}
+          {/* Avatar — large, centered in card (mobile portrait: cy=96/212≈45%, r=36/330≈11%) */}
+          <circle cx={W / 2} cy={H / 2 - 4} r={12} fill={av} opacity={0.7} />
+          {/* Name bar — centered below avatar */}
+          <rect x={16} y={H / 2 + 12} width={W - 32} height={5} rx={2.5} fill={bar} opacity={0.6} />
+          {/* Date bar */}
+          <rect x={24} y={H / 2 + 20} width={W - 48} height={4} rx={2} fill={bar} opacity={0.4} />
+        </svg>
       );
+
     case "avatarLeftMobileMenu":
       return (
-        <div style={{ ...SKETCH_INNER, flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <div style={dot()} />
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-            <div style={bar("100%")} />
-            <div style={bar("62%")} />
-          </div>
-          {menuLines()}
-        </div>
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+          {/* Three-dot overflow button — top-right corner (menuCx=302,menuCy=28 → W-8, 8) */}
+          {[0, 4, 8].map((dy) => (
+            <circle key={dy} cx={W - 8} cy={8 + dy} r={1.4} fill={act} opacity={0.5} />
+          ))}
+          {/* Avatar — left side, vertically centered (avatarCx=52,avatarCy=118,r=30 → 15, 34, 9) */}
+          <circle cx={15} cy={34} r={9} fill={av} opacity={0.7} />
+          {/* Name bar — right of avatar */}
+          <rect x={28} y={29} width={W - 42} height={5} rx={2.5} fill={bar} opacity={0.6} />
+          {/* Date bar */}
+          <rect x={28} y={37} width={(W - 42) * 0.65} height={4} rx={2} fill={bar} opacity={0.4} />
+        </svg>
       );
+
     default:
-      return <div style={SKETCH_INNER} />;
+      return (
+        <svg {...svgProps}>
+          <rect x={0} y={0} width={W} height={H} rx={r} fill={card} stroke={stroke} strokeWidth={1} />
+        </svg>
+      );
   }
 }
 
@@ -447,6 +408,25 @@ export function SettingsPanelDisplay({ settings, onUpdateSetting }: SettingsPane
                 </button>
               );
             })}
+          </div>
+          {/* Card width slider — compact variants only */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ color: "var(--tree-text-muted)", fontSize: 12, marginBottom: 6 }}>Card width</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="range"
+                min={120}
+                max={400}
+                step={10}
+                value={settings.compactCardWidth}
+                aria-label="Card width in pixels"
+                onChange={(e) => onUpdateSetting("compactCardWidth", Number(e.target.value))}
+                style={{ flex: 1, accentColor: "var(--tree-root, #2f6f4e)" }}
+              />
+              <span style={{ minWidth: 40, textAlign: "right", fontSize: 11, fontVariantNumeric: "tabular-nums", color: "var(--tree-text-subtle)" }}>
+                {settings.compactCardWidth}px
+              </span>
+            </div>
           </div>
         </div>
       )}

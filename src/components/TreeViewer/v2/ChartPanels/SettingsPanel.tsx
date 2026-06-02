@@ -32,12 +32,20 @@ export interface ChartSettingsV2 {
   personCardVariant: PersonCardVariant;
   /** Row height when `personCardVariant` is compact. */
   compactCardSize: PersonCompactCardSize;
+  /** Width (px) of each person card. Applies to pedigree layout and compact card rendering. Defaults to PERSON_WIDTH (330). */
+  compactCardWidth: number;
   /**
    * Horizontal pedigree: vertical gap (px) between stacked parent cards (first parent bottom → second parent top).
+   * Controls c.y height in the L-shape connector.
    */
   parentPairGap: number;
   /** Pedigree connector rendering mode (`midline` mimics RM-style internal trunk routing). */
   pedigreeConnectorStyle: PedigreeConnectorStyle;
+  /**
+   * Horizontal pedigree: edge-to-edge horizontal gap (px) between generation columns (c.x width).
+   * Controls how far apart ancestor columns are laid out. Defaults to 72px.
+   */
+  pedigreeConnectorCxWidth: number;
   /** Fan chart: radius (px) for the center/root circle. */
   fanRootRadius: number;
 }

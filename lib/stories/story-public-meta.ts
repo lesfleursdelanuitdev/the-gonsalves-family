@@ -8,6 +8,8 @@ export type ParsedStoryAuthor = {
   name: string;
   authorPrefixMode?: AuthorPrefixMode;
   authorPrefixCustom?: string;
+  personXref?: string;
+  personId?: string;
 };
 
 export type StoryBodyMetaParsed = {
@@ -30,7 +32,9 @@ function parseAuthorsArray(raw: unknown): ParsedStoryAuthor[] {
     const authorPrefixMode = parsePrefixMode(rec.authorPrefixMode);
     const authorPrefixCustom =
       typeof rec.authorPrefixCustom === "string" ? rec.authorPrefixCustom : undefined;
-    out.push({ name, authorPrefixMode, authorPrefixCustom });
+    const personXref = typeof rec.personXref === "string" && rec.personXref ? rec.personXref : undefined;
+    const personId = typeof rec.personId === "string" && rec.personId ? rec.personId : undefined;
+    out.push({ name, authorPrefixMode, authorPrefixCustom, personXref, personId });
   }
   return out;
 }
@@ -64,6 +68,9 @@ export function parseStoryBodyMeta(body: string | null | undefined): StoryBodyMe
 export type PublicStoryAuthorCredit = {
   role: string | null;
   name: string;
+  personId?: string;
+  /** Resolved server-side from tree profile / linked media when `personId` is known. */
+  avatarUrl?: string | null;
 };
 
 /** Role label for split credit UI (TOC, byline, cover). */
@@ -90,7 +97,9 @@ export function publicAuthorCredits(
     .map((c) => {
       const name = c.name?.trim();
       if (!name) return null;
-      return { role: publicAuthorCreditRole(c), name };
+      const credit: PublicStoryAuthorCredit = { role: publicAuthorCreditRole(c), name };
+      if (c.personId) credit.personId = c.personId;
+      return credit;
     })
     .filter((c): c is PublicStoryAuthorCredit => c != null);
 }

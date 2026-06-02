@@ -13,6 +13,8 @@ export interface ConnectorLinesProps {
   connectors?: ConnectorHelpers;
   /** Matches layout / PersonNodeView when photos or dates are hidden. */
   personHeight?: number;
+  /** Dynamic card width for compact variants (px). Defaults to PERSON_WIDTH. */
+  personWidth?: number;
   /** Pedigree-only connector rendering mode. */
   connectorStyle?: "classic" | "midline";
   /** Pedigree-only: true when root sibling cards are expanded around the proband. */

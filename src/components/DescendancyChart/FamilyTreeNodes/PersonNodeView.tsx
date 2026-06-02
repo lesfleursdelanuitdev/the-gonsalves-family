@@ -132,7 +132,7 @@ function buildActionButtons(
   if (!onlyRoot && !isSpouse && !isLinkedSpouse && hasSpouses) {
     buttons.push({ Icon: IconHeart, title: "Show spouses", action: "showSpouses" });
   }
-  if (!isRoot) {
+  if (isSpouse || !isRoot) {
     buttons.push({ Icon: IconHome, title: "Set as root", action: "root" });
   }
   if (hasDescendantsInData && !isSpouse && !isLinkedSpouse) {
@@ -465,6 +465,8 @@ export interface PersonCardProps {
   pedigreeRootSiblingsExpanded?: boolean;
   /** Pedigree root-only: children expansion currently shown. */
   pedigreeRootChildrenExpanded?: boolean;
+  /** Dynamic card width (px); defaults to PERSON_WIDTH (330). Applies to compact card variants. */
+  cardWidth?: number;
 }
 
 export const PersonCard = memo(function PersonCard({
@@ -492,6 +494,7 @@ export const PersonCard = memo(function PersonCard({
   pedigreeIsAncestorCollapseTarget = false,
   pedigreeRootSiblingsExpanded = false,
   pedigreeRootChildrenExpanded = false,
+  cardWidth,
 }: PersonCardProps) {
   const photoClipId = useId().replace(/:/g, "");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -508,8 +511,13 @@ export const PersonCard = memo(function PersonCard({
     { isMobile }
   );
   const innerScaleY = baseH > 0 ? effectiveHeight / baseH : 1;
-  const x = cx - CARD_W / 2;
-  const top = y - effectiveHeight / 2;
+  // Compact variants use the dynamic width; full card layouts always use PERSON_WIDTH.
+  const _variant = settings.personCardVariant ?? DEFAULT_PERSON_CARD_VARIANT;
+  const isCompact = _variant === "compact-name" || _variant === "compact-avatar";
+  const cardW = isCompact ? (cardWidth ?? CARD_W) : CARD_W;
+  const x = cx - cardW / 2;
+  const safeY = Number.isFinite(y) ? y : 0;
+  const top = safeY - effectiveHeight / 2;
 
   const { id, firstName, lastName, birthYear, deathYear, _hiddenCount, _isShadow, _unknownPlaceholder } = person;
   const overlayPerson = {
@@ -933,7 +941,7 @@ export const PersonCard = memo(function PersonCard({
         />
         <foreignObject
           x={x + 12}
-          y={y - 22}
+          y={safeY - 22}
           width={CARD_W - 24}
           height={28}
           style={{ overflow: "visible" }}
@@ -971,7 +979,7 @@ export const PersonCard = memo(function PersonCard({
         </foreignObject>
         <text
           x={cx}
-          y={y + 8}
+          y={safeY + 8}
           textAnchor="middle"
           fill={COLORS.date}
           fontFamily="system-ui, sans-serif"
@@ -1009,7 +1017,7 @@ export const PersonCard = memo(function PersonCard({
     return (
       <CompactPersonCard
         cx={cx}
-        y={y}
+        y={safeY}
         x={x}
         top={top}
         effectiveHeight={effectiveHeight}
@@ -1031,6 +1039,7 @@ export const PersonCard = memo(function PersonCard({
         overlayPerson={overlayPerson}
         initials={initials}
         variant={personCardVariant}
+        cardWidth={cardW}
       />
     );
   }

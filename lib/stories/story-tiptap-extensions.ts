@@ -19,7 +19,7 @@ export type CreateStoryTipTapExtensionsOptions = {
 export function createStoryTipTapReadExtensions(opts?: CreateStoryTipTapExtensionsOptions): AnyExtension[] {
   return [
     StarterKit.configure({
-      heading: { levels: [1, 2, 3] },
+      heading: { levels: [1, 2, 3, 4, 5, 6] },
       link: false,
       bulletList: false,
       codeBlock: {

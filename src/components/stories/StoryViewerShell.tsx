@@ -1,12 +1,29 @@
 "use client";
 
-import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArticleView, ViewerPageRenderer } from "@/components/stories/StoryViewerPages";
+import { Crest } from "@/components/wireframe";
 import { cn } from "@/lib/utils";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
 import type { ViewerPage, ViewerTocEntry } from "@/lib/stories/story-viewer-utils";
 import "./story-viewer.css";
+
+// ── Font preference ───────────────────────────────────────────────────────────
+
+type FontChoice = "cormorant" | "inter" | "playfair";
+
+const FONT_OPTIONS: { value: FontChoice; label: string; family: string }[] = [
+  { value: "cormorant", label: "Serif",    family: "var(--font-accent-raw), Georgia, serif" },
+  { value: "inter",     label: "Sans",     family: "var(--font-body-raw), system-ui, sans-serif" },
+  { value: "playfair",  label: "Playfair", family: "var(--font-heading-raw), Georgia, serif" },
+];
+
+const FONT_STORAGE_KEY = "sv-prose-font";
+
+function isValidFontChoice(v: unknown): v is FontChoice {
+  return v === "cormorant" || v === "inter" || v === "playfair";
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -18,7 +35,7 @@ type CoverMeta = {
   pages: number | null;
   coverSrc: string | null;
   coverCaption: string | null;
-  credits: { role: string | null; name: string; note?: string | null }[];
+  credits: { role: string | null; name: string; note?: string | null; personId?: string }[];
 };
 
 type StoryFields = { title: string; subtitle: string; author: string };
@@ -54,12 +71,14 @@ function Topbar({
             <path d="M3 4h10M3 8h10M3 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="sv-brand-eyebrow">The Family Archive</span>
+        <span className="sv-brand-eyebrow">The Gonsalves Family Archive</span>
       </div>
 
       {/* Center: crest + title */}
       <div className="sv-topbar-center">
-        <span className="sv-crest-mark" aria-hidden>G</span>
+        <div className="sv-topbar-crest">
+          <Crest size="xs" alt="Gonsalves family crest" />
+        </div>
         <span className="sv-topbar-title">{title}</span>
       </div>
 
@@ -119,9 +138,11 @@ function TocDrawer({
   pages,
   activeId,
   viewMode,
+  fontChoice,
   onGo,
   onClose,
   onChangeView,
+  onChangeFont,
 }: {
   open: boolean;
   meta: CoverMeta;
@@ -129,9 +150,11 @@ function TocDrawer({
   pages: ViewerPage[];
   activeId: string;
   viewMode: "story" | "article";
+  fontChoice: FontChoice;
   onGo: (pageIndex: number) => void;
   onClose: () => void;
   onChangeView: (v: "story" | "article") => void;
+  onChangeFont: (f: FontChoice) => void;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -163,7 +186,16 @@ function TocDrawer({
               {meta.credits.map((c, i) => (
                 <div key={i} className="sv-drawer-credit">
                   {c.role ? <span className="sv-drawer-credit-role">{c.role}</span> : null}
-                  <span className="sv-drawer-credit-name">{c.name}</span>
+                  {c.personId ? (
+                    <a
+                      href={`/individuals/${encodeURIComponent(c.personId)}`}
+                      className="sv-drawer-credit-name sv-drawer-credit-name--linked"
+                    >
+                      {c.name}
+                    </a>
+                  ) : (
+                    <span className="sv-drawer-credit-name">{c.name}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -218,6 +250,28 @@ function TocDrawer({
           </ul>
         </nav>
 
+        {/* Font picker — always visible in drawer */}
+        <div className="sv-font-picker-footer">
+          <div className="sv-drawer-divider" />
+          <p className="sv-font-picker-label">Text font</p>
+          <div className="sv-font-picker">
+            {FONT_OPTIONS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                className="sv-font-picker-btn"
+                data-active={fontChoice === f.value ? "1" : "0"}
+                aria-pressed={fontChoice === f.value}
+                aria-label={`${f.label} font`}
+                onClick={() => onChangeFont(f.value)}
+              >
+                <span className="sv-font-picker-sample" style={{ fontFamily: f.family }}>Aa</span>
+                <span className="sv-font-picker-name">{f.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Mobile-only footer: Story/Article toggle */}
         <div className="sv-drawer-footer">
           <div className="sv-drawer-footer-divider" />
@@ -270,7 +324,16 @@ function Byline({ credits, hide }: { credits: CoverMeta["credits"]; hide: boolea
           {i > 0 ? <span className="sv-byline-sep" aria-hidden>◦</span> : null}
           <span className="sv-byline-credit">
             {c.role ? <span className="sv-byline-role">{c.role}</span> : null}
-            <span className="sv-byline-name">{c.name}</span>
+            {c.personId ? (
+              <a
+                href={`/individuals/${encodeURIComponent(c.personId)}`}
+                className="sv-byline-name sv-byline-name--linked"
+              >
+                {c.name}
+              </a>
+            ) : (
+              <span className="sv-byline-name">{c.name}</span>
+            )}
           </span>
         </Fragment>
       ))}
@@ -366,13 +429,28 @@ export function StoryViewerShell({
     sp.get("view") === "article" ? "article" : "story";
   const pageIdx = Math.max(0, Math.min(total - 1, Number(sp.get("page") ?? 0) || 0));
 
+  const [fontChoice, setFontChoiceRaw] = useState<FontChoice>("cormorant");
   const [tocOpen, setTocOpen] = useState(false);
   const [idle, setIdle] = useState(false);
   const [activeSection, setActiveSection] = useState("cover");
   const sectionRefs = useRef<Record<string, HTMLElement>>({});
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
 
   // Block cache — blocks are not included in the initial page payload and are fetched lazily.
+  // Hydrate font preference from localStorage before first paint to avoid flash.
+  useLayoutEffect(() => {
+    try {
+      const stored = localStorage.getItem(FONT_STORAGE_KEY);
+      if (isValidFontChoice(stored)) setFontChoiceRaw(stored);
+    } catch { /* localStorage may be blocked in certain privacy modes */ }
+  }, []);
+
+  const setFont = useCallback((choice: FontChoice) => {
+    setFontChoiceRaw(choice);
+    try { localStorage.setItem(FONT_STORAGE_KEY, choice); } catch { /* ignore */ }
+  }, []);
+
   const [blockCache, setBlockCache] = useState<Record<string, ReaderStoryBlock[]>>({});
   const cacheRef = useRef<Record<string, ReaderStoryBlock[]>>({});
   const fetchingRef = useRef<Set<string>>(new Set());
@@ -456,17 +534,18 @@ export function StoryViewerShell({
             ? p.chapterId
             : p.id;
       const el = sectionRefs.current[sectionId];
-      if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY - 68;
-        window.scrollTo({ top, behavior: "smooth" });
+      const container = stageRef.current;
+      if (el && container) {
+        const top = el.getBoundingClientRect().top + container.scrollTop - 68;
+        container.scrollTo({ top, behavior: "smooth" });
       }
     },
-    [viewMode, pages, setQuery],
+    [viewMode, enrichedPages, setQuery],
   );
 
   const changeView = useCallback(
     (v: "story" | "article") => {
-      window.scrollTo({ top: 0, behavior: "instant" });
+      stageRef.current?.scrollTo({ top: 0, behavior: "instant" });
       setQuery({ view: v, page: v === "story" ? String(pageIdx) : undefined });
     },
     [pageIdx, setQuery],
@@ -538,21 +617,23 @@ export function StoryViewerShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [viewMode, pageIdx, total, setQuery]);
 
-  // Scroll to top on page change (story mode)
+  // Scroll to top on page change (story mode) — scroll the stage container, not the window.
   useEffect(() => {
     if (viewMode !== "story") return;
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    stageRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }, [pageIdx, viewMode]);
 
   // Reset scroll on view switch
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    stageRef.current?.scrollTo({ top: 0, behavior: "instant" });
     if (viewMode === "story") setActiveSection("cover");
   }, [viewMode]);
 
-  // Article mode: track active section via scroll
+  // Article mode: track active section via scroll within the stage container
   useEffect(() => {
     if (viewMode !== "article") return;
+    const container = stageRef.current;
+    if (!container) return;
     const lineFromTop = () => Math.max(80, Math.round(window.innerHeight * 0.25));
     let raf = 0;
     const update = () => {
@@ -574,10 +655,10 @@ export function StoryViewerShell({
       if (raf) return;
       raf = requestAnimationFrame(() => { raf = 0; update(); });
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
+    container.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      container.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
@@ -603,6 +684,7 @@ export function StoryViewerShell({
     <div
       className="sv-root fixed inset-0 z-0 flex h-dvh max-h-dvh flex-col overflow-hidden"
       data-idle={idle ? "1" : "0"}
+      data-font={fontChoice !== "cormorant" ? fontChoice : undefined}
     >
       {/* Topbar */}
       <div className="sv-topbar-slot shrink-0">
@@ -618,6 +700,7 @@ export function StoryViewerShell({
 
       {/* Stage — full width (TOC is now a drawer overlay) */}
       <div
+        ref={stageRef}
         className="sv-stage-slot min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
@@ -679,9 +762,11 @@ export function StoryViewerShell({
         pages={enrichedPages}
         activeId={activeId}
         viewMode={viewMode}
+        fontChoice={fontChoice}
         onGo={goToPage}
         onClose={() => setTocOpen(false)}
         onChangeView={changeView}
+        onChangeFont={setFont}
       />
     </div>
   );

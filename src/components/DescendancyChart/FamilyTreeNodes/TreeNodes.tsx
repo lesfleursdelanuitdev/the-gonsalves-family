@@ -107,6 +107,8 @@ interface TreeNodesProps {
   pedigreeMultiFamilyChildXrefs?: string[] | null;
   /** Effective card height from current display settings. */
   personHeight?: number;
+  /** Dynamic card width for compact variants (px). Defaults to PERSON_WIDTH. */
+  personWidth?: number;
   /** Optional root sibling cards (pedigree-only). Rendered around root in the same generation row/column. */
   pedigreeRootSiblings?: PedigreeRootSiblingNode[] | null;
   /** Optional root children cards (pedigree-only descendants peek). */
@@ -127,6 +129,7 @@ export const TreeNodes = memo(function TreeNodes({
   pedigreeHasRoomToExpandDepth = false,
   pedigreeMultiFamilyChildXrefs = null,
   personHeight = 104,
+  personWidth,
   pedigreeRootSiblings = null,
   pedigreeRootChildren = null,
 }: TreeNodesProps) {
@@ -166,7 +169,7 @@ export const TreeNodes = memo(function TreeNodes({
         const y = rootNode.y + sign * band * rowStep; // Above first, then below.
         return { ...sib, x: rootNode.x, y };
       }
-      const colStep = PERSON_WIDTH + 28;
+      const colStep = (personWidth ?? PERSON_WIDTH) + 28;
       const x = rootNode.x + sign * band * colStep; // Left first, then right.
       return { ...sib, x, y: rootNode.y };
     });
@@ -198,9 +201,9 @@ export const TreeNodes = memo(function TreeNodes({
         elements.push(
           <line
             key={`ped-root-sib-line-h-${i}`}
-            x1={leftX + PERSON_WIDTH / 2}
+            x1={leftX + (personWidth ?? PERSON_WIDTH) / 2}
             y1={rootNode.y}
-            x2={rightX - PERSON_WIDTH / 2}
+            x2={rightX - (personWidth ?? PERSON_WIDTH) / 2}
             y2={rootNode.y}
             stroke={lineStroke}
             strokeWidth={1.5}
@@ -246,6 +249,7 @@ export const TreeNodes = memo(function TreeNodes({
           hasMultipleFamiliesAsChild={false}
           pedigreeShowExpandAncestorsAction={false}
           pedigreeIsAncestorCollapseTarget={false}
+          cardWidth={personWidth}
         />
       );
     }
@@ -260,20 +264,21 @@ export const TreeNodes = memo(function TreeNodes({
     const lineStroke = "var(--tree-connector, #9A8F7C)";
     const childPositions = pedigreeRootChildren.map((child, idx, arr) => {
       if (isHorizontalPedigree) {
-        const childX = rootNode.x - (PERSON_WIDTH + 92);
+        const childX = rootNode.x - ((personWidth ?? PERSON_WIDTH) + 92);
         const y = rootNode.y + (idx - (arr.length - 1) / 2) * (personHeight + 16);
         return { ...child, x: childX, y };
       }
       const childY = rootNode.y + personHeight + 32;
-      const x = rootNode.x + (idx - (arr.length - 1) / 2) * (PERSON_WIDTH + 18);
+      const x = rootNode.x + (idx - (arr.length - 1) / 2) * ((personWidth ?? PERSON_WIDTH) + 18);
       return { ...child, x, y: childY };
     });
 
     if (isHorizontalPedigree) {
       const ys = childPositions.map((c) => c.y).sort((a, b) => a - b);
-      const trunkX = childPositions[0]!.x + PERSON_WIDTH / 2 + 18;
-      const rootConnectorX = rootNode.x - PERSON_WIDTH / 2; // Card edge facing the descendants column.
-      const childConnectorX = childPositions[0]!.x + PERSON_WIDTH / 2;
+      const pw = personWidth ?? PERSON_WIDTH;
+      const trunkX = childPositions[0]!.x + pw / 2 + 18;
+      const rootConnectorX = rootNode.x - pw / 2; // Card edge facing the descendants column.
+      const childConnectorX = childPositions[0]!.x + pw / 2;
 
       elements.push(
         <line
@@ -404,6 +409,7 @@ export const TreeNodes = memo(function TreeNodes({
           hasMultipleFamiliesAsChild={false}
           pedigreeShowExpandAncestorsAction={false}
           pedigreeIsAncestorCollapseTarget={false}
+          cardWidth={personWidth}
         />
       );
     }
@@ -449,6 +455,7 @@ export const TreeNodes = memo(function TreeNodes({
         )}
         pedigreeRootSiblingsExpanded={node.content.id === rootId ? pedigreeRootSiblingsExpanded : false}
         pedigreeRootChildrenExpanded={node.content.id === rootId ? pedigreeRootChildrenExpanded : false}
+        cardWidth={personWidth}
       />
     );
     const u = getPedigreeParentUnion(node);
@@ -470,6 +477,7 @@ export const TreeNodes = memo(function TreeNodes({
           viewState={viewState}
           chartStrategy={chartStrategy}
           isMobile={isMobile}
+          personWidth={personWidth}
         />
       );
     } else {
@@ -499,6 +507,7 @@ export const TreeNodes = memo(function TreeNodes({
             settings={settings}
             chartStrategy={chartStrategy}
             isMobile={isMobile}
+            cardWidth={personWidth}
           />
         );
       }

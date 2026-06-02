@@ -26,6 +26,8 @@ export type ChartContentSettings = {
   autoLegendModal?: boolean;
   pedigreeConnectorStyle?: "classic" | "midline";
   fanRootRadius?: number;
+  /** Dynamic card width for compact card variants (px). Defaults to PERSON_WIDTH. */
+  compactCardWidth?: number;
 } & PersonCardLayoutSettings;
 
 export interface ChartContentProps {
@@ -112,6 +114,7 @@ export const ChartContent = memo(function ChartContent({
   }
   const { ConnectorLines, SpouseJoinLines, UnionNodeView } = viewSet;
   const personHeight = getEffectivePersonHeight(settings, { chartStrategy, isMobile });
+  const personWidth = settings?.compactCardWidth;
   const showTreeConnectors = shouldRenderConnectorsForStrategy(chartStrategy);
   return (
     <>
@@ -121,6 +124,7 @@ export const ChartContent = memo(function ChartContent({
             root={root}
             connectors={connectors}
             personHeight={personHeight}
+            personWidth={personWidth}
             connectorStyle={settings?.pedigreeConnectorStyle}
             hasPedigreeRootSiblings={Boolean(pedigreeRootSiblings?.length)}
             hasPedigreeRootChildren={Boolean(pedigreeRootChildren?.length)}
@@ -142,6 +146,7 @@ export const ChartContent = memo(function ChartContent({
         pedigreeHasRoomToExpandDepth={pedigreeHasRoomToExpandDepth}
         pedigreeMultiFamilyChildXrefs={pedigreeMultiFamilyChildXrefs}
         personHeight={personHeight}
+        personWidth={personWidth}
         pedigreeRootSiblings={pedigreeRootSiblings}
         pedigreeRootChildren={pedigreeRootChildren}
       />

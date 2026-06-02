@@ -33,6 +33,42 @@
   color: var(--sv-ink);
 }
 
+/* ── Loading skeleton ────────────────────────────────────────────────────── */
+
+@keyframes sv-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.sv-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.sv-skeleton-line {
+  height: 13px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sv-ink) 8%, transparent)  25%,
+    color-mix(in srgb, var(--sv-ink) 18%, transparent) 50%,
+    color-mix(in srgb, var(--sv-ink) 8%, transparent)  75%
+  );
+  background-size: 200% 100%;
+  animation: sv-shimmer 1.6s ease-in-out infinite;
+}
+
+.sv-skeleton-line--short  { height: 10px; }
+.sv-skeleton-line--wide   { width: 100%; }
+.sv-skeleton-line--medium { width: 72%; }
+.sv-skeleton-line--narrow { width: 48%; }
+
+.sv-skeleton-gap {
+  height: 1.5em;
+}
+
 /* ── Shell layout: topbar-slot (shrink-0) + stage-slot (flex-1) ───────────── */
 
 .sv-topbar-slot {
@@ -89,20 +125,10 @@
   max-width: 400px;
 }
 
-.sv-crest-mark {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1.2px solid var(--sv-accent);
+.sv-topbar-crest {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-family: var(--font-heading-raw), serif;
-  font-style: italic;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--sv-ink);
-  flex-shrink: 0;
 }
 
 .sv-topbar-title {
@@ -300,6 +326,16 @@
   color: var(--sv-ink-soft);
 }
 
+.sv-drawer-credit-name--linked {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--sv-green) 40%, transparent);
+  transition: color 0.15s;
+}
+.sv-drawer-credit-name--linked:hover {
+  color: var(--sv-green);
+}
+
 .sv-drawer-divider {
   height: 1px;
   background: var(--sv-rule);
@@ -463,6 +499,17 @@
   color: var(--sv-ink);
 }
 
+.sv-byline-name--linked {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--sv-green) 50%, transparent);
+  transition: color 0.15s;
+}
+.sv-byline-name--linked:hover {
+  color: var(--sv-green);
+  text-decoration-color: var(--sv-green);
+}
+
 .sv-byline-sep {
   display: inline-flex;
   align-items: center;
@@ -495,6 +542,11 @@
     padding: 40px 24px;
     min-height: unset;
   }
+}
+
+/* Chapter opener fills the full visible stage area so it reads like a title page */
+.sv-chapter-opener-card {
+  flex: 1;
 }
 
 /* Running head */
@@ -638,6 +690,16 @@
   font-size: 17px;
   color: var(--sv-ink);
   line-height: 1.2;
+}
+
+.sv-credit-name--linked {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--sv-green) 50%, transparent);
+  transition: color 0.15s;
+}
+.sv-credit-name--linked:hover {
+  color: var(--sv-green);
 }
 
 .sv-credit-note {
@@ -797,7 +859,6 @@
 
 .sv-prose h3 {
   font-family: var(--font-heading-raw), serif;
-  font-size: 20px;
   font-weight: 500;
   color: var(--sv-ink);
   margin: 28px 0 8px;
@@ -1178,6 +1239,117 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--sv-ink-quiet);
+}
+
+/* ── Prose font variants ─────────────────────────────────────────────────── */
+
+/* Cormorant Garamond is the default; no rule needed. */
+
+.sv-root[data-font="inter"] .sv-prose {
+  font-family: var(--font-body-raw), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  letter-spacing: 0;
+}
+
+.sv-root[data-font="playfair"] .sv-prose {
+  font-family: var(--font-heading-raw), Georgia, serif;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+/* ── Font picker (TOC drawer footer) ─────────────────────────────────────── */
+
+.sv-font-picker-footer {
+  padding: 0 16px 12px;
+  flex-shrink: 0;
+}
+
+.sv-font-picker-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sv-ink-quiet);
+  margin-bottom: 8px;
+}
+
+.sv-font-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.sv-font-picker-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 6px 8px;
+  border: 1px solid var(--sv-rule);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  color: var(--sv-ink-soft);
+}
+
+.sv-font-picker-btn:hover {
+  border-color: color-mix(in srgb, var(--sv-ink) 28%, transparent);
+  background: color-mix(in srgb, var(--sv-ink) 4%, transparent);
+}
+
+.sv-font-picker-btn[data-active="1"] {
+  border-color: var(--sv-accent);
+  background: color-mix(in srgb, var(--sv-accent) 8%, transparent);
+  color: var(--sv-ink);
+}
+
+.sv-font-picker-sample {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.sv-font-picker-name {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sv-ink-quiet);
+}
+
+.sv-font-picker-btn[data-active="1"] .sv-font-picker-name {
+  color: var(--sv-accent);
+}
+
+/* ── Section entity link chips ───────────────────────────────────────────── */
+
+.sv-section-entity-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  margin-bottom: 4px;
+}
+
+.sv-section-entity-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid var(--sv-rule);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--sv-ink-soft);
+  text-decoration: none;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.sv-section-entity-chip:hover {
+  color: var(--sv-accent);
+  border-color: var(--sv-accent-soft);
 }
 
 /* ── Mobile responsive ───────────────────────────────────────────────────── */

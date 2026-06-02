@@ -28,6 +28,7 @@ export interface UnionRowProps {
   viewState?: ViewState;
   chartStrategy?: ChartViewStrategyName;
   isMobile?: boolean;
+  personWidth?: number;
 }
 
 /** Fallbacks so diamond and lines stay visible when CSS variables don't cascade (e.g. tree-viewer-test). */
@@ -89,11 +90,13 @@ export const UnionRow = memo(function UnionRow({
   viewState,
   chartStrategy = "descendancy",
   isMobile = false,
+  personWidth,
 }: UnionRowProps) {
   const { x, y } = node;
+  const pw = personWidth ?? PERSON_WIDTH;
   const collapsedSet = new Set(viewState?.collapsedSubtrees ?? []);
-  const leftCX = x - CONNECTOR_WIDTH / 2 - PERSON_WIDTH / 2;
-  const rightCX = x + CONNECTOR_WIDTH / 2 + PERSON_WIDTH / 2;
+  const leftCX = x - CONNECTOR_WIDTH / 2 - pw / 2;
+  const rightCX = x + CONNECTOR_WIDTH / 2 + pw / 2;
   const diamondColor = getDiamondColor(node);
   const diamondGlow = getDiamondGlow(node);
   const lineStroke = getLineStroke(node);
@@ -120,9 +123,10 @@ export const UnionRow = memo(function UnionRow({
             settings={settings as PersonCardSettings | undefined}
             chartStrategy={chartStrategy}
             isMobile={isMobile}
+            cardWidth={pw}
           />
           <line
-            x1={leftCX + PERSON_WIDTH / 2}
+            x1={leftCX + pw / 2}
             y1={y}
             x2={x - DIAMOND_SIZE}
             y2={y}
@@ -144,7 +148,7 @@ export const UnionRow = memo(function UnionRow({
           <line
             x1={x + DIAMOND_SIZE}
             y1={y}
-            x2={rightCX - PERSON_WIDTH / 2}
+            x2={rightCX - pw / 2}
             y2={y}
             stroke={lineStroke}
             strokeWidth={1.5}
@@ -168,6 +172,7 @@ export const UnionRow = memo(function UnionRow({
             settings={settings as PersonCardSettings | undefined}
             chartStrategy={chartStrategy}
             isMobile={isMobile}
+            cardWidth={pw}
           />
         </>
       )}

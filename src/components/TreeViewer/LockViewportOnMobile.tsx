@@ -42,11 +42,13 @@ export function LockViewportOnMobile() {
     const prevHtmlOverflow = html.style.overflow;
     const prevHtmlHeight = html.style.height;
     const prevHtmlWidth = html.style.width;
+    const prevHtmlTouchAction = html.style.touchAction;
     const prevBodyOverflow = body.style.overflow;
     const prevBodyHeight = body.style.height;
     const prevBodyWidth = body.style.width;
     const prevBodyMaxWidth = body.style.maxWidth;
     const prevBodyPosition = body.style.position;
+    const prevBodyTouchAction = body.style.touchAction;
 
     const refresh = (evt?: Event, options?: { skipToast?: boolean }) => {
       if (!isMobile()) return null;
@@ -70,11 +72,15 @@ export function LockViewportOnMobile() {
     html.style.overflow = "hidden";
     html.style.height = "var(--mobile-viewport-height, 100vh)";
     html.style.width = "var(--mobile-viewport-width, 100vw)";
+    // Suppress browser-level pinch-zoom and scroll on the document root so our
+    // custom touch handlers receive the events uninterrupted on all mobile browsers.
+    html.style.touchAction = "none";
     body.style.overflow = "hidden";
     body.style.height = "var(--mobile-viewport-height, 100vh)";
     body.style.width = "var(--mobile-viewport-width, 100vw)";
     body.style.maxWidth = "var(--mobile-viewport-width, 100vw)";
     body.style.position = "relative";
+    body.style.touchAction = "none";
     setViewportSize();
 
     const refreshHandler = (evt?: Event) => refresh(evt);
@@ -111,6 +117,7 @@ export function LockViewportOnMobile() {
       html.style.overflow = prevHtmlOverflow;
       html.style.height = prevHtmlHeight;
       html.style.width = prevHtmlWidth;
+      html.style.touchAction = prevHtmlTouchAction;
       html.style.removeProperty("--mobile-viewport-height");
       html.style.removeProperty("--mobile-viewport-width");
       body.style.overflow = prevBodyOverflow;
@@ -118,6 +125,7 @@ export function LockViewportOnMobile() {
       body.style.width = prevBodyWidth;
       body.style.maxWidth = prevBodyMaxWidth;
       body.style.position = prevBodyPosition;
+      body.style.touchAction = prevBodyTouchAction;
     };
   }, []);
 
