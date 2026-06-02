@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
+import { useStoryLightbox } from "@/components/stories/StoryLightboxProvider";
 
 type MediaData = { url: string; form: string | null; mimeType: string | null; title: string | null };
 
@@ -47,6 +48,7 @@ export function PublicStoryMediaBlock({ block }: { block: ReaderStoryBlock }) {
 
   const [media, setMedia] = useState<MediaData | null>(null);
   const [failed, setFailed] = useState(false);
+  const lightbox = useStoryLightbox();
 
   useEffect(() => {
     if (!mediaId) return;
@@ -99,13 +101,30 @@ export function PublicStoryMediaBlock({ block }: { block: ReaderStoryBlock }) {
     <figure className="my-6">
       {showTitle && titlePlacement === "above" ? <MediaTitle label={rawLabel} placement="above" /> : null}
       {captionHtml && captionPlacement === "above" ? <CaptionHtml html={captionHtml} /> : null}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={media.url}
-        alt={rawLabel || media.title || ""}
-        className="mx-auto max-w-full rounded-xl object-contain"
-        loading="lazy"
-      />
+      {lightbox ? (
+        <button
+          type="button"
+          onClick={() => lightbox.open(mediaId)}
+          className="block w-full cursor-zoom-in border-0 bg-transparent p-0"
+          aria-label={`Open image${rawLabel ? `: ${rawLabel}` : ""} in lightbox`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={media.url}
+            alt={rawLabel || media.title || ""}
+            className="mx-auto max-w-full rounded-xl object-contain"
+            loading="lazy"
+          />
+        </button>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={media.url}
+          alt={rawLabel || media.title || ""}
+          className="mx-auto max-w-full rounded-xl object-contain"
+          loading="lazy"
+        />
+      )}
       {showTitle && titlePlacement === "below" ? <MediaTitle label={rawLabel} placement="below" /> : null}
       {captionHtml && captionPlacement === "below" ? <CaptionHtml html={captionHtml} /> : null}
     </figure>

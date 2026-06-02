@@ -263,6 +263,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     initialPartnersUrl,
     initialRevealSpouseXref,
     initialFamilyXref,
+    disableUrlSync: embedMode,
   });
   const { handleChartStrategyChange } = useFamilyTreeSyncEffects(familyTreeSyncEffectsInput);
   const { treePeople, rootDisplayName, historyHandlers } = useFamilyTreeDerivedData({

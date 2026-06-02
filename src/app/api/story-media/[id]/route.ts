@@ -30,7 +30,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const ref = gedcom.fileRef.trim();
     const url = resolveGedcomMediaFileRef(ref);
     const mimeType = mimeFromPath(ref);
-    return NextResponse.json({ url, form: gedcom.form ?? null, mimeType, title: gedcom.title ?? null });
+    return NextResponse.json({ url, fileRef: ref, form: gedcom.form ?? null, mimeType, title: gedcom.title ?? null });
   }
 
   const site = await prisma.siteMedia.findFirst({
@@ -42,7 +42,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     if (ref) {
       const url = resolveGedcomMediaFileRef(ref);
       const mimeType = site.mimeType?.trim() || mimeFromPath(ref);
-      return NextResponse.json({ url, form: site.form ?? null, mimeType: mimeType ?? null, title: site.title ?? null });
+      return NextResponse.json({ url, fileRef: ref, form: site.form ?? null, mimeType: mimeType ?? null, title: site.title ?? null });
     }
   }
 
@@ -55,7 +55,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     if (ref) {
       const url = resolveGedcomMediaFileRef(ref);
       const mimeType = user.mimeType?.trim() || mimeFromPath(ref);
-      return NextResponse.json({ url, form: user.form ?? null, mimeType: mimeType ?? null, title: user.title ?? null });
+      return NextResponse.json({ url, fileRef: ref, form: user.form ?? null, mimeType: mimeType ?? null, title: user.title ?? null });
     }
   }
 

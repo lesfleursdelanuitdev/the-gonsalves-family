@@ -3,6 +3,7 @@
 import React, { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArticleView, ViewerPageRenderer } from "@/components/stories/StoryViewerPages";
+import { StoryLightboxProvider } from "@/components/stories/StoryLightboxProvider";
 import { Crest } from "@/components/wireframe";
 import { cn } from "@/lib/utils";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
@@ -601,6 +602,8 @@ export function StoryViewerShell({
     if (viewMode !== "story") return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.matches?.("input, textarea, select")) return;
+      // While the image lightbox is open it owns the arrow keys; don't also turn pages.
+      if (document.body.dataset.storyLightbox === "open") return;
       if (e.key === "ArrowRight" || e.key === "PageDown") {
         e.preventDefault();
         setQuery({ view: "story", page: String(Math.min(total - 1, pageIdx + 1)) });
@@ -681,6 +684,7 @@ export function StoryViewerShell({
   const isCover = cur?.pageKind === "cover";
 
   return (
+    <StoryLightboxProvider pages={pages} storyTitle={meta.collection}>
     <div
       className="sv-root fixed inset-0 z-0 flex h-dvh max-h-dvh flex-col overflow-hidden"
       data-idle={idle ? "1" : "0"}
@@ -769,5 +773,6 @@ export function StoryViewerShell({
         onChangeFont={setFont}
       />
     </div>
+    </StoryLightboxProvider>
   );
 }

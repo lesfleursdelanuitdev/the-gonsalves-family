@@ -138,7 +138,12 @@ export function PublicStoryTimelineEmbed({ block }: { block: ReaderStoryBlock })
           />
         ) : null}
 
-        {caption ? <p className="mt-2 text-xs text-text/65">{caption}</p> : null}
+        {caption ? (
+          <div
+            className="mt-2 text-xs text-text/65 [&_a]:text-primary [&_a]:underline [&_p]:m-0"
+            dangerouslySetInnerHTML={{ __html: caption }}
+          />
+        ) : null}
       </div>
     </div>
   );

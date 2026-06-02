@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { StoryBlockRenderer } from "@/components/stories/StoryBlockRenderer";
 import { StoryCover } from "@/components/stories/StoryCover";
+import { StorySourcesFootnotes } from "@/components/stories/StorySourcesFootnotes";
 import { StoryTocNav } from "@/components/stories/StoryTocNav";
+import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { Footer } from "@/components/homepage";
 import type { StoryPublicPayload } from "@/lib/stories/story-queries";
@@ -9,6 +11,9 @@ import { formatPublicAuthorLine, parseStoryBodyMeta } from "@/lib/stories/story-
 import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
 import { StoryKind } from "@ligneous/prisma";
 import { buildToc, flattenDbSectionRows, sectionToBlocks } from "@/lib/stories/story-reader-utils";
+
+/** Title/subtitle/author already render in the cover header, so drop their inline chips from the body. */
+const ARTICLE_SUPPRESSED_FIELDS: StoryFieldKey[] = ["title", "subtitle", "author"];
 
 export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicPayload; urlSlug: string }) {
   const hero = await resolveStoryHeroUrls({
@@ -66,18 +71,24 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
             <StoryTocNav slug={pathSlug} entries={toc} />
           </div>
         </aside>
-        <main className="min-w-0 flex-1">
+        <main className="article-prose min-w-0 flex-1">
           {flatSections.map((sec) => (
             <section key={sec.id} id={`section-${sec.id}`} className="mb-14 scroll-mt-28">
               {!sec.hideTitle ? <h2 className="font-display text-2xl font-semibold text-text">{sec.title}</h2> : null}
               {sec.subtitle && !sec.hideSubtitle ? <p className="mt-2 text-sm uppercase tracking-[0.22em] text-text/55">{sec.subtitle}</p> : null}
               <div className={sec.hideTitle && (!sec.subtitle || sec.hideSubtitle) ? "space-y-6" : "mt-4 space-y-6"}>
                 {sectionToBlocks(sec).map((b) => (
-                  <StoryBlockRenderer key={b.id} block={b} storyFields={storyFields} />
+                  <StoryBlockRenderer
+                    key={b.id}
+                    block={b}
+                    storyFields={storyFields}
+                    suppressStoryFields={ARTICLE_SUPPRESSED_FIELDS}
+                  />
                 ))}
               </div>
             </section>
           ))}
+          <StorySourcesFootnotes sources={story.storySources} />
         </main>
       </div>
       <StoryTocNav slug={pathSlug} entries={toc} mobileFloating />

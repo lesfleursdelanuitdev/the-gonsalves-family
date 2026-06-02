@@ -11,10 +11,12 @@ type ResearchPageShellProps = {
   title: string;
   description: string;
   breadcrumbs?: Breadcrumb[];
+  /** Use a full-width container for the content section instead of narrow. */
+  wideContent?: boolean;
   children: ReactNode;
 };
 
-export function ResearchPageShell({ title, description, breadcrumbs, children }: ResearchPageShellProps) {
+export function ResearchPageShell({ title, description, breadcrumbs, wideContent = false, children }: ResearchPageShellProps) {
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg text-text">
       <Navbar />
@@ -34,7 +36,7 @@ export function ResearchPageShell({ title, description, breadcrumbs, children }:
           </div>
 
           <div className="relative z-10 min-w-0 max-w-full">
-            <PageContainer narrow>
+            <PageContainer fullWidth={wideContent} narrow={!wideContent}>
               <div className="min-w-0 max-w-full space-y-5 p-5 backdrop-blur-md [-webkit-backdrop-filter:blur(14px)] [backdrop-filter:blur(14px)] sm:p-6">
                 {breadcrumbs && breadcrumbs.length > 0 && (
                   <nav
@@ -62,7 +64,7 @@ export function ResearchPageShell({ title, description, breadcrumbs, children }:
 
                 <div className="h-px w-24 bg-gradient-to-r from-link/70 via-link/30 to-transparent" />
 
-                <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg md:text-xl">
+                <p className={`text-base leading-relaxed text-muted sm:text-lg md:text-xl ${wideContent ? "" : "max-w-2xl"}`}>
                   {description}
                 </p>
               </div>
@@ -71,9 +73,15 @@ export function ResearchPageShell({ title, description, breadcrumbs, children }:
         </Section>
 
         <Section noPadding className="py-8 md:py-10">
-          <PageContainer narrow>
-            {children}
-          </PageContainer>
+          {wideContent ? (
+            <PageContainer fullWidth>
+              {children}
+            </PageContainer>
+          ) : (
+            <PageContainer narrow>
+              {children}
+            </PageContainer>
+          )}
         </Section>
       </main>
       <Footer />

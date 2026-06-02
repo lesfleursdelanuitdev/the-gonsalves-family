@@ -28,6 +28,8 @@ type ListPageMobileControlsProps<T extends string> = {
   showFilterButton?: boolean;
   /** When provided, renders in place of the sort dropdown. */
   trailingSlot?: ReactNode;
+  /** When provided, renders a second row inside the expanded panel, below the search/filter row. */
+  belowSearchSlot?: ReactNode;
 };
 
 /**
@@ -49,6 +51,7 @@ export function ListPageMobileControls<T extends string>({
   sortOptions,
   showFilterButton = true,
   trailingSlot,
+  belowSearchSlot,
 }: ListPageMobileControlsProps<T>) {
   const filterIsActive = filterLabel !== filterDefaultLabel;
   const [expanded, setExpanded] = useState(true);
@@ -83,7 +86,8 @@ export function ListPageMobileControls<T extends string>({
             )}
           </button>
         </div>
-        <div id={panelId} className={expanded ? "flex items-center gap-1.5" : "hidden"}>
+        <div id={panelId} className={expanded ? "space-y-2" : "hidden"}>
+          <div className="flex items-center gap-1.5">
           <label className="relative block min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-link/80" aria-hidden />
             <input
@@ -127,6 +131,8 @@ export function ListPageMobileControls<T extends string>({
               </select>
             </label>
           )}
+          </div>
+          {belowSearchSlot}
         </div>
       </div>
     </aside>

@@ -22,6 +22,8 @@ export interface UseFamilyTreeSyncEffectsInputParams {
   initialPartnersUrl: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["initialPartnersUrl"];
   initialRevealSpouseXref: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["initialRevealSpouseXref"];
   initialFamilyXref: UseFamilyTreeSyncEffectsParams["treeViewerUrlSyncParams"]["initialFamilyXref"];
+  /** Embedded charts must not write their state back to the host page's URL. */
+  disableUrlSync?: boolean;
 }
 
 export function useFamilyTreeSyncEffectsInput({
@@ -44,6 +46,7 @@ export function useFamilyTreeSyncEffectsInput({
   initialPartnersUrl,
   initialRevealSpouseXref,
   initialFamilyXref,
+  disableUrlSync,
 }: UseFamilyTreeSyncEffectsInputParams): UseFamilyTreeSyncEffectsParams {
   return {
     chartStrategyChangeParams: {
@@ -78,6 +81,7 @@ export function useFamilyTreeSyncEffectsInput({
       isChartLoading,
       chartDataKey,
       dispatch,
+      disableUrlSync,
     },
   };
 }

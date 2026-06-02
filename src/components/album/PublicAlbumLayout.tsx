@@ -252,7 +252,7 @@ function MediaListRow({ m, onOpen }: { m: MediaSummary; onOpen: () => void }) {
 
 const SLIDESHOW_INTERVAL_MS = 4000;
 
-function PublicAlbumLightbox({
+export function PublicAlbumLightbox({
   items,
   index,
   onClose,

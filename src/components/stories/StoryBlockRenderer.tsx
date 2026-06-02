@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import type { JSONContent } from "@tiptap/core";
 import { PublicStoryTimelineEmbed } from "@/components/stories/PublicStoryTimelineEmbed";
+import { PublicStoryTreeEmbed } from "@/components/stories/PublicStoryTreeEmbed";
 import { PublicStoryMediaBlock } from "@/components/stories/PublicStoryMediaBlock";
 import type { ReaderStoryBlock } from "@/lib/stories/story-reader-utils";
-import { renderStoryRichTextToHtml } from "@/lib/stories/render-story-rich-text";
+import { renderStoryRichTextToHtml, stripStoryFieldChips } from "@/lib/stories/render-story-rich-text";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 import "./story-flow-nodes.css";
 
@@ -134,6 +135,7 @@ export function StoryBlockRenderer({
   block,
   storyFieldHtml,
   storyFields,
+  suppressStoryFields,
   highlight,
 }: {
   block: ReaderStoryBlock;
@@ -141,6 +143,8 @@ export function StoryBlockRenderer({
   storyFieldHtml?: (field: StoryFieldKey) => string;
   /** Pass plain strings when calling from a server component — the function is created here. */
   storyFields?: StoryFields;
+  /** Inline story-field chips to drop from rich text (e.g. title/author already shown in an article header). */
+  suppressStoryFields?: StoryFieldKey[];
   highlight?: boolean;
 }) {
   const resolvedFieldHtml = useMemo<((f: StoryFieldKey) => string) | undefined>(() => {
@@ -165,8 +169,9 @@ export function StoryBlockRenderer({
       setHtml("");
       return;
     }
-    setHtml(renderStoryRichTextToHtml(doc, resolvedFieldHtml));
-  }, [block, resolvedFieldHtml]);
+    const prepared = suppressStoryFields?.length ? stripStoryFieldChips(doc, suppressStoryFields) : doc;
+    setHtml(renderStoryRichTextToHtml(prepared, resolvedFieldHtml));
+  }, [block, resolvedFieldHtml, suppressStoryFields]);
 
   const wrap = (inner: ReactNode) => (
     <div
@@ -209,11 +214,11 @@ export function StoryBlockRenderer({
             }}
           >
             {supportBlocks.map((b, i) => (
-              <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} />
+              <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} suppressStoryFields={suppressStoryFields} />
             ))}
           </div>
         ) : null}
-        {textBlock ? <StoryBlockRenderer block={textBlock} storyFieldHtml={resolvedFieldHtml} /> : null}
+        {textBlock ? <StoryBlockRenderer block={textBlock} storyFieldHtml={resolvedFieldHtml} suppressStoryFields={suppressStoryFields} /> : null}
       </div>,
     );
   }
@@ -226,6 +231,9 @@ export function StoryBlockRenderer({
     const k = String((block as { embedKind?: string }).embedKind ?? "document");
     if (k === "timeline") {
       return wrap(<PublicStoryTimelineEmbed block={block} />);
+    }
+    if (k === "tree") {
+      return wrap(<PublicStoryTreeEmbed block={block} />);
     }
     return wrap(<EmbedPlaceholder label={EMBED_LABELS[k] ?? "Embed"} />);
   }
@@ -242,7 +250,7 @@ export function StoryBlockRenderer({
         {cols.map((col) => (
           <div key={col.id} className="min-w-0">
             {col.blocks.map((b, j) => (
-              <StoryBlockRenderer key={b.id ?? j} block={b} storyFieldHtml={resolvedFieldHtml} />
+              <StoryBlockRenderer key={b.id ?? j} block={b} storyFieldHtml={resolvedFieldHtml} suppressStoryFields={suppressStoryFields} />
             ))}
           </div>
         ))}
@@ -259,7 +267,7 @@ export function StoryBlockRenderer({
     return wrap(
       <div className="my-4 rounded-xl border border-border/60 bg-surface-2/30 p-4">
         {children.map((b, i) => (
-          <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} />
+          <StoryBlockRenderer key={b.id ?? i} block={b} storyFieldHtml={resolvedFieldHtml} suppressStoryFields={suppressStoryFields} />
         ))}
       </div>,
     );

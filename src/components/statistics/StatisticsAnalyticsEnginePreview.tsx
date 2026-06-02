@@ -3,9 +3,8 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import type { Data, Layout } from "plotly.js";
-import { BarChart3 } from "lucide-react";
 import { PlotlyChart } from "@/components/plotly/PlotlyChart";
-import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
+import { formatGedcomFullNameForDisplay, formatGender } from "@/lib/individual-mapper";
 import { messageFromResearchErrorJson } from "@/lib/research-api-client-error";
 
 const BAR = "#3d5a4a";
@@ -534,13 +533,20 @@ function StatisticsPlotly({
   );
 }
 
-function horizontalBar(labels: string[], values: number[], title: string): { data: Data[]; layout: Partial<Layout> } {
-  const pairs = labels.map((l, i) => ({ l, v: values[i] ?? 0 }));
+function horizontalBar(
+  labels: string[],
+  values: number[],
+  title: string,
+  /** Full (unabbreviated) labels — when provided, shown in the hover tooltip instead of the axis label. */
+  fullLabels?: string[],
+): { data: Data[]; layout: Partial<Layout> } {
+  const pairs = labels.map((l, i) => ({ l, v: values[i] ?? 0, full: fullLabels?.[i] ?? l }));
   pairs.sort((a, b) => a.v - b.v);
   const maxLabelLen = pairs.reduce((m, p) => Math.max(m, String(p.l).length), 8);
   /** Cap width so long labels do not dominate the chart; labels should be pre-shortened where needed. */
   const capped = Math.min(maxLabelLen, 38);
   const leftMargin = Math.min(220, 40 + capped * 5);
+  const hasFullLabels = fullLabels != null;
   return {
     data: [
       {
@@ -548,6 +554,10 @@ function horizontalBar(labels: string[], values: number[], title: string): { dat
         orientation: "h",
         x: pairs.map((p) => p.v),
         y: pairs.map((p) => p.l),
+        ...(hasFullLabels ? { customdata: pairs.map((p) => p.full) } : {}),
+        hovertemplate: hasFullLabels
+          ? "%{customdata}<br>Count: %{x:,}<extra></extra>"
+          : "%{y}<br>Count: %{x:,}<extra></extra>",
         marker: { color: BAR },
       },
     ],
@@ -596,7 +606,7 @@ function sexLivingPie(data: IndividualsPayload["sex_by_living"]): { data: Data[]
         values: pairs.map((p) => p.value),
         marker: { colors: pairs.map((p) => p.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -606,9 +616,9 @@ function sexLivingPie(data: IndividualsPayload["sex_by_living"]): { data: Data[]
 /** Legacy 3-way pie if sex_by_living is absent. */
 function sexPieFallback(rows: IndividualsPayload["by_sex"]): { data: Data[]; layout: Partial<Layout> } {
   const dataRows = rows ?? [];
-  const labels = dataRows.map((r) => (r.sex === "U" ? "Unknown" : String(r.sex)));
+  const labels = dataRows.map((r) => formatGender(String(r.sex ?? ""), null) ?? String(r.sex));
   const values = dataRows.map((r) => Number(r.count) || 0);
-  const colors = labels.map((l) => (l === "M" ? "#3d5a4a" : l === "F" ? "#8b5a6b" : "#7c8478"));
+  const colors = dataRows.map((r) => (r.sex === "M" ? "#3d5a4a" : r.sex === "F" ? "#8b5a6b" : "#7c8478"));
   return {
     data: [
       {
@@ -617,7 +627,7 @@ function sexPieFallback(rows: IndividualsPayload["by_sex"]): { data: Data[]; lay
         values: values.length ? values : [1],
         marker: { colors: labels.length ? colors : ["#ccc"], line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -681,7 +691,7 @@ function placesReferencePie(rc: PlacesPayload["reference_counts"]): { data: Data
         values: segments.map((s) => s.value),
         marker: { colors: segments.map((s) => s.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -722,7 +732,7 @@ function datesReferencePie(rc: DatesPayload["reference_counts"]): { data: Data[]
         values: segments.map((s) => s.value),
         marker: { colors: segments.map((s) => s.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -760,7 +770,7 @@ function mediaTagPie(rows: MediaPayload["top_media_tags"]): { data: Data[]; layo
           line: PIE_SLICE_OUTLINE,
         },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>assignments: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -799,7 +809,7 @@ function openQuestionsResolvedPie(s: OpenQuestionsPayload["summary"]): { data: D
         values: segments.map((x) => x.value),
         marker: { colors: segments.map((x) => x.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -838,7 +848,7 @@ function notesJunctionTypePie(lc: NotesPayload["link_counts"]): { data: Data[]; 
         values: segments.map((s) => s.value),
         marker: { colors: segments.map((s) => s.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>junction rows: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -879,7 +889,7 @@ function eventOriginPie(ob: EventsPayload["origin_breakdown"]): { data: Data[]; 
         values: segments.map((s) => s.value),
         marker: { colors: segments.map((s) => s.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -916,7 +926,7 @@ function familyPartnerPie(summary: FamiliesPayload["summary"]): { data: Data[]; 
         values: pairs.map((p) => p.value),
         marker: { colors: pairs.map((p) => p.color), line: PIE_SLICE_OUTLINE },
         textinfo: "label+percent",
-        hovertemplate: "%{label}<br>count: %{value}<br>%{percent}<extra></extra>",
+        hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
       },
     ],
     layout: pieLayoutBase(),
@@ -951,6 +961,7 @@ function verticalBar(
         type: "bar",
         x: categories,
         y: values,
+        hovertemplate: `%{x}<br>${opts?.yAxisTitle ?? "Count"}: %{y:,}<extra></extra>`,
         marker: { color: BAR },
       },
     ],
@@ -973,9 +984,28 @@ function verticalBar(
 
 type Props = {
   treeId: string | null;
+  /**
+   * When set, only fetch and render this entity's section.
+   * Matches slugs from STATS_ENTITIES (e.g. "individuals", "names").
+   * When omitted, fetches and renders all entities.
+   */
+  entity?: string;
 };
 
-export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
+/** Which analytics endpoints to fetch for each entity slug. */
+const ENTITY_ENDPOINTS: Record<string, string[]> = {
+  names:            ["given-names?limit=30", "surnames?limit=30"],
+  individuals:      ["individuals?top_n=10"],
+  families:         ["families"],
+  events:           ["events"],
+  places:           ["places"],
+  dates:            ["dates"],
+  media:            ["media?top_n=10"],
+  "open-questions": ["open-questions?top_n=10"],
+  notes:            ["notes?top_n=10"],
+};
+
+export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
   const [given, setGiven] = useState<GivenNamesPayload | null>(null);
   const [surnames, setSurnames] = useState<SurnamesPayload | null>(null);
   const [individuals, setIndividuals] = useState<IndividualsPayload | null>(null);
@@ -994,19 +1024,23 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const limit = 30;
       const base = `/api/research/trees/${encodeURIComponent(treeId)}/analytics`;
+
+      /** Only fetch endpoints relevant to the current entity (or all when entity is unset). */
+      const needed = entity ? (ENTITY_ENDPOINTS[entity] ?? []) : null;
+      const needs = (key: string) => !needed || needed.some((ep) => ep.startsWith(key));
+
       const [gRes, sRes, iRes, fRes, eRes, pRes, dRes, mRes, oqRes, nRes] = await Promise.all([
-        fetch(`${base}/given-names?limit=${limit}`, { cache: "no-store" }),
-        fetch(`${base}/surnames?limit=${limit}`, { cache: "no-store" }),
-        fetch(`${base}/individuals?top_n=10`, { cache: "no-store" }),
-        fetch(`${base}/families`, { cache: "no-store" }),
-        fetch(`${base}/events`, { cache: "no-store" }),
-        fetch(`${base}/places`, { cache: "no-store" }),
-        fetch(`${base}/dates`, { cache: "no-store" }),
-        fetch(`${base}/media?top_n=10`, { cache: "no-store" }),
-        fetch(`${base}/open-questions?top_n=10`, { cache: "no-store" }),
-        fetch(`${base}/notes?top_n=10`, { cache: "no-store" }),
+        needs("given-names") ? fetch(`${base}/given-names?limit=30`, { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("surnames")    ? fetch(`${base}/surnames?limit=30`,    { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("individuals") ? fetch(`${base}/individuals?top_n=10`, { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("families")    ? fetch(`${base}/families`,             { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("events")      ? fetch(`${base}/events`,               { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("places")      ? fetch(`${base}/places`,               { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("dates")       ? fetch(`${base}/dates`,                { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("media")       ? fetch(`${base}/media?top_n=10`,       { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("open-questions") ? fetch(`${base}/open-questions?top_n=10`, { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("notes")       ? fetch(`${base}/notes?top_n=10`,       { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
       ]);
       const gJson = await gRes.json().catch(() => null);
       const sJson = await sRes.json().catch(() => null);
@@ -1018,46 +1052,26 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
       const mJson = await mRes.json().catch(() => null);
       const oqJson = await oqRes.json().catch(() => null);
       const nJson = await nRes.json().catch(() => null);
-      if (!gRes.ok) {
-        throw new Error(messageFromResearchErrorJson(gJson, gRes.status));
-      }
-      if (!sRes.ok) {
-        throw new Error(messageFromResearchErrorJson(sJson, sRes.status));
-      }
-      if (!iRes.ok) {
-        throw new Error(messageFromResearchErrorJson(iJson, iRes.status));
-      }
-      if (!fRes.ok) {
-        throw new Error(messageFromResearchErrorJson(fJson, fRes.status));
-      }
-      if (!eRes.ok) {
-        throw new Error(messageFromResearchErrorJson(eJson, eRes.status));
-      }
-      if (!pRes.ok) {
-        throw new Error(messageFromResearchErrorJson(pJson, pRes.status));
-      }
-      if (!dRes.ok) {
-        throw new Error(messageFromResearchErrorJson(dJson, dRes.status));
-      }
-      if (!mRes.ok) {
-        throw new Error(messageFromResearchErrorJson(mJson, mRes.status));
-      }
-      if (!oqRes.ok) {
-        throw new Error(messageFromResearchErrorJson(oqJson, oqRes.status));
-      }
-      if (!nRes.ok) {
-        throw new Error(messageFromResearchErrorJson(nJson, nRes.status));
-      }
-      setGiven(gJson as GivenNamesPayload);
-      setSurnames(sJson as SurnamesPayload);
-      setIndividuals(iJson as IndividualsPayload);
-      setFamilies(fJson as FamiliesPayload);
-      setEvents(eJson as EventsPayload);
-      setPlaces(pJson as PlacesPayload);
-      setDates(dJson as DatesPayload);
-      setMedia(mJson as MediaPayload);
-      setOpenQuestions(oqJson as OpenQuestionsPayload);
-      setNotes(nJson as NotesPayload);
+      if (needs("given-names")    && !gRes.ok)  throw new Error(messageFromResearchErrorJson(gJson,  gRes.status));
+      if (needs("surnames")       && !sRes.ok)  throw new Error(messageFromResearchErrorJson(sJson,  sRes.status));
+      if (needs("individuals")    && !iRes.ok)  throw new Error(messageFromResearchErrorJson(iJson,  iRes.status));
+      if (needs("families")       && !fRes.ok)  throw new Error(messageFromResearchErrorJson(fJson,  fRes.status));
+      if (needs("events")         && !eRes.ok)  throw new Error(messageFromResearchErrorJson(eJson,  eRes.status));
+      if (needs("places")         && !pRes.ok)  throw new Error(messageFromResearchErrorJson(pJson,  pRes.status));
+      if (needs("dates")          && !dRes.ok)  throw new Error(messageFromResearchErrorJson(dJson,  dRes.status));
+      if (needs("media")          && !mRes.ok)  throw new Error(messageFromResearchErrorJson(mJson,  mRes.status));
+      if (needs("open-questions") && !oqRes.ok) throw new Error(messageFromResearchErrorJson(oqJson, oqRes.status));
+      if (needs("notes")          && !nRes.ok)  throw new Error(messageFromResearchErrorJson(nJson,  nRes.status));
+      if (needs("given-names"))    setGiven(gJson as GivenNamesPayload);
+      if (needs("surnames"))       setSurnames(sJson as SurnamesPayload);
+      if (needs("individuals"))    setIndividuals(iJson as IndividualsPayload);
+      if (needs("families"))       setFamilies(fJson as FamiliesPayload);
+      if (needs("events"))         setEvents(eJson as EventsPayload);
+      if (needs("places"))         setPlaces(pJson as PlacesPayload);
+      if (needs("dates"))          setDates(dJson as DatesPayload);
+      if (needs("media"))          setMedia(mJson as MediaPayload);
+      if (needs("open-questions")) setOpenQuestions(oqJson as OpenQuestionsPayload);
+      if (needs("notes"))          setNotes(nJson as NotesPayload);
     } catch (e) {
       setGiven(null);
       setSurnames(null);
@@ -1073,7 +1087,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [treeId]);
+  }, [treeId, entity]);
 
   useEffect(() => {
     void load();
@@ -1083,59 +1097,49 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
     return (
       <div
         role="status"
-        className="border-border-subtle text-heading rounded-xl border bg-surface-inset p-6 font-body text-sm shadow-sm"
+        className="border-border-subtle rounded-xl border bg-surface-inset p-8 text-center font-body text-sm"
       >
-        <p className="font-accent text-lg">Public tree not configured</p>
+        <p className="font-accent text-heading text-lg">Statistics unavailable</p>
         <p className="text-muted mt-2">
-          Set <code className="text-heading bg-surface px-1 py-0.5 text-xs">PUBLIC_RESEARCH_TREE_ID</code> or{" "}
-          <code className="text-heading bg-surface px-1 py-0.5 text-xs">PUBLIC_STORY_TREE_ID</code>, and ensure{" "}
-          <code className="text-heading bg-surface px-1 py-0.5 text-xs">PYTHON_API_URL</code> points at ligneous-python-api.
+          The family tree statistics couldn&apos;t be loaded right now. Please check back later.
         </p>
       </div>
     );
   }
 
   return (
-    <section aria-label="Statistics engine analytics preview" className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="text-heading size-5 shrink-0 opacity-90" aria-hidden />
-          <h2 className="font-accent text-heading text-xl tracking-tight">Stats engine (research analytics)</h2>
-        </div>
+    <section aria-label="Family tree statistics" className="space-y-6">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => void load()}
           disabled={loading}
-          className="border-border-subtle text-heading hover:bg-surface rounded-lg border bg-surface-2 px-3 py-1.5 font-body text-sm disabled:opacity-50"
+          className="border-border-subtle text-muted hover:text-heading rounded-lg border bg-transparent px-3 py-1.5 font-body text-xs transition disabled:opacity-40"
         >
-          {loading ? "Loading…" : "Reload"}
+          {loading ? "Loading…" : "↻ Refresh"}
         </button>
       </div>
-      <p className="text-muted max-w-3xl font-body text-sm leading-relaxed">
-        This test section calls the research proxy only:{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">GET …/analytics/given-names</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/surnames</code>, and{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/individuals</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/families</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/events</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/places</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/dates</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/media</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/open-questions</code>,{" "}
-        <code className="bg-surface text-heading rounded px-1 py-0.5 text-xs">…/analytics/notes</code> → ligneous-python-api. There is no Prisma
-        fallback here so you can see real upstream failures.
-      </p>
 
       {err ? (
         <div
           role="alert"
-          className="border-border-subtle rounded-lg border border-[#b85450]/35 bg-[#fff5f5] px-4 py-3 font-body text-sm text-[#6b2824]"
+          className="rounded-xl border border-[#b85450]/25 bg-[#fff8f8] px-5 py-4 font-body text-sm"
         >
-          {err}
+          <p className="font-semibold text-[#6b2824]">Couldn&apos;t load statistics</p>
+          <p className="mt-1 text-[#6b2824]/80">
+            The statistics couldn&apos;t be fetched right now. Please try refreshing the page, or come back later.
+          </p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-3 rounded-lg border border-[#b85450]/30 bg-white/60 px-3 py-1.5 text-xs font-semibold text-[#6b2824] transition hover:bg-white"
+          >
+            Try again
+          </button>
         </div>
       ) : null}
 
-      {loading && !given && !err ? (
+      {loading && !given && !individuals && !families && !events && !places && !dates && !media && !openQuestions && !notes && !err ? (
         <div className="grid gap-5 lg:grid-cols-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="border-border-subtle rounded-xl border bg-surface-elevated p-4 shadow-sm">
@@ -1146,41 +1150,46 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
         </div>
       ) : null}
 
-      {given && surnames && individuals && families && events && places && dates && media && openQuestions && notes ? (
-        <>
-          <div id="stats-given-surnames" className="scroll-mt-24 space-y-6">
+      {/* Each section renders independently when its own data is available */}
+      <>
+          {given && surnames && <div id="stats-given-surnames" className="scroll-mt-24 space-y-6">
+            <div>
+              <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">What names run in the family?</h2>
+              <p className="text-muted font-body text-sm">Frequency distributions for given names and surnames across all individuals in the tree.</p>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryPill label="Unique given names" value={given.summary?.total_unique_names} />
               <SummaryPill label="Individuals w/ names" value={given.summary?.total_individuals_with_names} />
               <SummaryPill label="Unique surnames" value={surnames.summary?.total_unique_surnames} />
               <SummaryPill label="Surname occurrences" value={surnames.summary?.total_occurrences} />
             </div>
+            <SubsectionHeading id="names-top-given" label="Most common first names" question="Which first names appear most often?" />
             <div className="grid gap-6 lg:grid-cols-2">
-              <ChartCard title="Top given names" description="From gedcom_given_names_v2 aggregates.">
+              <ChartCard id="chart-names-top-given" question="Which first names appear most often?" title="Top given names" description="The most frequently used first names across the tree.">
                 <PlotlyFromPayload
                   given={given}
                   type="given-top"
                 />
               </ChartCard>
-              <ChartCard title="Given names — frequency buckets" description="Distinct names per occurrence bucket.">
+              <ChartCard id="chart-names-given-dist" question="Are names unique, or do many people share them?" title="Given names — frequency buckets" description="Distinct names per occurrence bucket.">
                 <PlotlyFromPayload given={given} type="given-freq" />
               </ChartCard>
-              <ChartCard title="Top surnames" description="From gedcom_surnames_v2.">
+<SubsectionHeading id="names-top-surnames" label="Most common surnames" question="Which family names appear most often?" />
+              <ChartCard id="chart-names-top-surnames" question="Which family names are most common?" title="Top surnames" description="The most common family names across the tree.">
                 <PlotlyFromPayload surnames={surnames} type="sur-top" />
               </ChartCard>
-              <ChartCard title="Surnames — frequency buckets" description="Distinct surnames per bucket.">
+              <ChartCard id="chart-names-surname-dist" question="How concentrated or spread are the surnames?" title="Surnames — frequency buckets" description="Distinct surnames per bucket.">
                 <PlotlyFromPayload surnames={surnames} type="sur-freq" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-individuals" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Individuals</h3>
+          {individuals && <div id="stats-individuals" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">Who is in the tree?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              Row-level fields from <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_individuals_v2</code>; family roles use{" "}
-              <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_family_children_v2</code> (child) and partner columns on{" "}
-              <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_families_v2</code> (spouse).
+              Demographics, lifespan, and family-role breakdowns across all individuals — from birth and death years to sex distribution and age at death.
             </p>
+<SubsectionHeading id="individuals-summary" label="Overview" question="How many people are recorded overall?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Total individuals" value={individuals.summary?.total} />
               <SummaryPill label="Living" value={individuals.summary?.living} />
@@ -1224,54 +1233,60 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               <SummaryPill
                 label="GEDCOM ASSO rows"
                 value={individuals.associations?.association_records}
-                hint="gedcom_individual_associations_v2"
+                hint="Recorded associations between two people"
               />
             </div>
+<SubsectionHeading id="individuals-lifespan" label="Lifespan &amp; age at death" question="How long did people live? Who lived the longest?" />
             <div className="mt-8 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-ind-longest" question="Who are the longest-lived family members?"
                 title="Longest lived"
-                description="Top 10 by age_at_death (years). Query param top_n on the API can raise the limit."
+                description="The ten family members who lived the longest, ranked by age at death."
               >
                 <LifespanTable rows={individuals.oldest_lived ?? []} />
               </ChartCard>
               <ChartCard
+                id="chart-ind-youngest" question="Which family members died youngest?"
                 title="Youngest died"
-                description="Shortest age_at_death (years). Useful for infant mortality; ties broken by name."
+                description="The ten family members who died youngest, including infants."
               >
                 <LifespanTable rows={individuals.youngest_died ?? []} />
               </ChartCard>
             </div>
+<SubsectionHeading id="individuals-by-sex" label="Sex distribution" question="How are people distributed by sex, and living vs deceased?" />
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-ind-sex" question="How are individuals split by sex and living status?"
                 title="Sex"
-                description="Living vs deceased by sex (unknown = not M/F). Zero-count slices are omitted."
+                description="How the tree is split between living and deceased individuals, broken down by sex."
                 chartOverflow="visible"
               >
                 <PlotlyFromIndividuals individuals={individuals} type="sex" />
               </ChartCard>
-              <ChartCard title="Birth year by decade" description="Individuals with a parsed birth year.">
+<SubsectionHeading id="individuals-decades" label="Birth &amp; death trends" question="Which decades saw the most births and deaths?" />
+              <ChartCard id="chart-ind-birth-decade" question="Which decades saw the most births?" title="Birth year by decade" description="People in the tree who have a known birth year on record.">
                 <PlotlyFromIndividuals individuals={individuals} type="birth-decade" />
               </ChartCard>
-              <ChartCard title="Death year by decade" description="Individuals with a parsed death year.">
+              <ChartCard id="chart-ind-death-decade" question="Which decades saw the most deaths?" title="Death year by decade" description="People in the tree who have a known death year on record.">
                 <PlotlyFromIndividuals individuals={individuals} type="death-decade" />
               </ChartCard>
-              <ChartCard title="Age at death" description="Where age_at_death is populated.">
+              <ChartCard id="chart-ind-age-death" question="What age did people typically die?" title="Age at death" description="Distribution of ages at death for people where this is known.">
                 <PlotlyFromIndividuals individuals={individuals} type="age-at-death" />
               </ChartCard>
             </div>
             <div className="mt-6">
-              <ChartCard title="Top birth countries" description="From birth_country on the individual row (Unknown if blank).">
+              <ChartCard id="chart-ind-birth-countries" question="Where were most family members born?" title="Top birth countries" description="Countries of birth for individuals who have one recorded.">
                 <PlotlyFromIndividuals individuals={individuals} type="birth-countries" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-families" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Families</h3>
+          {families && <div id="stats-families" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">How are families structured?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              Summary counts from couple and family records, children links, marriage events, and where marriages took place.
+              Children per household, marriage patterns, and family-size distributions across all couple and family records.
             </p>
-            <p className="text-heading mb-2 font-body text-xs font-semibold uppercase tracking-wide">Children and marriage</p>
+<SubsectionHeading id="families-children" label="Children per family" question="How many children did families typically have?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryPill
                 label="Most children in one family"
@@ -1294,7 +1309,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
                 hint="Has a marriage event linked to the family"
               />
             </div>
-            <p className="text-heading mb-2 mt-8 font-body text-xs font-semibold uppercase tracking-wide">Overview</p>
+<SubsectionHeading id="families-summary" label="Family overview" question="How many families are recorded and what shape do they take?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Total families" value={families.summary?.total} />
               <SummaryPill label="Both partners listed" value={families.summary?.both_partners} />
@@ -1316,35 +1331,39 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               <SummaryPill label="Source links (total)" value={families.junction_counts?.source_links} />
               <SummaryPill label="Event links (total)" value={families.junction_counts?.event_links} />
             </div>
+<SubsectionHeading id="families-marriage" label="Marriage patterns" question="When and where were couples married?" />
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-fam-partner" question="How often are both partners recorded on a family?"
                 title="Parents linked on the family"
-                description="Whether both spouses, one parent, or neither are attached. Small slices may be hidden."
+                description="How often both partners, just one, or neither are linked on family records."
                 chartOverflow="visible"
               >
                 <PlotlyFromFamilies families={families} type="partner-pie" />
               </ChartCard>
               <ChartCard
+                id="chart-fam-marriage-decade" question="Which decades had the most marriages?"
                 title="When couples married"
                 description="By decade, when a marriage year is stored on the family."
               >
                 <PlotlyFromFamilies families={families} type="marriage-decade" />
               </ChartCard>
               <ChartCard
+                id="chart-fam-marriage-places" question="Where were most marriages recorded?"
                 title="Where couples married"
                 description="Country from the marriage place, when available."
               >
                 <PlotlyFromFamilies families={families} type="marriage-countries" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-events" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Events</h3>
+          {events && <div id="stats-events" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">What life events are recorded?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              Births, deaths, marriages, and other life events from your tree: event records, dates, places, and links to
-              people and sources.
+              Births, deaths, marriages, burials, and all other life events in the tree — by type, coverage, and decade.
             </p>
+<SubsectionHeading id="events-summary" label="Overview" question="How many life events are in the tree?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Total events" value={events.summary?.total} />
               <SummaryPill label="Events with a date" value={events.summary?.with_date} />
@@ -1372,7 +1391,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               <SummaryPill
                 label="Events · standard catalog types"
                 value={events.origin_breakdown?.standard_catalog_events}
-                hint="Linked to a non-custom row in the event type catalog"
+                hint="Uses a standard GEDCOM event type (birth, death, marriage, etc.)"
               />
               <SummaryPill
                 label="Events · custom catalog types"
@@ -1382,7 +1401,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               <SummaryPill
                 label="Distinct standard types in use"
                 value={events.type_catalog_breakdown?.distinct_standard_types}
-                hint="How many different GEDCOM-level tags appear for this tree"
+                hint="Number of different standard event types in this tree"
               />
               <SummaryPill
                 label="Distinct custom types in use"
@@ -1390,20 +1409,24 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
                 hint="How many different custom event definitions appear"
               />
             </div>
+<SubsectionHeading id="events-by-type" label="Event types" question="Which types of events appear most and how are they distributed?" />
             <div className="mt-6 grid gap-6 lg:grid-cols-3">
               <ChartCard
+                id="chart-ev-types" question="Which types of life events appear most often?"
                 title="Most common event types"
-                description="Plain-language names from the type catalog. Hover for counts."
+                description="Event types in plain language — hover a bar for the exact count."
               >
                 <PlotlyFromEvents events={events} type="event-types" />
               </ChartCard>
               <ChartCard
+                id="chart-ev-year" question="Which periods have the most recorded events?"
                 title="Events by year"
-                description="Uses the parsed year on the event date when present."
+                description="Number of events recorded per decade, for events that have a year on record."
               >
                 <PlotlyFromEvents events={events} type="year-decade" />
               </ChartCard>
               <ChartCard
+                id="chart-ev-countries" question="In which countries did events take place?"
                 title="Events by place country"
                 description="Country on the event place when the place has a country set."
               >
@@ -1412,37 +1435,40 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
             <div className="mt-6 grid gap-6 lg:max-w-xl">
               <ChartCard
+                id="chart-ev-origin" question="Are events from standard or custom record types?"
                 title="Standard vs custom events"
-                description="Counts event records: standard GEDCOM catalog types, custom catalog types, and any row not linked to the catalog yet."
+                description="Whether events use a standard type (birth, death, marriage), a custom type, or have no type assigned yet."
                 chartOverflow="visible"
               >
                 <PlotlyFromEvents events={events} type="event-origin-pie" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-places" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Places</h3>
+          {places && <div id="stats-places" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">Where did the family live?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              Canonical place rows in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_places_v2</code>{" "}
-              and where they are referenced from births, deaths, marriages, events, and media.
+              Birthplaces, death locations, marriage venues, and the countries and regions that appear most across the tree.
             </p>
+<SubsectionHeading id="places-summary" label="Overview" question="How many distinct places are recorded?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Place records" value={places.summary?.total_places} />
               <SummaryPill label="With coordinates" value={places.summary?.with_coordinates} hint="Latitude and longitude set" />
               <SummaryPill label="With country" value={places.summary?.with_country} />
               <SummaryPill label="With state / region" value={places.summary?.with_state} />
               <SummaryPill label="With county" value={places.summary?.with_county} />
-              <SummaryPill label="With parsed name" value={places.summary?.with_parsed_name} hint="Structured name field populated" />
-              <SummaryPill label="Birth place links" value={places.reference_counts?.birth_place_links} hint="Individuals with birth_place_id" />
+              <SummaryPill label="With parsed name" value={places.summary?.with_parsed_name} hint="Has a properly formatted place name on record" />
+              <SummaryPill label="Birth place links" value={places.reference_counts?.birth_place_links} hint="People who have a birthplace recorded" />
               <SummaryPill label="Death place links" value={places.reference_counts?.death_place_links} />
               <SummaryPill label="Marriage place links" value={places.reference_counts?.marriage_place_links} />
               <SummaryPill label="Divorce place links" value={places.reference_counts?.divorce_place_links} />
               <SummaryPill label="Event place links" value={places.reference_counts?.event_place_links} />
-              <SummaryPill label="Media ↔ place links" value={places.reference_counts?.media_place_links} />
+              <SummaryPill label="Place links" value={places.reference_counts?.media_place_links} />
             </div>
+<SubsectionHeading id="places-by-use" label="How places are used" question="In which types of records do places appear most?" />
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-pl-ref-pie" question="Which record types link to places most often?"
                 title="Place references by record type"
                 description="Total attachment counts: one individual can contribute both birth and death."
                 chartOverflow="visible"
@@ -1450,47 +1476,50 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
                 <PlotlyFromPlaces places={places} type="reference-pie" />
               </ChartCard>
               <ChartCard
+                id="chart-pl-top" question="Which specific places appear across the most records?"
                 title="Most referenced places"
                 description="Combined references across birth, death, marriage, divorce, events, and media."
               >
                 <PlotlyFromPlaces places={places} type="top-places" />
               </ChartCard>
-              <ChartCard title="Places by country" description="Distinct place rows with each country value (Unknown if unset).">
+<SubsectionHeading id="places-by-country" label="Countries" question="Which countries appear most across the tree?" />
+              <ChartCard id="chart-pl-countries" question="Which countries appear most in the tree?" title="Places by country" description="How many distinct places in the tree belong to each country.">
                 <PlotlyFromPlaces places={places} type="countries" />
               </ChartCard>
-              <ChartCard title="Places by state / region" description="Distinct place rows with each state value (Unknown if unset).">
+              <ChartCard id="chart-pl-states" question="Which regions or states appear most?" title="Places by state / region" description="How many distinct places in the tree belong to each region or state.">
                 <PlotlyFromPlaces places={places} type="states" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-dates" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Dates</h3>
+          {dates && <div id="stats-dates" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">What time periods are covered?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              Canonical date rows in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_dates_v2</code>{" "}
-              (GEDCOM qualifiers, calendars, parsed components) and references from births, deaths, marriages, events, and media.
+              Date quality, calendar types, decade distributions, and the centuries spanned by birth, death, marriage, and event records.
             </p>
+<SubsectionHeading id="dates-summary" label="Overview" question="How complete is the date coverage across the tree?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Date records" value={dates.summary?.total_dates} />
               <SummaryPill label="With parsed year" value={dates.summary?.with_year} />
-              <SummaryPill label="With month" value={dates.summary?.with_month} hint="Month component present" />
-              <SummaryPill label="With day" value={dates.summary?.with_day} hint="Day component present" />
-              <SummaryPill label="With original text" value={dates.summary?.with_original_text} hint="Raw GEDCOM date string" />
-              <SummaryPill label="With end / second date" value={dates.summary?.with_end_components} hint="Ranges (e.g. BET … AND …)" />
+              <SummaryPill label="With month" value={dates.summary?.with_month} hint="Date includes a month, not just a year" />
+              <SummaryPill label="With day" value={dates.summary?.with_day} hint="Date includes a specific day" />
+              <SummaryPill label="With original text" value={dates.summary?.with_original_text} hint="The original date text as written in the source" />
+              <SummaryPill label="With end / second date" value={dates.summary?.with_end_components} hint="Date spans a range rather than a single point (e.g. between two years)" />
               <SummaryPill
                 label="Range-style qualifiers"
                 value={dates.summary?.range_style_records}
-                hint="date_type BETWEEN or FROM_TO"
+                hint="Range-style dates that span a period rather than a single day"
               />
-              <SummaryPill label="Birth date links" value={dates.reference_counts?.birth_date_links} hint="Individuals with birth_date_id" />
+              <SummaryPill label="Birth date links" value={dates.reference_counts?.birth_date_links} hint="People who have a birth date on record" />
               <SummaryPill label="Death date links" value={dates.reference_counts?.death_date_links} />
               <SummaryPill label="Marriage date links" value={dates.reference_counts?.marriage_date_links} />
               <SummaryPill label="Divorce date links" value={dates.reference_counts?.divorce_date_links} />
               <SummaryPill label="Event date links" value={dates.reference_counts?.event_date_links} />
-              <SummaryPill label="Media ↔ date links" value={dates.reference_counts?.media_date_links} />
+              <SummaryPill label="Date links" value={dates.reference_counts?.media_date_links} />
             </div>
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-dt-ref-pie" question="Which types of records have the most dated entries?"
                 title="Date references by record type"
                 description="Total attachment counts; one person can use both birth and death dates."
                 chartOverflow="visible"
@@ -1498,55 +1527,58 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
                 <PlotlyFromDates dates={dates} type="reference-pie" />
               </ChartCard>
               <ChartCard
+                id="chart-dt-top" question="Which specific dates appear across the most records?"
                 title="Most referenced dates"
-                description="Combined references across birth, death, marriage, divorce, events, and media. Label shows original text or parsed Y-M-D."
+                description="Dates that appear most often across births, deaths, marriages, events, and media."
               >
                 <PlotlyFromDates dates={dates} type="top-dates" />
               </ChartCard>
               <ChartCard
+                id="chart-dt-qualifiers" question="How precise and qualified are the recorded dates?"
                 title="GEDCOM date qualifiers"
-                description="How often each date_type appears on stored date rows."
+                description="How often dates are exact, approximate, estimated, or given as a range."
               >
                 <PlotlyFromDates dates={dates} type="date-types" />
               </ChartCard>
-              <ChartCard title="Calendar tags" description="Uppercased calendar field (UNKNOWN if blank).">
+              <ChartCard id="chart-dt-calendars" question="Which calendar systems appear in the records?" title="Calendar tags" description="Uppercased calendar field (UNKNOWN if blank).">
                 <PlotlyFromDates dates={dates} type="calendars" />
               </ChartCard>
             </div>
             <div className="mt-6">
               <ChartCard
+                id="chart-dt-decades" question="How are dates distributed across the centuries?"
                 title="Dates by year (decade)"
-                description="All date rows with a parsed primary year."
+                description="How dates cluster across the decades and centuries covered by the tree."
               >
                 <PlotlyFromDates dates={dates} type="decades" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-media" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">GEDCOM media</h3>
+          {media && <div id="stats-media" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">What documents and photos exist?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              OBJE rows in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_media_v2</code>, junction links to people,
-              families, events, sources, places and dates, app tags, and albums tied to this tree.
+              Photos, certificates, scans, and other media objects linked to people, families, events, and sources across the tree.
             </p>
+<SubsectionHeading id="media-summary" label="Overview" question="How many media items are in the archive?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Media objects (OBJE)" value={media.summary?.total_gedcom_media} />
               <SummaryPill label="With title" value={media.summary?.with_title} />
-              <SummaryPill label="With FORM" value={media.summary?.with_form} hint="GEDCOM FORM when stored" />
-              <SummaryPill label="Tag assignments on media" value={media.summary?.media_tag_assignment_rows} hint="Rows in gedcom_media_app_tags for this file" />
+              <SummaryPill label="With FORM" value={media.summary?.with_form} hint="File type or format when recorded (e.g. jpg, pdf)" />
+              <SummaryPill label="Tag assignments on media" value={media.summary?.media_tag_assignment_rows} hint="Total number of tag labels applied to media items" />
               <SummaryPill label="Distinct tags used" value={media.summary?.distinct_tags_on_media} />
-              <SummaryPill label="Albums (this tree)" value={media.albums?.album_count_for_tree} hint="albums.tree_id matches research tree" />
+              <SummaryPill label="Albums (this tree)" value={media.albums?.album_count_for_tree} hint="Albums created for this family tree" />
               <SummaryPill
                 label="Album ↔ GEDCOM media"
                 value={media.albums?.album_gedcom_media_links}
-                hint="album_gedcom_media rows for albums on this tree"
+                hint="Number of media items linked to albums for this tree"
               />
               <SummaryPill label="Individual ↔ media links" value={media.link_counts?.individual_media_links} />
               <SummaryPill label="Family ↔ media links" value={media.link_counts?.family_media_links} />
               <SummaryPill label="Event ↔ media links" value={media.link_counts?.event_media_links} />
               <SummaryPill label="Source ↔ media links" value={media.link_counts?.source_media_links} />
-              <SummaryPill label="Media ↔ place links" value={media.link_counts?.media_place_links} hint="gedcom_media_places_v2 rows" />
-              <SummaryPill label="Media ↔ date links" value={media.link_counts?.media_date_links} hint="gedcom_media_dates_v2 rows" />
+              <SummaryPill label="Place links" value={media.link_counts?.media_place_links} hint="Media items associated with a place" />
+              <SummaryPill label="Date links" value={media.link_counts?.media_date_links} hint="Media items associated with a date" />
               <SummaryPill
                 label="Most-linked place (media)"
                 value={(media.top_places_for_media ?? [])[0]?.link_count}
@@ -1563,50 +1595,57 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
                 hint={formatGedcomFullNameForDisplay((media.top_individuals_by_media ?? [])[0]?.full_name ?? "") || undefined}
               />
             </div>
+<SubsectionHeading id="media-by-type" label="Media types &amp; tags" question="What kinds of documents and images are recorded, and how are they tagged?" />
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-med-tags" question="Which tags are used most on photos and documents?"
                 title="Popular tags on media (top 10)"
-                description="App tags on GEDCOM media: each tag’s color is used when it’s a non-neutral hex; otherwise slices use a fixed palette so every wedge is distinct."
+                description="The most-used labels applied to photos and documents, shown by how often each tag is used."
                 chartOverflow="visible"
               >
                 <PlotlyFromMedia media={media} type="tag-pie" />
               </ChartCard>
               <ChartCard
+                id="chart-med-places" question="Which locations appear most across media items?"
                 title="Top places linked from media"
-                description="Places ranked by how many media→place junction rows point at them."
+                description="Places that appear most often across photos, documents, and other media."
               >
                 <PlotlyFromMedia media={media} type="top-places" />
               </ChartCard>
               <ChartCard
+                id="chart-med-dates" question="Which dates appear most across media items?"
                 title="Top dates linked from media"
-                description="Canonical date rows ranked by media→date junction rows."
+                description="Dates most frequently linked to photos, documents, and other media."
               >
                 <PlotlyFromMedia media={media} type="top-dates" />
               </ChartCard>
+<SubsectionHeading id="media-connections" label="Connections" question="Which people, families, and events have the most media?" />
               <ChartCard
+                id="chart-med-individuals" question="Which people have the most photos and documents?"
                 title="Individuals with the most media"
-                description="People ranked by count of individual↔media links."
+                description="People with the most photos and documents attached to them."
               >
                 <PlotlyFromMedia media={media} type="top-individuals" />
               </ChartCard>
               <ChartCard
+                id="chart-med-families" question="Which families are best documented with media?"
                 title="Families with the most media"
-                description="Families ranked by media link count. Y-axis uses short partner labels (e.g. initials + surname) so bars are readable; summary pills keep full text."
+                description="Families with the most photos and documents attached."
               >
                 <PlotlyFromMedia media={media} type="top-families" />
               </ChartCard>
-              <ChartCard title="Events with the most media" description="Events ranked by event↔media link count.">
+              <ChartCard id="chart-med-events" question="Which events are best documented with media?" title="Events with the most media" description="Life events with the most photos and documents attached.">
                 <PlotlyFromMedia media={media} type="top-events" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-open-questions" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">Open questions</h3>
+          {openQuestions && <div id="stats-open-questions" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">What is still unknown?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              Research and verification items in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">open_questions</code> for this
-              GEDCOM file, plus which individuals, media, families, and events have the most question links.
+              Open research questions, unresolved verification items, and which people, families, and events have the most outstanding gaps.
             </p>
+<SubsectionHeading id="oq-summary" label="Overview" question="How many research questions are still open?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Open questions (total)" value={openQuestions.summary?.total} />
               <SummaryPill label="Resolved" value={openQuestions.summary?.resolved} hint="status = resolved" />
@@ -1642,50 +1681,57 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
             </div>
             <div className="mt-6 grid gap-6 lg:max-w-xl">
               <ChartCard
+                id="chart-oq-resolved" question="How many research questions have been resolved?"
                 title="Resolved vs not resolved"
-                description="Pie uses resolved count vs all other statuses (open and archived)."
+                description="How many research questions have been marked resolved versus still open."
                 chartOverflow="visible"
               >
                 <PlotlyFromOpenQuestions data={openQuestions} type="resolved-pie" />
               </ChartCard>
             </div>
+<SubsectionHeading id="oq-by-person" label="By person" question="Who has the most outstanding research questions?" />
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <ChartCard
+                id="chart-oq-individuals" question="Which people have the most open research questions?"
                 title="Top 10 individuals by question links"
-                description="People linked from the most open questions (junction open_question_individuals)."
+                description="People with the most outstanding research questions attached to them."
               >
                 <PlotlyFromOpenQuestions data={openQuestions} type="top-individuals" />
               </ChartCard>
               <ChartCard
+                id="chart-oq-media" question="Which media items still need research?"
                 title="Top 10 media by question links"
-                description="GEDCOM media objects linked from the most open questions."
+                description="Photos and documents that have the most outstanding research questions."
               >
                 <PlotlyFromOpenQuestions data={openQuestions} type="top-media" />
               </ChartCard>
+<SubsectionHeading id="oq-by-family" label="By family" question="Which families need the most further research?" />
               <ChartCard
+                id="chart-oq-families" question="Which families need the most further research?"
                 title="Top 10 families by question links"
-                description="Families linked from the most open questions; chart labels are shortened for readability."
+                description="Families with the most outstanding research questions."
               >
                 <PlotlyFromOpenQuestions data={openQuestions} type="top-families" />
               </ChartCard>
               <ChartCard
+                id="chart-oq-events" question="Which events have the most outstanding questions?"
                 title="Top 10 events by question links"
                 description="Events linked from the most open questions."
               >
                 <PlotlyFromOpenQuestions data={openQuestions} type="top-events" />
               </ChartCard>
             </div>
-          </div>
+          </div>}
 
-          <div id="stats-notes" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
-            <h3 className="text-heading font-accent mb-1 text-lg tracking-tight">GEDCOM notes</h3>
+          {notes && <div id="stats-notes" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">What are the research notes?</h2>
             <p className="text-muted mb-4 font-body text-sm">
-              NOTE records in <code className="text-heading bg-surface rounded px-1 py-0.5 text-xs">gedcom_notes_v2</code> and junction rows to individuals,
-              families, events, and sources for this file.
+              NOTE records, their length and coverage, and which individuals, families, events, and sources they are linked to.
             </p>
+<SubsectionHeading id="notes-summary" label="Overview" question="How many research notes are there?" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryPill label="Notes (total)" value={notes.summary?.total_notes} />
-              <SummaryPill label="Top-level NOTE" value={notes.summary?.top_level_notes} hint="is_top_level on gedcom_notes_v2" />
+              <SummaryPill label="Top-level notes" value={notes.summary?.top_level_notes} hint="Standalone notes not attached to a specific record" />
               <SummaryPill label="With xref" value={notes.summary?.with_xref} />
               <SummaryPill
                 label="Avg content length (chars)"
@@ -1695,9 +1741,9 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               <SummaryPill
                 label="Distinct notes linked"
                 value={notes.summary?.distinct_notes_linked}
-                hint="Notes appearing in at least one junction table"
+                hint="Notes connected to at least one person, family, event, or source"
               />
-              <SummaryPill label="Orphan notes" value={notes.summary?.orphan_notes} hint="No links in any of the four junction tables" />
+              <SummaryPill label="Unlinked notes" value={notes.summary?.orphan_notes} hint="Notes not attached to any person, family, event, or source" />
               <SummaryPill label="Individual ↔ note links" value={notes.link_counts?.individual_note_links} />
               <SummaryPill label="Family ↔ note links" value={notes.link_counts?.family_note_links} />
               <SummaryPill label="Event ↔ note links" value={notes.link_counts?.event_note_links} />
@@ -1727,38 +1773,43 @@ export function StatisticsAnalyticsEnginePreview({ treeId }: Props) {
               />
             </div>
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
+<SubsectionHeading id="notes-distribution" label="Where notes live" question="Which record types have the most notes?" />
+<SubsectionHeading id="notes-distribution" label="Where notes live" question="Which record types have the most notes?" />
               <ChartCard
+                id="chart-notes-type" question="Which record types have the most research notes?"
                 title="Note links by entity type"
-                description="Share of junction rows across gedcom_individual_notes_v2, gedcom_family_notes_v2, gedcom_event_notes_v2, and gedcom_source_notes_v2."
+                description="How notes are distributed across people, families, events, and sources."
                 chartOverflow="visible"
               >
                 <PlotlyFromNotes data={notes} type="junction-pie" />
               </ChartCard>
+<SubsectionHeading id="notes-most-linked" label="Most-noted records" question="Which people, events, and sources have the most notes?" />
               <ChartCard
+                id="chart-notes-top" question="Which notes are the most widely referenced?"
                 title="Top 10 notes by total links"
-                description="Notes ranked by sum of links across all junction types; bar labels use a content preview and xref when present."
+                description="Notes with the most connections to other records in the tree."
               >
                 <PlotlyFromNotes data={notes} type="top-notes" />
               </ChartCard>
-              <ChartCard title="Top 10 individuals by note links" description="People with the most individual↔note junction rows.">
+              <ChartCard id="chart-notes-individuals" question="Who has the most research notes attached?" title="Top 10 individuals by note links" description="People with the most research notes attached to them.">
                 <PlotlyFromNotes data={notes} type="top-individuals" />
               </ChartCard>
               <ChartCard
+                id="chart-notes-families" question="Which families are most annotated with notes?"
                 title="Top 10 families by note links"
-                description="Families ranked by note link count; chart labels are shortened for readability."
+                description="Families with the most research notes attached."
               >
                 <PlotlyFromNotes data={notes} type="top-families" />
               </ChartCard>
-              <ChartCard title="Top 10 events by note links" description="Events ranked by event↔note junction rows.">
+              <ChartCard id="chart-notes-events" question="Which events have the most research notes?" title="Top 10 events by note links" description="Life events with the most research notes attached.">
                 <PlotlyFromNotes data={notes} type="top-events" />
               </ChartCard>
-              <ChartCard title="Top 10 sources by note links" description="Sources ranked by source↔note junction rows.">
+              <ChartCard id="chart-notes-sources" question="Which sources have the most research notes?" title="Top 10 sources by note links" description="Source records with the most research notes attached.">
                 <PlotlyFromNotes data={notes} type="top-sources" />
               </ChartCard>
             </div>
-          </div>
-        </>
-      ) : null}
+          </div>}
+      </>
     </section>
   );
 }
@@ -1769,6 +1820,16 @@ function formatSummaryNumber(value: unknown): string {
   if (!Number.isFinite(n)) return "—";
   if (Math.abs(n - Math.round(n)) < 1e-9) return Math.round(n).toLocaleString();
   return n.toFixed(1);
+}
+
+/** Subsection heading with anchor for the entity page TOC. */
+function SubsectionHeading({ id, label, question }: { id: string; label: string; question: string }) {
+  return (
+    <div id={id} className="col-span-full scroll-mt-24 mb-4 mt-10 first:mt-0 border-b border-border-subtle/60 pb-3">
+      <h3 className="font-heading text-heading text-xl font-semibold tracking-tight">{label}</h3>
+      <p className="font-body text-muted mt-1 text-sm leading-relaxed">{question}</p>
+    </div>
+  );
 }
 
 function SummaryPill({ label, value, hint }: { label: string; value: unknown; hint?: string }) {
@@ -1821,12 +1882,17 @@ function LifespanTable({ rows }: { rows: LifespanRow[] }) {
 function ChartCard({
   title,
   description,
+  question,
+  id,
   children,
-  /** Pie charts draw labels outside the SVG viewport; avoid overflow-x-auto clipping them. */
   chartOverflow = "default",
 }: {
   title: string;
   description: string;
+  /** Research question this chart answers — shown as the primary heading. */
+  question?: string;
+  /** Anchor id for TOC links. */
+  id?: string;
   children: ReactNode;
   chartOverflow?: "default" | "visible";
 }) {
@@ -1835,8 +1901,15 @@ function ChartCard({
       ? "mt-3 min-w-0 overflow-visible pt-1"
       : "mt-3 min-w-0 overflow-x-auto";
   return (
-    <div className="border-border-subtle rounded-xl border bg-surface-elevated p-4 shadow-sm md:p-5">
-      <h3 className="text-heading font-body text-sm font-semibold tracking-tight">{title}</h3>
+    <div id={id} className={`border-border-subtle rounded-xl border bg-surface-elevated p-4 shadow-sm md:p-5${id ? " scroll-mt-24" : ""}`}>
+      {question ? (
+        <>
+          <h3 className="font-heading text-heading text-base font-semibold leading-snug">{question}</h3>
+          <p className="text-subtle font-body mt-0.5 text-[11px] font-medium uppercase tracking-wide">{title}</p>
+        </>
+      ) : (
+        <h3 className="text-heading font-body text-sm font-semibold tracking-tight">{title}</h3>
+      )}
       <p className="text-muted mt-1 font-body text-xs leading-relaxed">{description}</p>
       <div className={bodyClass}>{children}</div>
     </div>
@@ -2086,7 +2159,7 @@ function PlotlyFromMedia({
         const c = (r.country ?? "").trim();
         return c ? truncateChartLabel(`${base} (${c})`, 36) : base;
       });
-      spec = horizontalBar(labels, rows.map((r) => Number(r.link_count) || 0), "Media ↔ place links");
+      spec = horizontalBar(labels, rows.map((r) => Number(r.link_count) || 0), "Place links");
       break;
     }
     case "top-dates": {
@@ -2096,20 +2169,17 @@ function PlotlyFromMedia({
         const q = formatDateTypeLabel(r.date_type);
         return truncateChartLabel(`${base} (${q})`, 36);
       });
-      spec = horizontalBar(labels, rows.map((r) => Number(r.link_count) || 0), "Media ↔ date links");
+      spec = horizontalBar(labels, rows.map((r) => Number(r.link_count) || 0), "Date links");
       break;
     }
     case "top-individuals": {
       const rows = media.top_individuals_by_media ?? [];
+      const fullNames = rows.map((r) => String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"));
       spec = horizontalBar(
-        rows.map((r) =>
-          abbreviateDisplayNameForChart(
-            String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"),
-            22,
-          ),
-        ),
+        fullNames.map((n) => abbreviateDisplayNameForChart(n, 22)),
         rows.map((r) => Number(r.media_link_count) || 0),
-        "Links per person",
+        "Media attached",
+        fullNames,
       );
       break;
     }
@@ -2118,7 +2188,7 @@ function PlotlyFromMedia({
       spec = horizontalBar(
         rows.map((r) => formatFamilyOfPartnerLabelChart(r.label, String(r.xref ?? r.family_id ?? "—"))),
         rows.map((r) => Number(r.media_link_count) || 0),
-        "Links per family",
+        "Media attached",
       );
       break;
     }
@@ -2127,7 +2197,7 @@ function PlotlyFromMedia({
       spec = horizontalBar(
         rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"), 34)),
         rows.map((r) => Number(r.media_link_count) || 0),
-        "Links per event",
+        "Media attached",
       );
       break;
     }
@@ -2175,21 +2245,18 @@ function PlotlyFromNotes({
       spec = horizontalBar(
         rows.map((r) => noteBarLabel(r)),
         rows.map((r) => Number(r.link_count) || 0),
-        "Total links per note",
+        "Links per note",
       );
       break;
     }
     case "top-individuals": {
       const rows = data.top_individuals ?? [];
+      const fullNames = rows.map((r) => String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"));
       spec = horizontalBar(
-        rows.map((r) =>
-          abbreviateDisplayNameForChart(
-            String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"),
-            22,
-          ),
-        ),
+        fullNames.map((n) => abbreviateDisplayNameForChart(n, 22)),
         rows.map((r) => Number(r.note_link_count) || 0),
-        "Note links per person",
+        "Notes attached",
+        fullNames,
       );
       break;
     }
@@ -2198,7 +2265,7 @@ function PlotlyFromNotes({
       spec = horizontalBar(
         rows.map((r) => formatFamilyOfPartnerLabelChart(r.label, String(r.xref ?? r.family_id ?? "—"))),
         rows.map((r) => Number(r.note_link_count) || 0),
-        "Note links per family",
+        "Notes attached",
       );
       break;
     }
@@ -2207,7 +2274,7 @@ function PlotlyFromNotes({
       spec = horizontalBar(
         rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"), 34)),
         rows.map((r) => Number(r.note_link_count) || 0),
-        "Note links per event",
+        "Notes attached",
       );
       break;
     }
@@ -2216,7 +2283,7 @@ function PlotlyFromNotes({
       spec = horizontalBar(
         rows.map((r) => truncateChartLabel(String(r.label ?? r.source_id ?? "—"), 34)),
         rows.map((r) => Number(r.note_link_count) || 0),
-        "Note links per source",
+        "Notes attached",
       );
       break;
     }
@@ -2247,15 +2314,12 @@ function PlotlyFromOpenQuestions({
     }
     case "top-individuals": {
       const rows = data.top_individuals ?? [];
+      const fullNames = rows.map((r) => String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"));
       spec = horizontalBar(
-        rows.map((r) =>
-          abbreviateDisplayNameForChart(
-            String(formatGedcomFullNameForDisplay(r.full_name ?? "") || r.individual_id || "—"),
-            22,
-          ),
-        ),
+        fullNames.map((n) => abbreviateDisplayNameForChart(n, 22)),
         rows.map((r) => Number(r.question_link_count) || 0),
-        "Question links per person",
+        "Questions attached",
+        fullNames,
       );
       break;
     }
@@ -2264,7 +2328,7 @@ function PlotlyFromOpenQuestions({
       spec = horizontalBar(
         rows.map((r) => truncateChartLabel(String(r.label ?? r.media_id ?? "—"), 34)),
         rows.map((r) => Number(r.question_link_count) || 0),
-        "Question links per media",
+        "Questions attached",
       );
       break;
     }
@@ -2273,7 +2337,7 @@ function PlotlyFromOpenQuestions({
       spec = horizontalBar(
         rows.map((r) => formatFamilyOfPartnerLabelChart(r.label, String(r.xref ?? r.family_id ?? "—"))),
         rows.map((r) => Number(r.question_link_count) || 0),
-        "Question links per family",
+        "Questions attached",
       );
       break;
     }
@@ -2282,7 +2346,7 @@ function PlotlyFromOpenQuestions({
       spec = horizontalBar(
         rows.map((r) => truncateChartLabel(String(r.label ?? r.event_id ?? "—"), 34)),
         rows.map((r) => Number(r.question_link_count) || 0),
-        "Question links per event",
+        "Questions attached",
       );
       break;
     }

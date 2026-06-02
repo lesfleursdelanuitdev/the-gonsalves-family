@@ -48,6 +48,8 @@ export interface UseTreeViewerUrlSyncParams {
   /** Increments when chart payload is ready; used to apply URL spouse reveal after fetch. */
   chartDataKey: number;
   dispatch: (action: TreeAction) => void;
+  /** When true (embedded charts), never write tree state back to the page URL. */
+  disableUrlSync?: boolean;
 }
 
 export function useTreeViewerUrlSync({
@@ -69,6 +71,7 @@ export function useTreeViewerUrlSync({
   isChartLoading,
   chartDataKey,
   dispatch,
+  disableUrlSync = false,
 }: UseTreeViewerUrlSyncParams) {
   const appliedUrlPartnersRef = useRef(false);
   const appliedUrlSpouseRef = useRef(false);
@@ -160,6 +163,7 @@ export function useTreeViewerUrlSync({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (disableUrlSync) return; // embedded charts must not clobber the host page's URL
     const existing = new URLSearchParams(window.location.search);
     const rootNorm = normalizeTreeViewerGedcomXref(rootId) ?? rootId;
     const scopedAtRoot =
@@ -215,5 +219,6 @@ export function useTreeViewerUrlSync({
     initialRevealSpouseXref,
     initialFamilyXref,
     familyUnitScope,
+    disableUrlSync,
   ]);
 }

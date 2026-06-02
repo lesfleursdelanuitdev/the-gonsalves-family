@@ -51,6 +51,22 @@ export const STORY_PUBLIC_READ_INCLUDE = {
       },
     },
   },
+  storySources: {
+    orderBy: { sortOrder: "asc" as const },
+    include: {
+      source: {
+        select: {
+          id: true,
+          title: true,
+          author: true,
+          publication: true,
+          abbreviation: true,
+          text: true,
+          callNumber: true,
+        },
+      },
+    },
+  },
   albumStories: {
     orderBy: { sortOrder: "asc" as const },
     include: { album: { select: { id: true, name: true } } },

@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { PlotlyChart } from "@/components/plotly/PlotlyChart";
 import type { PlotlyChartProps } from "@/components/plotly";
 import { nlSearchChartSpec } from "@/components/research/nlSearchChartSpec";
 import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
+import { formatValue, humanizeKey } from "@/lib/analytics-format";
+import { nlSearchIntentSummary } from "@/components/research/nlSearchIntentSummary";
 
 type NlMeta = {
   status?: string;
@@ -41,8 +44,8 @@ function KeyValueSummary({ obj }: { obj: Record<string, unknown> }) {
     <dl className="border-border-subtle grid gap-2 rounded-lg border bg-surface-elevated py-4 text-sm md:grid-cols-2 lg:grid-cols-3">
       {pairs.map(([k, v]) => (
         <div key={k} className="px-4">
-          <dt className="text-muted lowercase tracking-wide">{k.replace(/_/g, " ")}</dt>
-          <dd className="text-heading font-medium">{String(v)}</dd>
+          <dt className="text-muted tracking-wide">{humanizeKey(k)}</dt>
+          <dd className="text-heading font-medium">{formatValue(k, v)}</dd>
         </div>
       ))}
     </dl>
@@ -82,11 +85,22 @@ function RelationshipsPaths({ result }: { result: Record<string, unknown> }) {
   );
 }
 
-/** Generic table for an array of objects (matches, search results, etc.). */
+const TABLE_PAGE_SIZE = 25;
+
+/** Generic, client-side-paginated table for an array of objects (matches, search results, etc.). */
 function ObjectArrayTable({ rows, title }: { rows: Record<string, unknown>[]; title: string }) {
+  // Page state resets per result set via the `key` prop the parent passes.
+  const [page, setPage] = useState(0);
+
   if (rows.length === 0) return null;
   const keys = Object.keys(rows[0] ?? {}).filter((k) => !k.startsWith("_"));
   const head = keys.slice(0, 12);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const start = safePage * TABLE_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + TABLE_PAGE_SIZE);
+
   return (
     <div className="overflow-x-auto">
       <h3 className="mb-2 font-accent text-lg text-heading">{title}</h3>
@@ -94,35 +108,55 @@ function ObjectArrayTable({ rows, title }: { rows: Record<string, unknown>[]; ti
         <thead>
           <tr className="border-border-subtle bg-surface-inset border-b">
             {head.map((k) => (
-              <th key={k} className="text-muted px-3 py-2 font-medium capitalize">
-                {k.replace(/_/g, " ")}
+              <th key={k} className="text-muted px-3 py-2 font-medium">
+                {humanizeKey(k)}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.slice(0, 200).map((row, i) => (
-            <tr key={i} className="border-border-subtle odd:bg-surface-elevated/60 border-b">
+          {pageRows.map((row, i) => (
+            <tr key={start + i} className="border-border-subtle odd:bg-surface-elevated/60 border-b">
               {head.map((k) => (
                 <td key={k} className="text-heading max-w-[14rem] truncate px-3 py-2">
-                  {formatCell(row[k])}
+                  {formatValue(k, row[k])}
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
-      {rows.length > 200 ? (
-        <p className="text-muted mt-2 text-xs">Showing first 200 of {rows.length} rows.</p>
-      ) : null}
+      {rows.length > TABLE_PAGE_SIZE ? (
+        <div className="mt-3 flex items-center justify-between gap-3 font-body text-xs text-muted">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={safePage <= 0}
+            className="border-border-subtle rounded-md border px-2.5 py-1 font-medium text-link transition hover:bg-link-soft-bg disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ‹ Prev
+          </button>
+          <span>
+            Page <span className="text-heading font-medium">{safePage + 1}</span> of {pageCount}
+            <span className="mx-1">·</span>
+            {rows.length.toLocaleString()} rows
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            disabled={safePage >= pageCount - 1}
+            className="border-border-subtle rounded-md border px-2.5 py-1 font-medium text-link transition hover:bg-link-soft-bg disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next ›
+          </button>
+        </div>
+      ) : (
+        <p className="text-muted mt-2 text-xs">
+          {rows.length.toLocaleString()} {rows.length === 1 ? "row" : "rows"}
+        </p>
+      )}
     </div>
   );
-}
-
-function formatCell(v: unknown): string {
-  if (v === null || v === undefined) return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
 }
 
 const ARRAY_RESULT_KEYS: { key: string; title: string }[] = [
@@ -144,6 +178,7 @@ export function NlSearchResult({ body }: { body: NlResponse | null }) {
 
   const intent = body.intent ?? "";
   const result = isPlainObject(body.result) ? body.result : null;
+  const intentSummary = nlSearchIntentSummary(intent, result, isPlainObject(body.params) ? body.params : null);
   const chartSpec = result ? nlSearchChartSpec(intent, result) : null;
 
   let plotProps: PlotlyChartProps | null = null;
@@ -166,7 +201,7 @@ export function NlSearchResult({ body }: { body: NlResponse | null }) {
       <header className="space-y-3">
         <p className="text-muted font-body text-xs tracking-wide uppercase">Result</p>
         <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="text-heading font-accent text-3xl capitalize">{intent || "unknown"}</h2>
+          <h2 className="text-heading font-accent text-3xl">{intent ? humanizeKey(intent) : "Unknown"}</h2>
           {typeof body.confidence === "number" ? (
             <span className="bg-surface-elevated text-muted rounded-full px-3 py-1 font-body text-sm">
               confidence {(body.confidence * 100).toFixed(0)}%
@@ -176,9 +211,9 @@ export function NlSearchResult({ body }: { body: NlResponse | null }) {
             <span className="font-body text-sm text-muted">{body.meta.elapsed_ms} ms</span>
           ) : null}
         </div>
-        {body.rationale ? (
-          <p className="text-muted border-primary/40 max-w-3xl border-l-2 py-1 ps-4 font-body text-sm italic">
-            {body.rationale}
+        {intentSummary ? (
+          <p className="text-muted border-primary/40 max-w-3xl border-l-2 py-1 ps-4 font-body text-sm">
+            {intentSummary}
           </p>
         ) : null}
         {(body.meta?.status === "error" || metaErr) && (
@@ -228,7 +263,7 @@ export function NlSearchResult({ body }: { body: NlResponse | null }) {
             ) {
               return null;
             }
-            return <ObjectArrayTable key={key} rows={rows} title={title} />;
+            return <ObjectArrayTable key={`${key}:${rows.length}`} rows={rows} title={title} />;
           })}
 
           {intent === "relationship_between" && isPlainObject(result.graph) ? (
