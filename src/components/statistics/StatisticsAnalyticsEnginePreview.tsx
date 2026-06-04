@@ -398,6 +398,57 @@ type NotesPayload = {
   }>;
 };
 
+type LineageRow = {
+  name?: string;
+  surname?: string;
+  size?: number;
+  earliest_year?: number | null;
+  latest_year?: number | null;
+  top_surnames?: string[];
+  span_years?: number;
+};
+
+type LineagesPayload = {
+  summary?: {
+    total_lineages?: number;
+    total_members?: number;
+    avg_size?: number;
+    largest_lineage_size?: number;
+    smallest_lineage_size?: number;
+    earliest_year?: number;
+    latest_year?: number;
+    singleton_lineages?: number;
+    large_lineages?: number;
+  };
+  top_lineages?: LineageRow[];
+  size_distribution?: Array<{ bucket?: string; count?: number }>;
+  longest_spans?: LineageRow[];
+  earliest_lineages?: LineageRow[];
+};
+
+type BranchRow = {
+  name?: string;
+  size?: number;
+  is_main?: boolean;
+  earliest_year?: number | null;
+  latest_year?: number | null;
+  top_surnames?: string[];
+};
+
+type BranchesPayload = {
+  summary?: {
+    total_branches?: number;
+    total_individuals?: number;
+    main_branch_size?: number;
+    isolated_branches?: number;
+    isolated_total?: number;
+    earliest_year?: number;
+    latest_year?: number;
+  };
+  all_branches?: BranchRow[];
+  main_branch_coverage_pct?: number | null;
+};
+
 function truncateChartLabel(raw: string, maxLen = 52): string {
   const s = raw.trim();
   if (s.length <= maxLen) return s;
@@ -1003,6 +1054,8 @@ const ENTITY_ENDPOINTS: Record<string, string[]> = {
   media:            ["media?top_n=10"],
   "open-questions": ["open-questions?top_n=10"],
   notes:            ["notes?top_n=10"],
+  lineages:         ["lineages?top_n=20"],
+  branches:         ["branches"],
 };
 
 export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
@@ -1016,6 +1069,8 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
   const [media, setMedia] = useState<MediaPayload | null>(null);
   const [openQuestions, setOpenQuestions] = useState<OpenQuestionsPayload | null>(null);
   const [notes, setNotes] = useState<NotesPayload | null>(null);
+  const [lineages, setLineages] = useState<LineagesPayload | null>(null);
+  const [branches, setBranches] = useState<BranchesPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1030,7 +1085,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
       const needed = entity ? (ENTITY_ENDPOINTS[entity] ?? []) : null;
       const needs = (key: string) => !needed || needed.some((ep) => ep.startsWith(key));
 
-      const [gRes, sRes, iRes, fRes, eRes, pRes, dRes, mRes, oqRes, nRes] = await Promise.all([
+      const [gRes, sRes, iRes, fRes, eRes, pRes, dRes, mRes, oqRes, nRes, linRes, brRes] = await Promise.all([
         needs("given-names") ? fetch(`${base}/given-names?limit=30`, { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
         needs("surnames")    ? fetch(`${base}/surnames?limit=30`,    { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
         needs("individuals") ? fetch(`${base}/individuals?top_n=10`, { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
@@ -1041,6 +1096,8 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
         needs("media")       ? fetch(`${base}/media?top_n=10`,       { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
         needs("open-questions") ? fetch(`${base}/open-questions?top_n=10`, { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
         needs("notes")       ? fetch(`${base}/notes?top_n=10`,       { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("lineages")    ? fetch(`${base}/lineages?top_n=20`,    { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
+        needs("branches")    ? fetch(`${base}/branches`,             { cache: "no-store" }) : Promise.resolve(new Response("{}", { status: 200 })),
       ]);
       const gJson = await gRes.json().catch(() => null);
       const sJson = await sRes.json().catch(() => null);
@@ -1051,17 +1108,21 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
       const dJson = await dRes.json().catch(() => null);
       const mJson = await mRes.json().catch(() => null);
       const oqJson = await oqRes.json().catch(() => null);
-      const nJson = await nRes.json().catch(() => null);
-      if (needs("given-names")    && !gRes.ok)  throw new Error(messageFromResearchErrorJson(gJson,  gRes.status));
-      if (needs("surnames")       && !sRes.ok)  throw new Error(messageFromResearchErrorJson(sJson,  sRes.status));
-      if (needs("individuals")    && !iRes.ok)  throw new Error(messageFromResearchErrorJson(iJson,  iRes.status));
-      if (needs("families")       && !fRes.ok)  throw new Error(messageFromResearchErrorJson(fJson,  fRes.status));
-      if (needs("events")         && !eRes.ok)  throw new Error(messageFromResearchErrorJson(eJson,  eRes.status));
-      if (needs("places")         && !pRes.ok)  throw new Error(messageFromResearchErrorJson(pJson,  pRes.status));
-      if (needs("dates")          && !dRes.ok)  throw new Error(messageFromResearchErrorJson(dJson,  dRes.status));
-      if (needs("media")          && !mRes.ok)  throw new Error(messageFromResearchErrorJson(mJson,  mRes.status));
-      if (needs("open-questions") && !oqRes.ok) throw new Error(messageFromResearchErrorJson(oqJson, oqRes.status));
-      if (needs("notes")          && !nRes.ok)  throw new Error(messageFromResearchErrorJson(nJson,  nRes.status));
+      const nJson   = await nRes.json().catch(() => null);
+      const linJson = await linRes.json().catch(() => null);
+      const brJson  = await brRes.json().catch(() => null);
+      if (needs("given-names")    && !gRes.ok)   throw new Error(messageFromResearchErrorJson(gJson,   gRes.status));
+      if (needs("surnames")       && !sRes.ok)   throw new Error(messageFromResearchErrorJson(sJson,   sRes.status));
+      if (needs("individuals")    && !iRes.ok)   throw new Error(messageFromResearchErrorJson(iJson,   iRes.status));
+      if (needs("families")       && !fRes.ok)   throw new Error(messageFromResearchErrorJson(fJson,   fRes.status));
+      if (needs("events")         && !eRes.ok)   throw new Error(messageFromResearchErrorJson(eJson,   eRes.status));
+      if (needs("places")         && !pRes.ok)   throw new Error(messageFromResearchErrorJson(pJson,   pRes.status));
+      if (needs("dates")          && !dRes.ok)   throw new Error(messageFromResearchErrorJson(dJson,   dRes.status));
+      if (needs("media")          && !mRes.ok)   throw new Error(messageFromResearchErrorJson(mJson,   mRes.status));
+      if (needs("open-questions") && !oqRes.ok)  throw new Error(messageFromResearchErrorJson(oqJson,  oqRes.status));
+      if (needs("notes")          && !nRes.ok)   throw new Error(messageFromResearchErrorJson(nJson,   nRes.status));
+      if (needs("lineages")       && !linRes.ok) throw new Error(messageFromResearchErrorJson(linJson, linRes.status));
+      if (needs("branches")       && !brRes.ok)  throw new Error(messageFromResearchErrorJson(brJson,  brRes.status));
       if (needs("given-names"))    setGiven(gJson as GivenNamesPayload);
       if (needs("surnames"))       setSurnames(sJson as SurnamesPayload);
       if (needs("individuals"))    setIndividuals(iJson as IndividualsPayload);
@@ -1072,6 +1133,8 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
       if (needs("media"))          setMedia(mJson as MediaPayload);
       if (needs("open-questions")) setOpenQuestions(oqJson as OpenQuestionsPayload);
       if (needs("notes"))          setNotes(nJson as NotesPayload);
+      if (needs("lineages"))       setLineages(linJson as LineagesPayload);
+      if (needs("branches"))       setBranches(brJson as BranchesPayload);
     } catch (e) {
       setGiven(null);
       setSurnames(null);
@@ -1083,6 +1146,8 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
       setMedia(null);
       setOpenQuestions(null);
       setNotes(null);
+      setLineages(null);
+      setBranches(null);
       setErr(e instanceof Error ? e.message : "Failed to load research analytics.");
     } finally {
       setLoading(false);
@@ -1139,7 +1204,7 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
         </div>
       ) : null}
 
-      {loading && !given && !individuals && !families && !events && !places && !dates && !media && !openQuestions && !notes && !err ? (
+      {loading && !given && !individuals && !families && !events && !places && !dates && !media && !openQuestions && !notes && !lineages && !branches && !err ? (
         <div className="grid gap-5 lg:grid-cols-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="border-border-subtle rounded-xl border bg-surface-elevated p-4 shadow-sm">
@@ -1809,9 +1874,139 @@ export function StatisticsAnalyticsEnginePreview({ treeId, entity }: Props) {
               </ChartCard>
             </div>
           </div>}
+
+          {lineages && <div id="stats-lineages" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">Which family lines run through the tree?</h2>
+            <p className="text-muted mb-4 font-body text-sm">
+              Surname-based family lines — each group of people who descend from founders sharing a common surname, how large each line is, and how far back it goes.
+            </p>
+            <SubsectionHeading id="chart-lin-top" label="Largest family lines" question="Which family lines have the most descendants?" />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <SummaryPill label="Family lines" value={lineages.summary?.total_lineages} />
+              <SummaryPill label="Total members across all lines" value={lineages.summary?.total_members} />
+              <SummaryPill label="Average line size" value={lineages.summary?.avg_size} />
+              <SummaryPill label="Largest line" value={lineages.summary?.largest_lineage_size} />
+              <SummaryPill label="Lines with 10+ members" value={lineages.summary?.large_lineages} />
+              <SummaryPill label="Earliest founding year" value={lineages.summary?.earliest_year} />
+              <SummaryPill label="Latest year represented" value={lineages.summary?.latest_year} />
+            </div>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <ChartCard id="chart-lin-top" question="Which family lines have the most descendants?" title="Largest family lines" description="The biggest surname-based family lines by number of members.">
+                <PlotlyFromLineages data={lineages} type="top-by-size" />
+              </ChartCard>
+              <SubsectionHeading id="chart-lin-dist" label="Size distribution" question="How many family lines are large vs small?" />
+              <ChartCard id="chart-lin-dist" question="How many family lines are large vs small?" title="Family line sizes" description="How the 169 family lines distribute by member count.">
+                <PlotlyFromLineages data={lineages} type="size-distribution" />
+              </ChartCard>
+            </div>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <SubsectionHeading id="chart-lin-earliest" label="Oldest family lines" question="Which family lines go furthest back in time?" />
+              <ChartCard id="chart-lin-earliest" question="Which family lines go furthest back in time?" title="Earliest-founding family lines" description="Lines ranked by their earliest known year.">
+                <PlotlyFromLineages data={lineages} type="earliest" />
+              </ChartCard>
+              <SubsectionHeading id="chart-lin-spans" label="Longest-spanning lines" question="Which family lines span the most centuries?" />
+              <ChartCard id="chart-lin-spans" question="Which family lines span the most centuries?" title="Longest-spanning family lines" description="Lines ranked by the number of years between their earliest and latest member.">
+                <PlotlyFromLineages data={lineages} type="longest-span" />
+              </ChartCard>
+            </div>
+          </div>}
+
+          {branches && <div id="stats-branches" className="border-border-subtle mt-2 scroll-mt-24 border-t pt-8">
+            <h2 className="text-heading font-accent mb-2 text-2xl font-semibold tracking-tight sm:text-3xl">Is the tree fully connected?</h2>
+            <p className="text-muted mb-4 font-body text-sm">
+              Whether everyone in the tree can be reached from everyone else through family links, or whether isolated groups exist with no path to the main family.
+            </p>
+            <SubsectionHeading id="chart-br-sizes" label="Branch sizes" question="How big is each connected group?" />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <SummaryPill label="Connected groups" value={branches.summary?.total_branches} />
+              <SummaryPill label="People in main group" value={branches.summary?.main_branch_size} />
+              <SummaryPill label="Isolated groups" value={branches.summary?.isolated_branches} hint="Groups with no link to the main family" />
+              <SummaryPill label="People in isolated groups" value={branches.summary?.isolated_total} />
+              <SummaryPill label="Main group coverage" value={branches.main_branch_coverage_pct != null ? `${branches.main_branch_coverage_pct}%` : undefined} hint="Percentage of all people in the main connected group" />
+            </div>
+            <div className="mt-6 grid gap-6 lg:max-w-2xl">
+              <ChartCard id="chart-br-sizes" question="How big is each connected group?" title="Branch sizes" description="Each bar is one connected group in the tree. The main family is the tallest; smaller bars are isolated groups with no link to the main family.">
+                <PlotlyFromBranches data={branches} type="sizes" />
+              </ChartCard>
+              <SubsectionHeading id="chart-br-main" label="Main vs isolated" question="What share of the tree is in the main connected group?" />
+              <ChartCard id="chart-br-main" question="What share of the tree is in the main connected group?" title="Main group vs isolated" description="How many people are in the main connected family vs any isolated groups." chartOverflow="visible">
+                <PlotlyFromBranches data={branches} type="main-vs-isolated" />
+              </ChartCard>
+            </div>
+          </div>}
       </>
     </section>
   );
+}
+
+function PlotlyFromLineages({ data, type }: { data: LineagesPayload; type: "top-by-size" | "size-distribution" | "earliest" | "longest-span" }) {
+  let spec: { data: Data[]; layout: Partial<Layout> };
+  switch (type) {
+    case "top-by-size": {
+      const rows = (data.top_lineages ?? []).slice(0, 20);
+      const shortNames = rows.map((r) => truncateChartLabel((r.name ?? "—").replace(/ lineage$/i, ""), 28));
+      const fullNames  = rows.map((r) => r.name ?? "—");
+      spec = horizontalBar(shortNames, rows.map((r) => r.size ?? 0), "Members", fullNames);
+      break;
+    }
+    case "size-distribution": {
+      const rows = data.size_distribution ?? [];
+      spec = verticalBar(rows.map((r) => r.bucket ?? ""), rows.map((r) => r.count ?? 0), "Family line size distribution", "Members", { yAxisTitle: "Lines" });
+      break;
+    }
+    case "earliest": {
+      const rows = (data.earliest_lineages ?? []).slice(0, 15);
+      const labels = rows.map((r) => truncateChartLabel((r.name ?? "—").replace(/ lineage$/i, ""), 28));
+      const fulls  = rows.map((r) => r.name ?? "—");
+      spec = horizontalBar(labels, rows.map((r) => r.earliest_year ?? 0), "Earliest year", fulls);
+      break;
+    }
+    case "longest-span": {
+      const rows = (data.longest_spans ?? []).slice(0, 15);
+      const labels = rows.map((r) => truncateChartLabel((r.name ?? "—").replace(/ lineage$/i, ""), 28));
+      const fulls  = rows.map((r) => r.name ?? "—");
+      spec = horizontalBar(labels, rows.map((r) => r.span_years ?? 0), "Years", fulls);
+      break;
+    }
+    default:
+      spec = { data: [], layout: {} };
+  }
+  return <StatisticsPlotly spec={spec} emptyMessage="No lineage data available." />;
+}
+
+function PlotlyFromBranches({ data, type }: { data: BranchesPayload; type: "sizes" | "main-vs-isolated" }) {
+  let spec: { data: Data[]; layout: Partial<Layout> };
+  switch (type) {
+    case "sizes": {
+      const rows = (data.all_branches ?? []).slice(0, 20);
+      const labels = rows.map((r) => truncateChartLabel(r.name ?? "—", 32));
+      spec = horizontalBar(labels, rows.map((r) => r.size ?? 0), "People");
+      break;
+    }
+    case "main-vs-isolated": {
+      const main = data.summary?.main_branch_size ?? 0;
+      const isolated = data.summary?.isolated_total ?? 0;
+      const segments = [
+        { label: "Main connected group", value: main, color: "#3d5a4a" },
+        { label: "Isolated groups", value: isolated, color: "#b85450" },
+      ].filter((s) => s.value > 0);
+      spec = {
+        data: [{
+          type: "pie",
+          labels: segments.map((s) => s.label),
+          values: segments.map((s) => s.value),
+          marker: { colors: segments.map((s) => s.color), line: PIE_SLICE_OUTLINE },
+          textinfo: "label+percent",
+          hovertemplate: "%{label}<br>Count: %{value:,}<br>%{percent}<extra></extra>",
+        }],
+        layout: pieLayoutBase(),
+      };
+      break;
+    }
+    default:
+      spec = { data: [], layout: {} };
+  }
+  return <StatisticsPlotly spec={spec} emptyMessage="No branch data available." />;
 }
 
 function formatSummaryNumber(value: unknown): string {

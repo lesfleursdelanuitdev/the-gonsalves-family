@@ -144,6 +144,30 @@ export const STATS_ENTITIES: StatsEntityDef[] = [
       { id: "chart-notes-sources",     label: "Sources with most notes",  question: "Which sources have the most research notes?" },
     ],
   },
+  {
+    slug: "lineages",
+    question: "Which family lines run through the tree?",
+    name: "Lineages",
+    description: "Surname-based family lines — the founding families and all their descendants, how large each line is, and how far back each one goes.",
+    endpoints: ["lineages?top_n=20"],
+    toc: [
+      { id: "chart-lin-top",      label: "Largest family lines",     question: "Which family lines have the most descendants?" },
+      { id: "chart-lin-dist",     label: "Size distribution",        question: "How many family lines are large vs small?" },
+      { id: "chart-lin-earliest", label: "Oldest family lines",      question: "Which family lines go furthest back in time?" },
+      { id: "chart-lin-spans",    label: "Longest-spanning lines",   question: "Which family lines span the most centuries?" },
+    ],
+  },
+  {
+    slug: "branches",
+    question: "Is the tree fully connected?",
+    name: "Branches",
+    description: "Whether all people in the tree are connected to each other through family links, or whether isolated groups exist with no path to the main family.",
+    endpoints: ["branches"],
+    toc: [
+      { id: "chart-br-sizes",  label: "Branch sizes",          question: "How big is each connected group?" },
+      { id: "chart-br-main",   label: "Main vs isolated",      question: "What share of the tree is in the main connected group?" },
+    ],
+  },
 ];
 
 export function getEntityBySlug(slug: string): StatsEntityDef | undefined {

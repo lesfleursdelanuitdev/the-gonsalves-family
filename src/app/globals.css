@@ -300,6 +300,21 @@
   font-family: var(--font-body-raw), system-ui, sans-serif;
 }
 
+/* Articles (StoryArticlePage): body prose uses the sans-serif body font — the same
+   one the table of contents uses — while only headings stay serif. Scoped to
+   .article-prose so the StoryViewer's serif (--font-accent-raw) prose is untouched. */
+.article-prose .story-rich-text {
+  font-family: var(--font-body-raw), system-ui, sans-serif;
+}
+.article-prose .story-rich-text h1,
+.article-prose .story-rich-text h2,
+.article-prose .story-rich-text h3,
+.article-prose .story-rich-text h4,
+.article-prose .story-rich-text h5,
+.article-prose .story-rich-text h6 {
+  font-family: var(--font-heading-raw), Georgia, serif;
+}
+
 html {
   margin: 0;
   padding: 0;

@@ -10,7 +10,7 @@ import type { StoryPublicPayload } from "@/lib/stories/story-queries";
 import { formatPublicAuthorLine, parseStoryBodyMeta } from "@/lib/stories/story-public-meta";
 import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
 import { StoryKind } from "@ligneous/prisma";
-import { buildToc, flattenDbSectionRows, sectionToBlocks } from "@/lib/stories/story-reader-utils";
+import { buildToc, filterLeadingArticleDuplicateBlocks, flattenDbSectionRows, sectionToBlocks } from "@/lib/stories/story-reader-utils";
 
 /** Title/subtitle/author already render in the cover header, so drop their inline chips from the body. */
 const ARTICLE_SUPPRESSED_FIELDS: StoryFieldKey[] = ["title", "subtitle", "author"];
@@ -41,6 +41,12 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
   const toc = buildToc(story);
   const flatSections = flattenDbSectionRows(story);
   const showViewerLink = story.kind === StoryKind.story;
+
+  const authorNames = [
+    ...meta.authors.map((a) => a.name.trim()).filter(Boolean),
+    ...(authorDb ? [authorDb] : []),
+  ];
+  const articleBodySuppress = { title: story.title, authorNames };
 
   return (
     <>
@@ -77,7 +83,7 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
               {!sec.hideTitle ? <h2 className="font-display text-2xl font-semibold text-text">{sec.title}</h2> : null}
               {sec.subtitle && !sec.hideSubtitle ? <p className="mt-2 text-sm uppercase tracking-[0.22em] text-text/55">{sec.subtitle}</p> : null}
               <div className={sec.hideTitle && (!sec.subtitle || sec.hideSubtitle) ? "space-y-6" : "mt-4 space-y-6"}>
-                {sectionToBlocks(sec).map((b) => (
+                {filterLeadingArticleDuplicateBlocks(sectionToBlocks(sec), articleBodySuppress).map((b) => (
                   <StoryBlockRenderer
                     key={b.id}
                     block={b}

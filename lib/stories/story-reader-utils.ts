@@ -99,6 +99,94 @@ export function sectionToBlocks(section: { contentJson: unknown }): ReaderStoryB
   return parseBlocks(section.contentJson);
 }
 
+type RichTextDocNode = {
+  type?: string;
+  text?: string;
+  content?: RichTextDocNode[];
+  attrs?: { level?: number };
+};
+
+function richTextPlainText(doc: unknown): string {
+  const collect = (node: RichTextDocNode): string => {
+    if (typeof node.text === "string") return node.text;
+    if (!Array.isArray(node.content)) return "";
+    const inner = node.content.map(collect).join("");
+    return node.type === "paragraph" || node.type === "heading" ? `${inner}\n` : inner;
+  };
+  if (!doc || typeof doc !== "object") return "";
+  const content = (doc as RichTextDocNode).content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((child) => collect(child).replace(/\n$/, ""))
+    .join("\n")
+    .trim();
+}
+
+function firstHeadingLevel(doc: unknown): number | null {
+  if (!doc || typeof doc !== "object" || !Array.isArray((doc as RichTextDocNode).content)) return null;
+  for (const node of (doc as RichTextDocNode).content ?? []) {
+    if (node.type === "heading" && typeof node.attrs?.level === "number") return node.attrs.level;
+  }
+  return null;
+}
+
+function normalizeArticleCompareText(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[–—−]/g, "-");
+}
+
+export type ArticleBodySuppressContext = {
+  title: string;
+  authorNames: readonly string[];
+};
+
+/** True when a rich-text block repeats title/byline already shown in the article cover header. */
+export function isDuplicateArticleHeaderBlock(
+  block: ReaderStoryBlock,
+  ctx: ArticleBodySuppressContext,
+): boolean {
+  if (block.type !== "richText") return false;
+  const text = richTextPlainText(block.doc).trim();
+  if (!text) return false;
+
+  const preset = String(block.preset ?? block.textPreset ?? "paragraph");
+  const normText = normalizeArticleCompareText(text);
+  const normTitle = normalizeArticleCompareText(ctx.title);
+
+  if (preset === "heading") {
+    const level =
+      typeof block.headingLevel === "number" ? block.headingLevel : firstHeadingLevel(block.doc);
+    if (level === 1 && normText === normTitle) return true;
+  }
+
+  if (preset === "paragraph") {
+    const lower = text.toLowerCase();
+    if (lower.startsWith("by ")) {
+      const names = ctx.authorNames.map((n) => n.trim().toLowerCase()).filter(Boolean);
+      if (names.some((name) => lower.includes(name))) return true;
+    }
+  }
+
+  return false;
+}
+
+/** Drop leading title/byline rich-text blocks that duplicate the article cover header. */
+export function filterLeadingArticleDuplicateBlocks(
+  blocks: ReaderStoryBlock[],
+  ctx: ArticleBodySuppressContext,
+): ReaderStoryBlock[] {
+  let pastLeading = false;
+  return blocks.filter((block) => {
+    if (pastLeading) return true;
+    if (isDuplicateArticleHeaderBlock(block, ctx)) return false;
+    pastLeading = true;
+    return true;
+  });
+}
+
 function walkBlocks(blocks: ReaderStoryBlock[], fn: (b: ReaderStoryBlock) => void): void {
   for (const b of blocks) {
     fn(b);

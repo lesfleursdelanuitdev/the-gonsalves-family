@@ -164,22 +164,6 @@
   margin-top: 0;
 }
 
-/* ── Article presentation: sans-serif body, serif headings ──────────────────
-   Articles (StoryArticlePage) read as long-form prose with a sans-serif body;
-   only headings stay serif. Scoped to .article-prose so StoryViewer stories
-   keep their serif (--font-accent-raw) prose. */
-.article-prose .story-rich-text {
-  font-family: var(--font-body-raw), system-ui, sans-serif;
-}
-.article-prose .story-rich-text h1,
-.article-prose .story-rich-text h2,
-.article-prose .story-rich-text h3,
-.article-prose .story-rich-text h4,
-.article-prose .story-rich-text h5,
-.article-prose .story-rich-text h6 {
-  font-family: var(--font-heading-raw), Georgia, serif;
-}
-
 .story-rich-text ul,
 .story-rich-text ol {
   margin-top: 0.75em;
