@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Filter, Search, X } from "lucide-react";
 import { ListPageFilterSheet, ListPageMobileControls } from "@/components/list-page";
@@ -213,8 +214,17 @@ export function StoriesListPage({
       <main className="min-w-0 flex-1 overflow-x-hidden">
         <Section noPadding className="relative min-w-0 overflow-x-hidden pb-4 pt-14 sm:pb-10 md:pb-14 md:pt-32">
           <div className="absolute inset-0 min-w-0 max-w-full">
-            <div className="absolute inset-0 bg-gradient-to-br from-bg via-bg/95 to-surface-2" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_60%_40%,rgba(180,140,90,0.12),transparent)]" />
+            <Image
+              src="/images/storiesArticlesCover.png"
+              alt=""
+              fill
+              priority
+              className="object-cover object-center"
+              sizes="100vw"
+              aria-hidden
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-bg/96 via-bg/82 to-bg/35 md:from-bg/92 md:via-bg/78 md:to-bg/20" aria-hidden />
+            <div className="absolute inset-y-0 left-0 w-[58%] bg-gradient-to-r from-bg to-transparent" aria-hidden />
           </div>
 
           <div className="relative z-10 min-w-0 max-w-full">

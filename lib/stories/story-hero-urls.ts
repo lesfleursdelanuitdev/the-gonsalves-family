@@ -2,7 +2,14 @@ import type { StoryCoverMediaKind } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
 
+export const ARTICLE_DEFAULT_COVER_URL = "/images/articleCover.png";
+
 export type StoryHeroUrls = { coverSrc: string | null; profileSrc: string | null };
+
+/** Cover image for articles: explicit cover, then profile, then the shared default. */
+export function articleCoverSrc(coverSrc: string | null, profileSrc: string | null): string {
+  return coverSrc ?? profileSrc ?? ARTICLE_DEFAULT_COVER_URL;
+}
 
 function refToUrl(ref: string | null | undefined): string | null {
   const r = ref?.trim();

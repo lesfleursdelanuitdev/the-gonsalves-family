@@ -1,58 +1,26 @@
 "use client";
 
-import { Share2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
-
-function canUseWebShareAPI(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const share = (navigator as Navigator & { share?: unknown }).share;
-  return typeof share === "function";
-}
+import { useMemo } from "react";
+import { StoryShareButton } from "@/components/stories/StoryShareButton";
 
 export function StoryCover({
   coverSrc,
-  profileSrc,
   title,
   excerpt,
   authorLine,
   authorHref,
   canonicalUrl,
+  showShare = true,
 }: {
   coverSrc: string | null;
-  profileSrc: string | null;
   title: string;
   excerpt?: string | null;
   authorLine: string | null;
   authorHref?: string | null;
   canonicalUrl: string;
+  /** Show the in-cover Share control. The article page hides it because Share lives in the byline strip. */
+  showShare?: boolean;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const share = useCallback(async () => {
-    try {
-      if (canUseWebShareAPI()) {
-        await navigator.share({ title, text: excerpt ?? undefined, url: canonicalUrl });
-      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(canonicalUrl);
-      }
-    } catch {
-      /* cancelled */
-    }
-    setMenuOpen(false);
-  }, [canonicalUrl, excerpt, title]);
-
-  const copyOnly = useCallback(async () => {
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(canonicalUrl);
-      }
-    } catch {
-      /* ignore */
-    }
-    setMenuOpen(false);
-  }, [canonicalUrl]);
-
   const authorEl = useMemo(() => {
     if (!authorLine) return null;
     const multiline = authorLine.includes("\n");
@@ -69,7 +37,7 @@ export function StoryCover({
 
   return (
     <header className="relative isolate w-full overflow-hidden">
-      <section className="relative isolate min-h-[min(88vw,320px)] w-full overflow-hidden bg-bg md:min-h-[360px]">
+      <section className="relative isolate flex min-h-[min(72vw,340px)] w-full flex-col justify-end overflow-hidden bg-bg md:min-h-[400px]">
         {coverSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={coverSrc} alt="" className="absolute inset-0 h-full w-full scale-105 object-cover object-center" aria-hidden />
@@ -82,51 +50,36 @@ export function StoryCover({
           aria-hidden
           style={{ background: "linear-gradient(to top, rgba(0,0,0,0.22) 0%, transparent 50%)" }}
         />
-        <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pb-10 pt-16 md:pb-14 md:pt-20">
-          <div className="relative -mb-10 mt-16 md:-mb-12 md:mt-20">
-            {profileSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profileSrc}
-                alt=""
-                className="size-24 rounded-full border-4 border-bg object-cover shadow-lg ring-2 ring-border md:size-28"
-              />
-            ) : (
-              <div className="size-24 rounded-full border-4 border-bg bg-surface-2 ring-2 ring-border md:size-28" />
-            )}
-          </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.14]"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 45%, transparent 72%)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-bg via-bg/[0.92] to-transparent"
+          aria-hidden
+        />
+
+        <div className="relative z-10 mx-auto w-full max-w-3xl px-4 pb-10 pt-20 text-center md:pb-12 md:pt-24">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-text [text-shadow:0_1px_16px_rgba(255,255,255,0.85),0_0_40px_rgba(255,255,255,0.35)] md:text-4xl">
+            {title}
+          </h1>
+          {excerpt?.trim() ? (
+            <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-text/80 [text-shadow:0_1px_10px_rgba(255,255,255,0.75)] md:text-lg">
+              {excerpt.trim()}
+            </p>
+          ) : null}
+          {authorEl || showShare ? (
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-text/70">
+              {authorEl}
+              {showShare ? <StoryShareButton title={title} text={excerpt} url={canonicalUrl} variant="cover" /> : null}
+            </div>
+          ) : null}
         </div>
       </section>
-      <div className="mx-auto max-w-3xl px-4 pb-8 pt-14 text-center md:pt-16">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-text md:text-4xl">{title}</h1>
-        {excerpt?.trim() ? <p className="mt-3 text-base leading-relaxed text-text/75 md:text-lg">{excerpt.trim()}</p> : null}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-text/70">
-          {authorEl}
-          <div className="relative">
-            <button
-              type="button"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold uppercase tracking-wide text-text/80 hover:bg-surface-2",
-              )}
-              aria-expanded={menuOpen}
-              onClick={() => {
-                if (canUseWebShareAPI()) void share();
-                else setMenuOpen((o) => !o);
-              }}
-            >
-              <Share2 className="size-3.5" aria-hidden />
-              Share
-            </button>
-            {menuOpen ? (
-              <div className="absolute right-0 z-20 mt-2 min-w-40 rounded-lg border border-border bg-bg py-1 shadow-lg">
-                <button type="button" className="block w-full px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => void copyOnly()}>
-                  Copy link
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
     </header>
   );
 }

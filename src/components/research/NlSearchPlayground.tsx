@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { PanelRightOpen } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NlSearchResult, type NlResponse } from "@/components/research/NlSearchResult";
@@ -194,14 +193,7 @@ export function NlSearchPlayground({ treeId, inline }: Props) {
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20 pt-6 lg:max-w-6xl lg:px-8">
       <div className="mb-10">
-        <nav className="text-muted font-body text-sm">
-          <Link href="/tree/viewer" className="text-link hover:text-link-hover underline-offset-2 hover:underline">
-            Tree viewer
-          </Link>
-          <span className="px-2 opacity-50">/</span>
-          <span className="text-subtle">Natural language search</span>
-        </nav>
-        <h1 className="text-heading mt-4 font-accent text-4xl tracking-tight">Ask the tree</h1>
+        <h1 className="text-heading font-accent text-4xl tracking-tight">Ask the tree</h1>
         <p className="text-muted mt-3 max-w-2xl font-body text-base leading-relaxed">
           Plain-language questions route to read-only analytics intents (names, places, lifespans, relatives, and more).
           Queries are not persisted on the public site.

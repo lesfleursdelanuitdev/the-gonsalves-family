@@ -23,7 +23,6 @@ export function StoryViewerClient({
   title,
   excerpt,
   coverSrc,
-  profileSrc,
   authorLine,
   authorHref,
   sections,
@@ -35,7 +34,6 @@ export function StoryViewerClient({
   title: string;
   excerpt: string | null;
   coverSrc: string | null;
-  profileSrc: string | null;
   authorLine: string | null;
   authorHref: string | null;
   sections: SectionRow[];
@@ -115,7 +113,6 @@ export function StoryViewerClient({
       </div>
       <StoryCover
         coverSrc={coverSrc}
-        profileSrc={profileSrc}
         title={title}
         excerpt={excerpt}
         authorLine={authorLine}

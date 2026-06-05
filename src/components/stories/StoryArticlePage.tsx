@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { StoryBlockRenderer } from "@/components/stories/StoryBlockRenderer";
 import { StoryCover } from "@/components/stories/StoryCover";
+import { StoryBylineStrip } from "@/components/stories/StoryBylineStrip";
 import { StorySourcesFootnotes } from "@/components/stories/StorySourcesFootnotes";
 import { StoryTocNav } from "@/components/stories/StoryTocNav";
 import type { StoryFieldKey } from "@/lib/stories/tiptap/field-keys";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { Footer } from "@/components/homepage";
 import type { StoryPublicPayload } from "@/lib/stories/story-queries";
-import { formatPublicAuthorLine, parseStoryBodyMeta } from "@/lib/stories/story-public-meta";
-import { resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
+import { parseStoryBodyMeta, publicAuthorCredits } from "@/lib/stories/story-public-meta";
+import { resolveCreditAvatars } from "@/lib/stories/story-credit-avatars";
+import { articleCoverSrc, resolveStoryHeroUrls } from "@/lib/stories/story-hero-urls";
 import { StoryKind } from "@ligneous/prisma";
 import { buildToc, filterLeadingArticleDuplicateBlocks, flattenDbSectionRows, sectionToBlocks } from "@/lib/stories/story-reader-utils";
 
@@ -25,8 +27,12 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
 
   const meta = parseStoryBodyMeta(story.body);
   const authorDb = story.author?.name?.trim() || story.author?.username?.trim() || null;
-  const authorLine = formatPublicAuthorLine(meta, authorDb);
-  const authorHref = story.author?.username ? `/people/${encodeURIComponent(story.author.username)}` : null;
+  const credits = await resolveCreditAvatars(publicAuthorCredits(meta, authorDb));
+
+  const publishDate = story.publishedAt ?? story.createdAt;
+  const dateLabel = publishDate
+    ? new Date(publishDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
 
   const siteBase = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gonsalves.family").replace(/\/$/, "");
   const pathSlug = story.slug ?? urlSlug;
@@ -52,12 +58,18 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
     <>
       <Navbar />
       <StoryCover
-        coverSrc={hero.coverSrc}
-        profileSrc={hero.profileSrc}
+        coverSrc={articleCoverSrc(hero.coverSrc, hero.profileSrc)}
         title={story.title}
         excerpt={story.excerpt}
-        authorLine={authorLine}
-        authorHref={authorHref}
+        authorLine={null}
+        canonicalUrl={canonicalUrl}
+        showShare={false}
+      />
+      <StoryBylineStrip
+        credits={credits}
+        date={dateLabel}
+        title={story.title}
+        excerpt={story.excerpt}
         canonicalUrl={canonicalUrl}
       />
       {showViewerLink ? (
@@ -70,14 +82,14 @@ export async function StoryArticlePage({ story, urlSlug }: { story: StoryPublicP
           </Link>
         </div>
       ) : null}
-      <div className="flex gap-8 px-8 py-10">
+      <div className="mx-auto flex max-w-[1080px] items-start gap-10 px-4 py-10 md:px-10">
         <aside className="hidden lg:block w-60 shrink-0">
           <div className="sticky top-24">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text/45">On this page</p>
             <StoryTocNav slug={pathSlug} entries={toc} />
           </div>
         </aside>
-        <main className="article-prose min-w-0 flex-1">
+        <main className="article-prose min-w-0 flex-1 rounded-2xl border border-border bg-surface-elevated px-7 py-9 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_12px_34px_rgba(20,14,8,0.07),0_2px_8px_rgba(20,14,8,0.04)] md:max-w-[748px] md:px-16 md:pb-14 md:pt-14">
           {flatSections.map((sec) => (
             <section key={sec.id} id={`section-${sec.id}`} className="mb-14 scroll-mt-28">
               {!sec.hideTitle ? <h2 className="font-display text-2xl font-semibold text-text">{sec.title}</h2> : null}

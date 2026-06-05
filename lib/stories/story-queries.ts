@@ -2,6 +2,7 @@ import { StoryKind, StoryStatus, type Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
 import { parseStoryBodyMeta, publicAuthorCreditRole, type PublicStoryAuthorCredit, type StoryBodyMetaParsed } from "@/lib/stories/story-public-meta";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
+import { ARTICLE_DEFAULT_COVER_URL } from "@/lib/stories/story-hero-urls";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import {
   batchIndividualDisplayPhotoMedia,
@@ -156,7 +157,11 @@ export type StoryListItem = Omit<StoryListRaw, "body"> & {
 async function batchResolveCoverUrls(rows: StoryListRaw[]): Promise<Map<string, string>> {
   const urlMap = new Map<string, string>();
 
-  const allIds = rows.filter((r) => r.coverMediaId).map((r) => r.coverMediaId!);
+  const allIds = [
+    ...new Set(
+      rows.flatMap((r) => [r.coverMediaId, r.profileMediaId].filter((id): id is string => Boolean(id))),
+    ),
+  ];
   if (!allIds.length) return urlMap;
 
   // Admin-uploaded cover images are stored in gedcomMedia regardless of the
@@ -284,7 +289,12 @@ export async function fetchPublishedStoriesList(kinds: StoryKind[]): Promise<Sto
       xrefToPersonId,
       photoByPersonId,
     );
-    const coverUrl = rest.coverMediaId ? (coverUrlMap.get(rest.coverMediaId) ?? null) : null;
+    const coverFromMedia = rest.coverMediaId ? (coverUrlMap.get(rest.coverMediaId) ?? null) : null;
+    const profileFromMedia = rest.profileMediaId ? (coverUrlMap.get(rest.profileMediaId) ?? null) : null;
+    const coverUrl =
+      rest.kind === StoryKind.article || rest.kind === StoryKind.post
+        ? (coverFromMedia ?? profileFromMedia ?? ARTICLE_DEFAULT_COVER_URL)
+        : coverFromMedia;
     return { ...rest, author, parsedAuthors, coverUrl };
   });
 }
