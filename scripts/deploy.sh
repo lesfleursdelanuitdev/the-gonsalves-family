@@ -1,12 +1,14 @@
 #!/bin/bash
-# Deploy script for temp.gonsalvesfamily.com
-# Ensures production build completes and static files exist before restart.
-# Run from app root so PM2 (started from same root) serves this .next.
-# Prefer PM2 started via deployment/ecosystem.config.cjs (port 3039, PYTHON_API_URL default).
+# Deploy script for gonsalvesfamily.com (public site).
+# Ensures the production build completes and static files exist before restart.
+# The site runs under systemd as gonsalves-public.service
+# (WorkingDirectory=this app root, `npm run start:prod` -> port 3039).
 
 set -e
 APP_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$APP_ROOT"
+
+SERVICE="gonsalves-public.service"
 
 echo "Building production bundle in $APP_ROOT..."
 npm run build
@@ -21,9 +23,10 @@ if [ ! -d ".next/static/chunks" ] || [ -z "$(ls -A .next/static/chunks 2>/dev/nu
   exit 1
 fi
 
-# Ensure PM2 was started with cwd = this app root so it uses this .next
-echo "Static files OK. Restarting PM2..."
-pm2 restart temp-gonsalvesfamily
+# systemd runs the service from this app root, so it picks up this fresh .next.
+echo "Static files OK. Restarting $SERVICE (sudo may prompt for a password)..."
+sudo systemctl restart "$SERVICE"
+sudo systemctl --no-pager --lines=0 status "$SERVICE" || true
 
-echo "Deploy complete. Site: https://temp.gonsalvesfamily.com"
+echo "Deploy complete. Site: https://gonsalvesfamily.com"
 echo "If CSS/code still stale: hard-refresh (Ctrl+Shift+R) or clear site data; ensure nginx is not caching the HTML response."
