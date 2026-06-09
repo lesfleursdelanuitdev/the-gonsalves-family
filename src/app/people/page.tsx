@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, GitBranch, Users, UsersRound } from "lucide-react";
+import { ArrowRight, Users, UsersRound } from "lucide-react";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { Footer } from "@/components/homepage";
 import { Section, PageContainer } from "@/components/wireframe";
@@ -18,6 +18,9 @@ export const metadata = {
  * Spotlight people, in display order. UUIDs are the public-tree records for
  * Augustinho Thomas Gonsalves, Norman Peter Gonsalves, and Mary Mias Gracis.
  */
+/** Archival photo for the "Explore the family tree" sepia band. Swap freely. */
+const EXPLORE_BAND_PHOTO = "/images/albumsCoverImage.png";
+
 const SPOTLIGHT_IDS = [
   "8450ef75-63c1-4a84-a1ee-0c5a9ff16f30", // Augustinho Thomas Gonsalves (1894–1998)
   "ce85c538-0185-469d-87d4-edb4514d1ad6", // Norman Peter Gonsalves (1957–2022)
@@ -76,26 +79,82 @@ export default async function FindPeoplePage() {
           </div>
         </Section>
 
-        {/* Explore the tree — the primary, most prominent way in */}
+        {/* Explore the tree — sepia feature band (design: explore-tree-B). The
+            primary "start here" way in, full content width below the hero. */}
         <Section noPadding className="min-w-0 overflow-x-hidden pt-8 pb-6 md:pt-10 md:pb-8">
           <PageContainer narrow>
             <Link
               href="/tree/viewer"
-              className="group flex min-w-0 flex-col items-start gap-4 rounded-2xl border border-link/25 bg-link-soft-bg p-7 shadow-[0_10px_28px_rgba(60,45,25,0.1)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(60,45,25,0.16)] sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-8"
+              aria-label="Explore the family tree in the interactive Tree Viewer"
+              className="group relative flex min-h-[236px] min-w-0 items-center overflow-hidden rounded-[18px] border border-[rgba(42,40,32,0.18)] shadow-[0_14px_36px_rgba(42,32,16,0.18)]"
             >
-              <div className="flex min-w-0 items-start gap-4">
-                <GitBranch className="mt-1 h-9 w-9 shrink-0 text-link" strokeWidth={1.8} aria-hidden />
-                <div className="min-w-0">
-                  <h2 className="font-heading text-2xl font-semibold text-heading sm:text-3xl">Explore the family tree</h2>
-                  <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">
-                    See how everyone connects — pan and zoom through generations in the interactive Tree Viewer.
-                  </p>
-                </div>
+              {/* Archival photo layer (swap PEOPLE_BAND_PHOTO to change it). */}
+              <Image
+                src={EXPLORE_BAND_PHOTO}
+                alt=""
+                fill
+                aria-hidden
+                sizes="(max-width: 760px) 100vw, 1100px"
+                className="object-cover object-center"
+              />
+              {/* Sepia wash over the photo. */}
+              <div
+                className="pointer-events-none absolute inset-0 z-[1]"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(120,96,58,0.28), rgba(60,44,22,0.42))",
+                }}
+                aria-hidden
+              />
+              {/* Left-to-right darkening veil for legibility. */}
+              <div
+                className="pointer-events-none absolute inset-0 z-[1]"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(34,24,11,0.82), rgba(34,24,11,0.40) 55%, rgba(34,24,11,0.05))",
+                }}
+                aria-hidden
+              />
+
+              {/* Decorative family-tree glyph (desktop only). */}
+              <svg
+                className="absolute right-[38px] top-1/2 z-[2] hidden h-[108px] w-[180px] -translate-y-1/2 text-[rgba(247,239,220,0.5)] md:block"
+                viewBox="0 0 200 120"
+                preserveAspectRatio="xMidYMid meet"
+                aria-hidden
+              >
+                <path
+                  d="M100 16 L50 60 M100 16 L150 60 M50 60 L24 104 M50 60 L72 104 M150 60 L128 104 M150 60 L176 104"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  fill="none"
+                  opacity={0.5}
+                />
+                <circle cx="100" cy="16" r="6" fill="currentColor" />
+                <circle cx="50" cy="60" r="5" fill="currentColor" />
+                <circle cx="150" cy="60" r="5" fill="currentColor" />
+                <circle cx="24" cy="104" r="4" fill="currentColor" />
+                <circle cx="72" cy="104" r="4" fill="currentColor" />
+                <circle cx="128" cy="104" r="4" fill="currentColor" />
+                <circle cx="176" cy="104" r="4" fill="currentColor" />
+              </svg>
+
+              {/* Text block */}
+              <div className="relative z-[2] max-w-[600px] px-[26px] py-[28px] sm:px-[42px] sm:py-[34px]">
+                <p className="font-body text-[11.5px] font-semibold uppercase tracking-[0.2em] text-[#e8bca2]">
+                  Start here
+                </p>
+                <h2 className="mt-3 font-heading text-[28px] font-medium leading-[1.04] tracking-[-0.015em] text-[#f7efdc] sm:text-[34px]">
+                  Explore the family tree
+                </h2>
+                <p className="mt-[9px] max-w-[46ch] font-body text-[15px] leading-[1.6] text-[rgba(247,239,220,0.82)]">
+                  Six generations, one living map. Pan and zoom through every branch in the interactive Tree Viewer.
+                </p>
+                <span className="mt-[22px] inline-flex items-center gap-[9px] rounded-[11px] bg-[#f4ecd8] px-6 py-3.5 font-body text-[14.5px] font-semibold text-[#244730] shadow-sm transition duration-200 group-hover:-translate-y-px group-hover:bg-white">
+                  Open Tree Viewer
+                  <ArrowRight className="h-[18px] w-[18px] transition duration-200 group-hover:translate-x-[3px]" aria-hidden />
+                </span>
               </div>
-              <span className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-semibold text-primary-foreground shadow-sm transition group-hover:bg-primary-hover">
-                Open Tree Viewer
-                <ArrowRight className="h-5 w-5 transition group-hover:translate-x-0.5" aria-hidden />
-              </span>
             </Link>
           </PageContainer>
         </Section>
