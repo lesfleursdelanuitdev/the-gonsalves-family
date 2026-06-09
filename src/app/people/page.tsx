@@ -19,7 +19,7 @@ export const metadata = {
  * Augustinho Thomas Gonsalves, Norman Peter Gonsalves, and Mary Mias Gracis.
  */
 /** Archival photo for the "Explore the family tree" sepia band. Swap freely. */
-const EXPLORE_BAND_PHOTO = "/images/albumsCoverImage.png";
+const EXPLORE_BAND_PHOTO = "/images/histories/journey/family/SydneyJulieWed1939.jpg";
 
 const SPOTLIGHT_IDS = [
   "8450ef75-63c1-4a84-a1ee-0c5a9ff16f30", // Augustinho Thomas Gonsalves (1894–1998)
