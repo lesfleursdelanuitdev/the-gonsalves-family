@@ -16,6 +16,11 @@
 # next.js
 /.next/
 /out/
+# build-dir backups: Tailwind v4 auto-scans the project for class names,
+# including binary turbopack cache files inside stray .next backups, which
+# can emit invalid CSS and break the build. Keep these out of the tree.
+/.next.bak/
+*.bak/
 
 # production
 /build
