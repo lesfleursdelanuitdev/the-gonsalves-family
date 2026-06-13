@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { AlbumViewModel } from "@ligneous/album-view";
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import {
@@ -8,6 +9,8 @@ import {
 import {
   resolveCuratedAlbumViewModelPublic,
   resolveGeneratedAlbumViewModelPublic,
+  resolveMainPhotosViewModelPublic,
+  type MainPhotosViewModel,
 } from "@/lib/album/resolve-public-album-view-model";
 
 export async function GET(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -18,20 +21,29 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
       return NextResponse.json({ error: "Missing media id" }, { status: 400 });
     }
 
-    const source = parseSourceFromSearchParams(request.nextUrl.searchParams);
-    if (!source) {
-      return NextResponse.json({ error: "Missing or invalid source query" }, { status: 400 });
-    }
-
     const fileUuid = await resolveTreeFileUuid();
     if (!fileUuid) {
       return NextResponse.json({ error: "Tree not configured" }, { status: 503 });
     }
 
-    const model =
-      source.type === "album"
-        ? await resolveCuratedAlbumViewModelPublic(prisma, fileUuid, source.albumId)
-        : await resolveGeneratedAlbumViewModelPublic(prisma, fileUuid, source);
+    const kindParam = (request.nextUrl.searchParams.get("kind") ?? "").trim().toLowerCase();
+
+    let model: AlbumViewModel | MainPhotosViewModel | null;
+    let sourceQuery: string;
+    if (kindParam === "mainphotos") {
+      model = await resolveMainPhotosViewModelPublic(prisma, fileUuid);
+      sourceQuery = "kind=mainPhotos";
+    } else {
+      const source = parseSourceFromSearchParams(request.nextUrl.searchParams);
+      if (!source) {
+        return NextResponse.json({ error: "Missing or invalid source query" }, { status: 400 });
+      }
+      model =
+        source.type === "album"
+          ? await resolveCuratedAlbumViewModelPublic(prisma, fileUuid, source.albumId)
+          : await resolveGeneratedAlbumViewModelPublic(prisma, fileUuid, source);
+      sourceQuery = sourceToAlbumApiQuery(source);
+    }
     if (!model) return NextResponse.json({ error: "Album/source not found" }, { status: 404 });
 
     const membership = model.media.find((m) => m.id === mediaId);
@@ -155,7 +167,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
         tags: media.appTags.map((x) => x.tag).filter(Boolean),
         albums,
       },
-      sourceQuery: sourceToAlbumApiQuery(source),
+      sourceQuery,
     });
   } catch (err) {
     console.error("[api/media-view/[id]]", err);

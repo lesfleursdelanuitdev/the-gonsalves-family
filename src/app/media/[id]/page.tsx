@@ -401,6 +401,7 @@ function Inner() {
   const sp = useSearchParams();
   const mediaId = typeof params.id === "string" ? params.id.trim() : "";
   const source = useMemo(() => parseSourceFromSearchParams(sp), [sp]);
+  const isMainPhotos = (sp.get("kind") ?? "").trim().toLowerCase() === "mainphotos";
 
   const [data, setData] = useState<MediaViewPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -414,7 +415,7 @@ function Inner() {
       setData(null);
       return;
     }
-    if (!source) {
+    if (!source && !isMainPhotos) {
       setLoading(false);
       setErr("Missing or invalid source for shared media link.");
       setData(null);
@@ -447,7 +448,7 @@ function Inner() {
     return () => {
       cancelled = true;
     };
-  }, [mediaId, source, sp]);
+  }, [mediaId, source, isMainPhotos, sp]);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -464,13 +465,13 @@ function Inner() {
   }, [lightboxOpen]);
 
   if (!mediaId) return <p className="px-4 py-8 text-sm text-destructive">Invalid media id.</p>;
-  if (!source) return <p className="px-4 py-8 text-sm text-muted-foreground">Open a shared media link from an album lightbox to view this page.</p>;
+  if (!source && !isMainPhotos) return <p className="px-4 py-8 text-sm text-muted-foreground">Open a shared media link from an album lightbox to view this page.</p>;
   if (loading) return <p className="px-4 py-8 text-sm text-muted-foreground">Loading…</p>;
   if (err || !data) return <p className="px-4 py-8 text-sm text-destructive">{err ?? "Not found."}</p>;
 
   const sourceMeta = data.source;
   const media = data.media;
-  const sourcePath = sourceToAlbumPath(source);
+  const sourcePath = source ? sourceToAlbumPath(source) : "/archive/photos";
   const fileTitle = (media.title ?? "").trim() || inferFilename(media.fileRef);
   const src = media.fileRef ? resolveGedcomMediaFileRef(media.fileRef) : null;
   const coverSrc = sourceMeta.coverMedia?.fileRef ? resolveGedcomMediaFileRef(sourceMeta.coverMedia.fileRef) : null;
@@ -480,7 +481,10 @@ function Inner() {
 
   const shareCurrent = async () => {
     if (typeof window === "undefined") return;
-    const url = new URL(buildPublicMediaPath(source, media.id), window.location.origin).toString();
+    const path = source
+      ? buildPublicMediaPath(source, media.id)
+      : `/media/${encodeURIComponent(media.id)}?kind=mainPhotos`;
+    const url = new URL(path, window.location.origin).toString();
     try {
       if (navigator.share) await navigator.share({ title: fileTitle, url });
       else await navigator.clipboard.writeText(url);

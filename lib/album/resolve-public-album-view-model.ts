@@ -16,6 +16,7 @@ import {
 } from "@ligneous/album-view";
 import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
+import { isRasterGedcomMediaForm } from "@/lib/tree/individual-display-photo";
 
 const MEDIA_SELECT = {
   id: true,
@@ -584,6 +585,66 @@ export async function resolveCuratedAlbumViewModelPublic(
     gridMode: "static",
     albumId: null,
     presentation: "album",
+  };
+}
+
+/**
+ * View model for the "All Photos" source (`/archive/photos`). Lists every raster
+ * image OBJE in the public tree with the same per-media links the album lightbox
+ * uses, without introducing a new source type into the shared `AlbumViewSource`.
+ */
+export type MainPhotosViewModel = {
+  kind: "generated";
+  title: string;
+  description: string | null;
+  coverMedia: MediaSummary | null;
+  media: MediaSummary[];
+  linkedIndividuals: AlbumMediaLinkedIndividual[];
+  linkedPlaces: AlbumMediaLinkedPlace[];
+  linkedDates: AlbumMediaLinkedDate[];
+  availableMediaTypes: ReturnType<typeof computeAvailableMediaTypes>;
+  totalCount: number;
+};
+
+export async function resolveMainPhotosViewModelPublic(
+  prisma: PrismaClient,
+  fileUuid: string,
+): Promise<MainPhotosViewModel> {
+  const idRows = await prisma.gedcomMedia.findMany({
+    where: { fileUuid },
+    select: { id: true, form: true },
+  });
+  const imageIds = idRows.filter((r) => isRasterGedcomMediaForm(r.form)).map((r) => r.id);
+  const media = dedupeById(await mediaRowsForIds(prisma, fileUuid, imageIds));
+  const mediaIds = media.map((m) => m.id);
+
+  const perMedia = await collectLinkedIndividualsPerMediaId(prisma, fileUuid, mediaIds);
+  const { linkedPlaces, linkedDates, perMedia: perMediaPlacesDates } =
+    await collectLinkedPlacesAndDatesForMediaIds(prisma, fileUuid, mediaIds);
+  const mediaWithLinks = attachPerMediaPlacesAndDates(attachPerMediaLinks(media, perMedia), perMediaPlacesDates);
+  const mediaEnriched = await enrichMediaWithDescriptionAndTags(prisma, fileUuid, mediaWithLinks);
+  const thumbById = await loadIndividualProfileThumbnailUrlMap(
+    prisma,
+    fileUuid,
+    collectIndividualIdsFromPerMedia(perMedia),
+  );
+  const mediaWithPersonThumbs = applyProfileThumbnailsToMediaList(mediaEnriched, thumbById);
+  const linkedIndividuals = applyProfileThumbnailsToLinkedPeople(
+    attachMediaCountsToPeople(unionLinkedIndividualsSorted(perMedia), perMedia),
+    thumbById,
+  );
+
+  return {
+    kind: "generated",
+    title: "All Photos",
+    description: null,
+    coverMedia: mediaWithPersonThumbs[0] ?? null,
+    media: mediaWithPersonThumbs,
+    linkedIndividuals,
+    linkedPlaces,
+    linkedDates,
+    availableMediaTypes: computeAvailableMediaTypes(mediaWithPersonThumbs),
+    totalCount: mediaWithPersonThumbs.length,
   };
 }
 
