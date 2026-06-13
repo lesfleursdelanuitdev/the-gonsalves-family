@@ -22,7 +22,7 @@ export default async function ResearchSourcesPage() {
       ) : (
         <ul className="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-surface/40">
           {sources.map((source) => (
-            <li key={source.id} className="px-5 py-4">
+            <li key={source.id} id={`source-${source.id}`} className="scroll-mt-24 px-5 py-4">
               <p className="text-heading font-medium">{sourceDisplayLabel(source)}</p>
               {(source.author || source.publication) && (
                 <p className="text-muted mt-1 text-sm">
