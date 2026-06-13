@@ -39,23 +39,39 @@ export const IMAGE_SIZES = {
   default: { width: 320, height: 170, className: "h-[170px]" },
 } as const;
 
-const BOLD_NAMES = ["Augustino Gracis", "Mary Mias Gracis", "Agus Gonsalves"] as const;
+/** Names highlighted in journey copy. A non-null href makes the name a real
+ *  link to that individual; names mapped to null are styled but inert. */
+const NAME_LINKS: Record<string, string | null> = {
+  "Agustino Gracis":
+    "https://gonsalvesfamily.com/individuals/3499e9ad-e40e-452e-ab87-c1c2a0f5de91",
+  "Mary Mias Gracis":
+    "https://gonsalvesfamily.com/individuals/7f01d81a-3107-4700-a2c4-89c2b2435ee7",
+  "Agus Gonsalves":
+    "https://gonsalvesfamily.com/individuals/12f7d7d6-b764-4e27-98ed-e76402dc2bec",
+};
+
+const BOLD_NAMES = Object.keys(NAME_LINKS);
 
 export function formatContentWithLinks(content: string) {
   return content
     .split(new RegExp(`(${BOLD_NAMES.join("|")})`))
-    .map((part, i) =>
-      BOLD_NAMES.includes(part as (typeof BOLD_NAMES)[number]) ? (
+    .map((part, i) => {
+      if (!BOLD_NAMES.includes(part)) return part;
+      const className = "text-link hover:text-link-hover underline";
+      const href = NAME_LINKS[part];
+      return href ? (
+        <Link key={i} href={href} className={className}>
+          {part}
+        </Link>
+      ) : (
         <Link
           key={i}
           href="#"
           onClick={(e) => e.preventDefault()}
-          className="text-link hover:text-link-hover underline"
+          className={className}
         >
           {part}
         </Link>
-      ) : (
-        part
-      )
-    );
+      );
+    });
 }

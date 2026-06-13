@@ -8,12 +8,12 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     date: "c. 1800",
     location: "Madeira, Portugal",
-    content: "Birth of Augustino Gracis.",
+    content: "Birth of Agustino Gracis.",
   },
   {
     date: "c. 1850s",
     location: "British Guiana",
-    content: "Augustino Gracis arrives as an indentured laborer at Buxton Estate and later settles with his wife and children, including Mary Mias Gracis.",
+    content: "Agustino Gracis arrives as an indentured laborer at Buxton Estate and later settles with his wife and children, including Mary Mias Gracis.",
   },
   {
     date: "1861",
