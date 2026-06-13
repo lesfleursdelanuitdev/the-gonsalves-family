@@ -1,6 +1,13 @@
-import { permanentRedirect } from "next/navigation";
+import { loadPublicMedia } from "@/lib/media/load-public-media";
+import { MediaListPage } from "@/components/media-list/MediaListPage";
 
-/** Archive entry point for document media; lands on the Media hub documents collection. */
-export default function ArchiveDocumentsPage() {
-  permanentRedirect("/media?collection=documents");
+export const metadata = {
+  title: "Documents · Family Archive · The Gonsalves Family",
+  description:
+    "Browse family documents — letters, records, and papers. Search and filter by file name, description, and who or what they are linked to.",
+};
+
+export default async function ArchiveDocumentsPage() {
+  const items = await loadPublicMedia("document");
+  return <MediaListPage items={items} bucket="document" />;
 }

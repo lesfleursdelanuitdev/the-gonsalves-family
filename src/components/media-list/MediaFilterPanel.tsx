@@ -4,15 +4,11 @@ import { type ReactNode } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  type PhotosFilterState,
-  type PhotosLinkFilter,
-  type TriFilter,
-} from "./types";
+import { type MediaFilterState, type MediaLinkFilter, type TriFilter } from "./types";
 
 const SELECTED_ROW = "bg-[#f2ece4]";
 
-const LINK_OPTIONS: { value: PhotosLinkFilter; label: string }[] = [
+const LINK_OPTIONS: { value: MediaLinkFilter; label: string }[] = [
   { value: "all", label: "Any link" },
   { value: "person", label: "Linked to a person" },
   { value: "family", label: "Linked to a family" },
@@ -28,7 +24,7 @@ const DESCRIPTION_OPTIONS: { value: TriFilter; label: string }[] = [
   { value: "no", label: "No description" },
 ];
 
-const LINK_CHIP_LABEL: Record<Exclude<PhotosLinkFilter, "all">, string> = {
+const LINK_CHIP_LABEL: Record<Exclude<MediaLinkFilter, "all">, string> = {
   person: "Linked: person",
   family: "Linked: family",
   event: "Linked: event",
@@ -37,24 +33,24 @@ const LINK_CHIP_LABEL: Record<Exclude<PhotosLinkFilter, "all">, string> = {
   unlinked: "Unlinked",
 };
 
-function withFilter(filters: PhotosFilterState, patch: Partial<PhotosFilterState>): PhotosFilterState {
+function withFilter(filters: MediaFilterState, patch: Partial<MediaFilterState>): MediaFilterState {
   return { ...filters, ...patch };
 }
 
-export function hasActivePhotosFilters(filters: PhotosFilterState): boolean {
+export function hasActiveMediaFilters(filters: MediaFilterState): boolean {
   return filters.linkedTo !== "all" || filters.hasDescription !== "all";
 }
 
-function activeFilterCount(filters: PhotosFilterState): number {
+function activeFilterCount(filters: MediaFilterState): number {
   let count = 0;
   if (filters.linkedTo !== "all") count++;
   if (filters.hasDescription !== "all") count++;
   return count;
 }
 
-export function buildPhotosFilterButtonLabel(filters: PhotosFilterState): string {
+export function buildMediaFilterButtonLabel(filters: MediaFilterState, noun: string): string {
   const count = activeFilterCount(filters);
-  return count === 0 ? "Filter photos" : `${count} filter${count === 1 ? "" : "s"} active`;
+  return count === 0 ? `Filter ${noun}` : `${count} filter${count === 1 ? "" : "s"} active`;
 }
 
 function ChoiceGroup<T extends string>({
@@ -102,17 +98,17 @@ function ChoiceGroup<T extends string>({
   );
 }
 
-function ActivePhotosFilterChipsInner({
+function ActiveMediaFilterChipsInner({
   filters,
   onChange,
   compact,
 }: {
-  filters: PhotosFilterState;
-  onChange: (filters: PhotosFilterState) => void;
+  filters: MediaFilterState;
+  onChange: (filters: MediaFilterState) => void;
   compact?: boolean;
 }) {
   const chips: ReactNode[] = [];
-  const pushChip = (key: string, label: string, patch: Partial<PhotosFilterState>) => {
+  const pushChip = (key: string, label: string, patch: Partial<MediaFilterState>) => {
     chips.push(
       <span
         key={key}
@@ -155,17 +151,17 @@ function ActivePhotosFilterChipsInner({
   );
 }
 
-export function PhotosActiveFilterChips({
+export function MediaActiveFilterChips({
   filters,
   onChange,
 }: {
-  filters: PhotosFilterState;
-  onChange: (filters: PhotosFilterState) => void;
+  filters: MediaFilterState;
+  onChange: (filters: MediaFilterState) => void;
 }) {
-  if (!hasActivePhotosFilters(filters)) return null;
+  if (!hasActiveMediaFilters(filters)) return null;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2">
-      <ActivePhotosFilterChipsInner filters={filters} onChange={onChange} compact />
+      <ActiveMediaFilterChipsInner filters={filters} onChange={onChange} compact />
     </div>
   );
 }
@@ -174,8 +170,8 @@ function PanelBody({
   filters,
   onChange,
 }: {
-  filters: PhotosFilterState;
-  onChange: (filters: PhotosFilterState) => void;
+  filters: MediaFilterState;
+  onChange: (filters: MediaFilterState) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -195,8 +191,9 @@ function PanelBody({
   );
 }
 
-export function PhotosFilterPanel({
+export function MediaFilterPanel({
   variant = "panel",
+  noun,
   filters,
   onChange,
   onClearFilters,
@@ -204,8 +201,9 @@ export function PhotosFilterPanel({
   onClose,
 }: {
   variant?: "panel" | "mobile-sheet";
-  filters: PhotosFilterState;
-  onChange: (filters: PhotosFilterState) => void;
+  noun: string;
+  filters: MediaFilterState;
+  onChange: (filters: MediaFilterState) => void;
   onClearFilters: () => void;
   onApplyFilter: () => void;
   onClose: () => void;
@@ -215,8 +213,8 @@ export function PhotosFilterPanel({
       <div className="flex min-h-0 flex-1 flex-col bg-[#f5f1ea]">
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#e8e0d4] px-4 py-4">
           <div>
-            <h2 className="font-heading text-lg font-semibold tracking-tight text-heading">Filter photos</h2>
-            <p className="mt-0.5 font-body text-xs text-muted">Narrow photos by what they show and their details.</p>
+            <h2 className="font-heading text-lg font-semibold tracking-tight text-heading">Filter {noun}</h2>
+            <p className="mt-0.5 font-body text-xs text-muted">Narrow {noun} by what they show and their details.</p>
           </div>
           <button
             type="button"
@@ -228,7 +226,7 @@ export function PhotosFilterPanel({
           </button>
         </div>
         <div className="shrink-0 border-b border-[#ebe4d9] px-4 py-2">
-          <ActivePhotosFilterChipsInner filters={filters} onChange={onChange} compact />
+          <ActiveMediaFilterChipsInner filters={filters} onChange={onChange} compact />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
           <PanelBody filters={filters} onChange={onChange} />
@@ -258,8 +256,8 @@ export function PhotosFilterPanel({
     <div className="flex max-h-[min(90vh,800px)] flex-col overflow-hidden rounded-xl border border-[#e8e0d4] bg-white shadow-[0_16px_48px_-12px_rgba(55,40,28,0.18)]">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ebe4d9] px-5 py-4">
         <div>
-          <h2 className="font-heading text-lg font-semibold tracking-tight text-heading">Filter photos</h2>
-          <p className="mt-0.5 font-body text-xs text-muted">Browse by what each photo is linked to.</p>
+          <h2 className="font-heading text-lg font-semibold tracking-tight text-heading">Filter {noun}</h2>
+          <p className="mt-0.5 font-body text-xs text-muted">Browse by what each item is linked to.</p>
         </div>
         <button
           type="button"
@@ -271,7 +269,7 @@ export function PhotosFilterPanel({
         </button>
       </div>
       <div className="shrink-0 border-b border-[#ebe4d9] px-5 py-2">
-        <ActivePhotosFilterChipsInner filters={filters} onChange={onChange} />
+        <ActiveMediaFilterChipsInner filters={filters} onChange={onChange} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <PanelBody filters={filters} onChange={onChange} />

@@ -1,5 +1,5 @@
-import { loadPublicPhotos } from "@/lib/media/load-public-photos";
-import { PhotosListPage } from "@/components/photos/PhotosListPage";
+import { loadPublicMedia } from "@/lib/media/load-public-media";
+import { MediaListPage } from "@/components/media-list/MediaListPage";
 
 export const metadata = {
   title: "Photos · Family Archive · The Gonsalves Family",
@@ -8,6 +8,6 @@ export const metadata = {
 };
 
 export default async function ArchivePhotosPage() {
-  const photos = await loadPublicPhotos();
-  return <PhotosListPage photos={photos} />;
+  const items = await loadPublicMedia("image");
+  return <MediaListPage items={items} bucket="image" />;
 }

@@ -11,12 +11,19 @@ import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
 import {
-  buildPhotosFilterButtonLabel,
-  PhotosActiveFilterChips,
-  PhotosFilterPanel,
-} from "./PhotosFilterPanel";
-import { PhotoCard } from "./PhotoCard";
-import { EMPTY_PHOTOS_FILTERS, type PhotoListItem, type PhotosFilterState } from "./types";
+  buildMediaFilterButtonLabel,
+  MediaActiveFilterChips,
+  MediaFilterPanel,
+} from "./MediaFilterPanel";
+import { MediaCard } from "./MediaCard";
+import { MediaPlayerModal } from "./MediaPlayerModal";
+import {
+  EMPTY_MEDIA_FILTERS,
+  MEDIA_BUCKET_CONFIG,
+  type MediaBucket,
+  type MediaFilterState,
+  type MediaListItem,
+} from "./types";
 
 type SortMode = "newest" | "oldest" | "az" | "za";
 
@@ -34,22 +41,24 @@ function paginate<T>(items: T[], page: number, pageSize: number): T[] {
   return items.slice(start, start + pageSize);
 }
 
-function matchesLinkFilter(photo: PhotoListItem, filter: PhotosFilterState["linkedTo"]): boolean {
+function matchesLinkFilter(item: MediaListItem, filter: MediaFilterState["linkedTo"]): boolean {
   if (filter === "all") return true;
-  if (filter === "unlinked") return photo.linkedTo.length === 0;
-  return photo.linkedTo.some((link) => link.kind === filter);
+  if (filter === "unlinked") return item.linkedTo.length === 0;
+  return item.linkedTo.some((link) => link.kind === filter);
 }
 
-export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
+export function MediaListPage({ items, bucket }: { items: MediaListItem[]; bucket: MediaBucket }) {
+  const config = MEDIA_BUCKET_CONFIG[bucket];
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<PhotosFilterState>(EMPTY_PHOTOS_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<PhotosFilterState>(EMPTY_PHOTOS_FILTERS);
+  const [filters, setFilters] = useState<MediaFilterState>(EMPTY_MEDIA_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<MediaFilterState>(EMPTY_MEDIA_FILTERS);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [page, setPage] = useState(1);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [playerItem, setPlayerItem] = useState<MediaListItem | null>(null);
 
   useEffect(() => {
     const mq = typeof window !== "undefined" ? window.matchMedia("(max-width: 639px)") : null;
@@ -63,21 +72,21 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
-    const byFilters = photos.filter((photo) => {
+    const byFilters = items.filter((item) => {
       if (q) {
         const haystack = [
-          photo.filename,
-          photo.title ?? "",
-          photo.description ?? "",
-          ...photo.linkedTo.map((link) => link.label),
+          item.filename,
+          item.title ?? "",
+          item.description ?? "",
+          ...item.linkedTo.map((link) => link.label),
         ]
           .join(" ")
           .toLowerCase();
         if (!haystack.includes(q)) return false;
       }
-      if (!matchesLinkFilter(photo, filters.linkedTo)) return false;
-      if (filters.hasDescription === "yes" && !photo.description) return false;
-      if (filters.hasDescription === "no" && photo.description) return false;
+      if (!matchesLinkFilter(item, filters.linkedTo)) return false;
+      if (filters.hasDescription === "yes" && !item.description) return false;
+      if (filters.hasDescription === "no" && item.description) return false;
       return true;
     });
 
@@ -89,7 +98,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
       return b.createdAt.localeCompare(a.createdAt);
     });
     return sorted;
-  }, [photos, searchQuery, filters, sortMode]);
+  }, [items, searchQuery, filters, sortMode]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -103,7 +112,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [isNarrow, safePage, totalPages]);
 
-  // Lightbox navigates over the full filtered+sorted list (not just the current page).
+  // Image lightbox navigates over the full filtered+sorted list.
   const lightboxItems = useMemo(() => filtered.map((p) => p.media), [filtered]);
   const lightboxOpen =
     lightboxIndex !== null && lightboxIndex >= 0 && lightboxIndex < lightboxItems.length;
@@ -149,14 +158,31 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
     [router],
   );
 
+  const handleOpen = useCallback(
+    (item: MediaListItem) => {
+      if (item.bucket === "image") {
+        openLightboxForId(item.id);
+        return;
+      }
+      if (item.bucket === "document") {
+        if (typeof window !== "undefined") {
+          window.open(item.fileUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+      setPlayerItem(item);
+    },
+    [openLightboxForId],
+  );
+
   const openFilters = () => {
     setDraftFilters(filters);
     setFilterMenuOpen(true);
   };
 
   const clearFilters = () => {
-    setDraftFilters(EMPTY_PHOTOS_FILTERS);
-    setFilters(EMPTY_PHOTOS_FILTERS);
+    setDraftFilters(EMPTY_MEDIA_FILTERS);
+    setFilters(EMPTY_MEDIA_FILTERS);
     setPage(1);
   };
 
@@ -189,18 +215,17 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
                     <span className="shrink-0 text-subtle">/</span>
                     <span className="min-w-0 shrink text-muted">Archive</span>
                     <span className="shrink-0 text-subtle">/</span>
-                    <span className="min-w-0 text-heading">Photos</span>
+                    <span className="min-w-0 text-heading">{config.title}</span>
                   </nav>
 
                   <h1 className="break-words font-heading text-4xl font-semibold leading-[1.05] tracking-tight text-heading sm:text-5xl md:text-6xl">
-                    Photos
+                    {config.title}
                   </h1>
 
                   <div className="h-px w-24 bg-gradient-to-r from-link/70 via-link/30 to-transparent" />
 
                   <p className="max-w-2xl text-base leading-relaxed text-muted sm:text-lg md:text-xl">
-                    Preserved family images from our tree. Search and filter to find photos by file
-                    name, description, or who and what they are linked to.
+                    {config.description}
                   </p>
                 </div>
 
@@ -219,7 +244,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
             <div className="min-w-0 max-w-full space-y-5">
               <div className="min-w-0 max-w-full rounded-2xl border border-border/80 bg-surface/90 p-4 shadow-[0_10px_26px_rgba(60,45,25,0.06)] sm:p-5">
                 <div className="grid min-w-0 max-w-full gap-3 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
-                  <p className="text-sm font-semibold text-heading">{filtered.length} Photos</p>
+                  <p className="text-sm font-semibold text-heading">{filtered.length} {config.entityName}</p>
 
                   <label className="relative hidden min-w-0 sm:block">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />
@@ -230,7 +255,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
                         setSearchQuery(e.target.value);
                         setPage(1);
                       }}
-                      placeholder="Search photos..."
+                      placeholder={`Search ${config.noun}...`}
                       className="w-full rounded-xl border border-border-subtle bg-surface px-9 py-2.5 text-sm text-heading shadow-inner outline-none transition placeholder:text-muted/70 focus:border-link/50 focus:ring-2 focus:ring-link/15"
                     />
                   </label>
@@ -248,15 +273,16 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
                         className="inline-flex h-auto min-h-9 max-w-[min(100%,18rem)] flex-none items-center gap-2 rounded-lg border border-border/60 bg-surface/70 px-2.5 py-1.5 text-left font-body text-sm font-normal text-text shadow-none transition hover:bg-surface-2/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                       >
                         <Filter size={16} className="shrink-0 text-muted" aria-hidden />
-                        <span className="min-w-0 truncate">{buildPhotosFilterButtonLabel(filters)}</span>
+                        <span className="min-w-0 truncate">{buildMediaFilterButtonLabel(filters, config.noun)}</span>
                       </button>
                       {filterMenuOpen && !isNarrow ? (
                         <div
                           className="absolute right-0 top-full z-50 mt-2 w-[min(28rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)]"
                           role="dialog"
-                          aria-label="Filter photos"
+                          aria-label={`Filter ${config.noun}`}
                         >
-                          <PhotosFilterPanel
+                          <MediaFilterPanel
+                            noun={config.noun}
                             filters={draftFilters}
                             onChange={setDraftFilters}
                             onClearFilters={clearFilters}
@@ -269,7 +295,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
                     <label className="font-body flex min-w-0 items-center gap-2 text-sm text-muted">
                       <span className="hidden shrink-0 whitespace-nowrap sm:inline">Sort</span>
                       <select
-                        aria-label="Sort photos"
+                        aria-label={`Sort ${config.noun}`}
                         value={sortMode}
                         onChange={(e) => {
                           setSortMode(e.target.value as SortMode);
@@ -287,7 +313,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
                   </div>
                 </div>
 
-                <PhotosActiveFilterChips
+                <MediaActiveFilterChips
                   filters={filters}
                   onChange={(nextFilters) => {
                     setFilters(nextFilters);
@@ -300,11 +326,11 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
               <div className="grid min-w-0 max-w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {pageItems.length === 0 ? (
                   <div className="col-span-full rounded-2xl border border-dashed border-border-subtle/80 bg-surface/60 px-4 py-12 text-center text-sm text-muted">
-                    No photos match this search.
+                    {config.emptyMessage}
                   </div>
                 ) : (
-                  pageItems.map((photo) => (
-                    <PhotoCard key={photo.id} photo={photo} onOpen={() => openLightboxForId(photo.id)} />
+                  pageItems.map((item) => (
+                    <MediaCard key={item.id} item={item} onOpen={() => handleOpen(item)} />
                   ))
                 )}
               </div>
@@ -351,11 +377,12 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
       </main>
       <ListPageFilterSheet
         open={filterMenuOpen && isNarrow}
-        ariaLabel="Filter photos"
+        ariaLabel={`Filter ${config.noun}`}
         onClose={() => setFilterMenuOpen(false)}
       >
-        <PhotosFilterPanel
+        <MediaFilterPanel
           variant="mobile-sheet"
+          noun={config.noun}
           filters={draftFilters}
           onChange={setDraftFilters}
           onClearFilters={clearFilters}
@@ -364,17 +391,17 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
         />
       </ListPageFilterSheet>
       <ListPageMobileControls
-        entityName="Photos"
-        searchPlaceholder="Search photos..."
-        panelId="photos-mobile-controls-panel"
-        filterDefaultLabel="Filter photos"
-        sortAriaLabel="Sort photos"
+        entityName={config.entityName}
+        searchPlaceholder={`Search ${config.noun}...`}
+        panelId="media-mobile-controls-panel"
+        filterDefaultLabel={`Filter ${config.noun}`}
+        sortAriaLabel={`Sort ${config.noun}`}
         searchQuery={searchQuery}
         onSearchQueryChange={(value) => {
           setSearchQuery(value);
           setPage(1);
         }}
-        filterLabel={buildPhotosFilterButtonLabel(filters)}
+        filterLabel={buildMediaFilterButtonLabel(filters, config.noun)}
         filterMenuOpen={filterMenuOpen}
         onOpenFilters={() => {
           if (filterMenuOpen) setFilterMenuOpen(false);
@@ -387,7 +414,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
         }}
         sortOptions={SORT_OPTIONS}
       />
-      {lightboxOpen ? (
+      {bucket === "image" && lightboxOpen ? (
         <PublicAlbumLightbox
           items={lightboxItems}
           index={lightboxIndex!}
@@ -399,6 +426,7 @@ export function PhotosListPage({ photos }: { photos: PhotoListItem[] }) {
           onViewCurrent={viewCurrent}
         />
       ) : null}
+      <MediaPlayerModal item={playerItem} onClose={() => setPlayerItem(null)} />
       <Footer />
     </div>
   );

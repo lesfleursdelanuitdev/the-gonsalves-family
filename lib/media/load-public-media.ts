@@ -1,4 +1,4 @@
-import { gedcomNameToDisplayName } from "@ligneous/album-view";
+import { gedcomNameToDisplayName, inferMediaBucketKind, type MediaSummary } from "@ligneous/album-view";
 import { prisma } from "@/lib/database/prisma";
 import {
   GEDCOM_PLACE_DISPLAY_SELECT,
@@ -8,7 +8,7 @@ import { resolveGedcomMediaFileRef } from "@/lib/images";
 import { isRasterGedcomMediaForm } from "@/lib/tree/individual-display-photo";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { resolveMainPhotosViewModelPublic } from "@/lib/album/resolve-public-album-view-model";
-import type { PhotoLink, PhotoListItem } from "@/components/photos/types";
+import type { MediaBucket, MediaLink, MediaListItem } from "@/components/media-list/types";
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   BIRT: "Birth",
@@ -74,7 +74,13 @@ function fileNameFromRef(fileRef: string): string {
   }
 }
 
-const PHOTO_SELECT = {
+/** Image bucket uses the raster check (matches the lightbox source); others use the album classifier. */
+function matchesBucket(summary: MediaSummary, bucket: MediaBucket): boolean {
+  if (bucket === "image") return isRasterGedcomMediaForm(summary.form);
+  return inferMediaBucketKind(summary) === bucket;
+}
+
+const MEDIA_SELECT = {
   id: true,
   title: true,
   description: true,
@@ -110,31 +116,43 @@ const PHOTO_SELECT = {
 };
 
 /**
- * Loads every public GEDCOM photo (raster image media in the published tree) with
- * the entities it is linked to, normalized for the /archive/photos listing.
+ * Loads public GEDCOM media for one bucket (image/document/audio/video) with the
+ * entities each item is linked to, normalized for the /archive/* listing pages.
+ * For the image bucket, each item also carries an album-shaped summary (with
+ * linked individuals/places/dates/tags) for the shared lightbox.
  */
-export async function loadPublicPhotos(): Promise<PhotoListItem[]> {
+export async function loadPublicMedia(bucket: MediaBucket): Promise<MediaListItem[]> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return [];
 
-  const [rows, viewModel] = await Promise.all([
+  const [rows, summaryById] = await Promise.all([
     prisma.gedcomMedia.findMany({
       where: { fileUuid },
-      select: PHOTO_SELECT,
+      select: MEDIA_SELECT,
       orderBy: { createdAt: "desc" },
     }),
-    // Album-shaped summaries (with linked individuals/places/dates/tags) for the lightbox.
-    resolveMainPhotosViewModelPublic(prisma, fileUuid),
+    bucket === "image"
+      ? resolveMainPhotosViewModelPublic(prisma, fileUuid).then(
+          (vm) => new Map(vm.media.map((m) => [m.id, m] as const)),
+        )
+      : Promise.resolve(new Map<string, MediaSummary>()),
   ]);
-  const summaryById = new Map(viewModel.media.map((m) => [m.id, m]));
 
-  const items: PhotoListItem[] = [];
+  const items: MediaListItem[] = [];
   for (const m of rows) {
-    if (!m.fileRef || !isRasterGedcomMediaForm(m.form)) continue;
-    const src = resolveGedcomMediaFileRef(m.fileRef).trim();
-    if (!src) continue;
+    if (!m.fileRef) continue;
+    const basicSummary: MediaSummary = {
+      id: m.id,
+      title: m.title?.trim() || null,
+      fileRef: m.fileRef,
+      form: m.form,
+      description: m.description?.trim() || null,
+    };
+    if (!matchesBucket(basicSummary, bucket)) continue;
+    const fileUrl = resolveGedcomMediaFileRef(m.fileRef).trim();
+    if (!fileUrl) continue;
 
-    const linkedTo: PhotoLink[] = [];
+    const linkedTo: MediaLink[] = [];
     for (const l of m.individualMedia) {
       linkedTo.push({
         kind: "person",
@@ -173,16 +191,11 @@ export async function loadPublicPhotos(): Promise<PhotoListItem[]> {
       filename: fileNameFromRef(m.fileRef),
       title: m.title?.trim() || null,
       description: m.description?.trim() || null,
-      src,
+      bucket,
+      fileUrl,
       linkedTo,
       createdAt: m.createdAt.toISOString(),
-      media: summaryById.get(m.id) ?? {
-        id: m.id,
-        title: m.title?.trim() || null,
-        fileRef: m.fileRef,
-        form: m.form,
-        description: m.description?.trim() || null,
-      },
+      media: summaryById.get(m.id) ?? basicSummary,
     });
   }
 
