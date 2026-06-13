@@ -37,12 +37,12 @@ Because this frontend is anonymous and uses a **read-only** DB role:
 - Tree-scoped calls must use the configured public tree only: set **`PUBLIC_RESEARCH_TREE_ID`** or **`PUBLIC_STORY_TREE_ID`**, or the default name-based lookup (`resolveTreeId` → “Gonsalves Family Tree”). Other tree IDs return **403**.
 - The proxy always sends **`X-Research-Persist: false`** so natural-language runs are **not** written to `research.query_runs` / `research.result_sets` on the Python side.
 
-**Production / PM2:** The Next.js process must reach the Flask app. Defaults to **`http://127.0.0.1:5001`**. If you see **`Research API unavailable`** (often with `cause: connection_refused` in the JSON), either:
+**Production:** The Next.js process must reach the Flask app. Defaults to **`http://127.0.0.1:5001`**. If you see **`Research API unavailable`** (often with `cause: connection_refused` in the JSON), either:
 
-1. Run **ligneous-python-api** on that host and port (same machine as `temp-gonsalvesfamily`), or  
-2. Set **`PYTHON_API_URL`** in **`.env.local`** or **`.env.production`** in this app’s root to the real base URL (no trailing slash), then **`pm2 restart temp-gonsalvesfamily --update-env`**.
+1. Run **ligneous-python-api** on that host and port (same machine as the `gonsalves-public.service` process), or  
+2. Set **`PYTHON_API_URL`** in **`.env.local`** or **`.env.production`** in this app’s root to the real base URL (no trailing slash), then restart the service: **`sudo systemctl restart gonsalves-public.service`**.
 
-When using PM2 with **`deployment/ecosystem.config.cjs`**, **`PYTHON_API_URL`** defaults to **`http://127.0.0.1:5001`** (override via the shell when starting PM2 if needed). First start: `cd …/the-gonsalves-family && npm ci && npm run build && pm2 start deployment/ecosystem.config.cjs`.
+The site runs under **systemd** as **`gonsalves-public.service`** (`WorkingDirectory` = this app root, `npm run start:prod` → **port 3039**), behind nginx. Set `PYTHON_API_URL` (and any other env) in **`.env.production`** / **`.env.local`** in the app root; it defaults to **`http://127.0.0.1:5001`**. First start: `cd …/the-gonsalves-family && npm ci && npm run build`, install the unit file, then `sudo systemctl enable --now gonsalves-public.service`.
 
 `next build` does not need the Python API running; failures happen at runtime when `/api/research/*` proxies upstream.
 

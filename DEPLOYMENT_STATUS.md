@@ -21,15 +21,15 @@ The nginx config is correct and does not need changes for deployment. If you add
 1. **No production build** — `next start` requires assets in `.next/static/`. If only `.next/dev/` exists (from running `next dev`), production asset paths 404.
 2. **Failed or partial build** — A build that errors or is interrupted can leave `.next/` in a broken state.
 3. **Stale caches** — Old HTML cached in the browser (or by nginx) may reference asset paths from a previous build that no longer exist.
-4. **PM2 wrong cwd** — If PM2 was started from a different directory, `pm2 restart` still runs the process from that original cwd, so it may be serving an old or missing `.next` folder.
+4. **Wrong working directory** — The systemd unit must set `WorkingDirectory` to this app root, otherwise the process runs from a different cwd and may serve an old or missing `.next` folder.
 
 ### How we prevent this
 
-- **Deploy script** — Use `npm run deploy` instead of manual build + restart. It verifies `.next/static/chunks` exists and has files before restarting PM2. If the build fails, the script exits and PM2 is not restarted.
+- **Deploy script** — Use `npm run deploy` instead of manual build + restart. It verifies `.next/static/chunks` exists and has files before restarting the service. If the build fails, the script exits and the service is not restarted.
 - **Cache headers** — `next.config.ts` sets immutable cache headers for `/_next/static/*` so browsers cache hashed assets correctly.
 - **Document no-cache** — `src/proxy.ts` sets `Cache-Control: no-store` on HTML/document responses (not on `/_next/static/*`) so after each deploy clients get fresh HTML with current chunk URLs; old cached HTML would otherwise point at previous build’s assets (404).
-- **Don't run `next dev` on the production server** — Use `next dev` only in a development environment. On the server, run only `npm run build` and `next start` (via PM2).
-- **PM2 cwd** — Prefer **`pm2 start deployment/ecosystem.config.cjs`** from the app root (sets **port 3039** to match nginx and defaults **`PYTHON_API_URL=http://127.0.0.1:5001`**). Alternatively: `pm2 start npm --name temp-gonsalvesfamily -- run start:prod` from the same root so `.next` is correct.
+- **Don't run `next dev` on the production server** — Use `next dev` only in a development environment. On the server, run only `npm run build` and `next start` (via the systemd service).
+- **systemd unit** — The site runs as **`gonsalves-public.service`** with `WorkingDirectory` set to the app root (so `.next` matches the built tree), `ExecStart=npm run start:prod` (**port 3039** to match nginx), and `PYTHON_API_URL` set in the unit's environment or the app's `.env.production` (defaults to `http://127.0.0.1:5001`).
 
 ### Recommended deploy command
 
@@ -38,7 +38,7 @@ cd /apps/gonsalves-genealogy/the-gonsalves-family
 npm run deploy
 ```
 
-This runs the deploy script which: builds → verifies static files → restarts PM2.
+This runs the deploy script which: builds → verifies static files → `sudo systemctl restart gonsalves-public.service`.
 
 ---
 
@@ -50,7 +50,7 @@ If not using `npm run deploy`:
 2. Install dependencies (if changed): `npm ci`
 3. Run production build: `npm run build`
 4. Verify `.next/static/chunks` exists and contains files
-5. Restart PM2: `pm2 restart temp-gonsalvesfamily`
+5. Restart the service: `sudo systemctl restart gonsalves-public.service`
 6. Confirm styles load at https://temp.gonsalvesfamily.com
 
 ---
