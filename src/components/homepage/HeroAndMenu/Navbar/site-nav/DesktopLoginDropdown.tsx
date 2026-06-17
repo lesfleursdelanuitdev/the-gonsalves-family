@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import { Suspense } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { LogOut } from "lucide-react";
+import { LogOut, Mail } from "lucide-react";
 import { navHeritage } from "./navHeritageTokens";
 import { PublicSiteLoginForm } from "@/components/auth/PublicSiteLoginForm";
 import { usePublicSession } from "@/hooks/usePublicSession";
+import { usePublicUnreadMessageCount } from "@/hooks/usePublicMessages";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -25,6 +27,7 @@ export function DesktopLoginDropdown({ isOpen, onOpenChange }: DesktopLoginDropd
   const rootRef = React.useRef<HTMLDivElement>(null);
   const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, isAuthenticated, isLoading, signOut } = usePublicSession();
+  const { data: unreadCount = 0 } = usePublicUnreadMessageCount(isAuthenticated);
 
   const clearCloseTimer = () => {
     if (closeTimer.current) {
@@ -108,6 +111,19 @@ export function DesktopLoginDropdown({ isOpen, onOpenChange }: DesktopLoginDropd
                   Signed in
                 </p>
                 <div className="px-2 py-2">
+                  <Link
+                    href="/messages"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium text-heading transition hover:bg-[color-mix(in_srgb,#FFF9EE_70%,transparent)]"
+                  >
+                    <Mail size={16} aria-hidden />
+                    Messages
+                    {unreadCount > 0 ? (
+                      <span className="ml-auto rounded-full bg-link px-2 py-0.5 text-[10px] font-bold text-white">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    ) : null}
+                  </Link>
                   <button
                     type="button"
                     role="menuitem"

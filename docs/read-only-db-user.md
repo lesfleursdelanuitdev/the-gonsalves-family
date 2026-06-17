@@ -37,6 +37,15 @@ DATABASE_URL="postgresql://gonsalves_readonly:your_secure_password@localhost:543
 
 Replace `localhost:5432` and add `sslmode=require` if your database uses SSL.
 
+## Member messaging writes
+
+Most public routes use the read-only `DATABASE_URL` above. **Direct messages** are an exception:
+
+- **Reads** (inbox, message detail, recipients, unread count) use read-only Prisma on the public app.
+- **Writes** (send, mark read) proxy to the admin app (`NEXT_PUBLIC_LIGNOUS_FRONTEND_URL`) with the member session cookie, same pattern as `/api/auth/login`.
+
+No extra DB grants are required on the public read-only user for messaging v1.
+
 ## After new migrations (albums, junction tables, etc.)
 
 `ALTER DEFAULT PRIVILEGES` only applies to objects created by the **same database role** that ran it. If migrations create tables as another role (for example `postgres`), the read-only user may not get `SELECT` on new tables.

@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import { Suspense } from "react";
-import { ChevronDown, LogIn, LogOut } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, LogIn, LogOut, Mail } from "lucide-react";
 import { navHeritage } from "./navHeritageTokens";
 import { PublicSiteLoginForm } from "@/components/auth/PublicSiteLoginForm";
 import { usePublicSession } from "@/hooks/usePublicSession";
+import { usePublicUnreadMessageCount } from "@/hooks/usePublicMessages";
 
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -27,6 +29,7 @@ export function MobileNavLoginAccordion({
   onLinkClick,
 }: MobileNavLoginAccordionProps) {
   const { user, isAuthenticated, isLoading, signOut } = usePublicSession();
+  const { data: unreadCount = 0 } = usePublicUnreadMessageCount(isAuthenticated);
 
   if (isLoading) {
     return (
@@ -79,6 +82,19 @@ export function MobileNavLoginAccordion({
         >
           <div className="min-h-0 overflow-hidden">
             <div className="border-l-2 border-[color-mix(in_srgb,var(--link)_35%,#E1D5BB)] pb-3 pl-3 ml-1.5" inert={!expanded}>
+              <Link
+                href="/messages"
+                onClick={onLinkClick}
+                className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm font-medium text-heading transition hover:bg-[color-mix(in_srgb,#FFF9EE_70%,transparent)]"
+              >
+                <Mail size={16} aria-hidden />
+                Messages
+                {unreadCount > 0 ? (
+                  <span className="ml-auto rounded-full bg-link px-2 py-0.5 text-[10px] font-bold text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
+              </Link>
               <button
                 type="button"
                 onClick={() => {
