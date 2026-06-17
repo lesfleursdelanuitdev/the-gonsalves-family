@@ -44,6 +44,7 @@ export type PublicFamilyMember = {
   childrenCount: number;
   portraitSrc: string | null;
   profileHref: string;
+  isLiving: boolean;
 };
 
 export type PublicFamilyProfile = PublicFamily & {

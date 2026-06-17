@@ -10,6 +10,11 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import {
+  redactFamilyPartnerForViewer,
+  redactSearchIndividualForViewer,
+} from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -471,6 +476,7 @@ const PARTNER_SELECT = {
   fullName: true,
   birthYear: true,
   deathYear: true,
+  isLiving: true,
 } as const;
 
 const FAMILY_SELECT = {
@@ -527,7 +533,7 @@ function formatIndividual(row: any, portraitSrc: string | null, events: Formatte
     isLiving: row.isLiving as boolean,
     profileHref: `/individuals/${encodeURIComponent(row.id)}`,
     events,
-  };
+  } satisfies Parameters<typeof redactSearchIndividualForViewer>[0] & { events: FormattedEvent[] };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -539,6 +545,7 @@ function formatPartner(p: any | null) {
     displayName: formatGedcomFullNameForDisplay(p.fullName),
     birthYear: p.birthYear as number | null,
     deathYear: p.deathYear as number | null,
+    isLiving: p.isLiving as boolean,
     profileHref: `/individuals/${encodeURIComponent(p.id)}`,
   };
 }
@@ -630,17 +637,29 @@ export async function GET(req: NextRequest) {
 
     const indOrder = new Map(indResult.ids.map((id, i) => [id, i]));
     const famOrder = new Map(famResult.ids.map((id, i) => [id, i]));
+    const viewer = await resolvePublicViewer();
 
     const individuals = [...indRows]
       .sort((a, b) => (indOrder.get(a.id) ?? 0) - (indOrder.get(b.id) ?? 0))
-      .map((row) => formatIndividual(
-        row,
-        individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
-        eventsMap.get(row.id) ?? [],
-      ));
+      .map((row) => {
+        const formatted = formatIndividual(
+          row,
+          individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
+          eventsMap.get(row.id) ?? [],
+        );
+        const { events, ...searchFields } = formatted;
+        return { ...redactSearchIndividualForViewer(searchFields, viewer), events };
+      });
     const families = [...famRows]
       .sort((a, b) => (famOrder.get(a.id) ?? 0) - (famOrder.get(b.id) ?? 0))
-      .map(formatFamily);
+      .map((row) => {
+        const formatted = formatFamily(row);
+        return {
+          ...formatted,
+          partner1: redactFamilyPartnerForViewer(formatted.partner1, viewer),
+          partner2: redactFamilyPartnerForViewer(formatted.partner2, viewer),
+        };
+      });
 
     return NextResponse.json({
       individuals,

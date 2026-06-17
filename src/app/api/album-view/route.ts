@@ -6,6 +6,12 @@ import {
   resolveCuratedAlbumViewModelPublic,
   resolveGeneratedAlbumViewModelPublic,
 } from "@/lib/album/resolve-public-album-view-model";
+import { applyAlbumViewModelLivingPrivacy } from "@/lib/album/apply-public-album-living-privacy";
+import {
+  gateCuratedAlbumAttachedToLivingAccess,
+  gateLivingIndividualAlbumAccess,
+} from "@/lib/auth/gate-living-album-access";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 function parseGeneratedSource(
   typeRaw: string | null,
@@ -50,9 +56,13 @@ export async function GET(request: NextRequest) {
       if (!albumId) {
         return NextResponse.json({ error: "Missing albumId" }, { status: 400 });
       }
+      const accessDenied = await gateCuratedAlbumAttachedToLivingAccess(prisma, fileUuid, albumId);
+      if (accessDenied) return accessDenied;
+
       const model = await resolveCuratedAlbumViewModelPublic(prisma, fileUuid, albumId);
       if (!model) return NextResponse.json({ error: "Album not found" }, { status: 404 });
-      return NextResponse.json({ model });
+      const viewer = await resolvePublicViewer();
+      return NextResponse.json({ model: applyAlbumViewModelLivingPrivacy(model, viewer) });
     }
 
     if (kind === "generated") {
@@ -60,8 +70,15 @@ export async function GET(request: NextRequest) {
       if (!source) {
         return NextResponse.json({ error: "Invalid or missing type / id for generated album" }, { status: 400 });
       }
+      if (source.type === "individual") {
+        const returnPath = `/media/album-view?kind=generated&type=individual&id=${encodeURIComponent(source.individualId)}`;
+        const accessDenied = await gateLivingIndividualAlbumAccess(source.individualId, returnPath);
+        if (accessDenied) return accessDenied;
+      }
+
       const model = await resolveGeneratedAlbumViewModelPublic(prisma, fileUuid, source);
-      return NextResponse.json({ model });
+      const viewer = await resolvePublicViewer();
+      return NextResponse.json({ model: applyAlbumViewModelLivingPrivacy(model, viewer) });
     }
 
     return NextResponse.json({ error: "kind must be curated or generated" }, { status: 400 });

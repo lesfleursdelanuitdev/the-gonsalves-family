@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarCheck, GitBranch, MapPin, User, UsersRound } from "lucide-react";
 import { CardOccasionRow } from "@/components/cards/CardOccasionRow";
 import type { CardOccasionHighlight } from "@/components/cards/card-occasion";
+import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 import type { PublicIndividual } from "./types";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import { PersonInlineAvatar } from "./PersonInlineAvatar";
@@ -43,7 +44,20 @@ export function PersonCard({
   /** When set (e.g. upcoming anniversaries), replaces Places / Age / Children metrics. */
   occasion?: CardOccasionHighlight;
 }) {
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
+  const restricted = shouldShowMinimalLiving(person.isLiving);
   const compactHeader = Boolean(occasion);
+
+  if (restricted) {
+    return (
+      <article className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated p-4 shadow-[0_8px_24px_rgba(60,45,25,0.08)]">
+        <h3 className="break-words font-heading text-xl font-semibold leading-tight text-heading">
+          {formatMinimalLivingLabel(person.fullName, person.birthYear)}
+        </h3>
+        <p className="mt-3 text-sm text-muted">Sign in to view this person&apos;s profile.</p>
+      </article>
+    );
+  }
 
   return (
     <article className="group min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_8px_24px_rgba(60,45,25,0.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(60,45,25,0.14)]">

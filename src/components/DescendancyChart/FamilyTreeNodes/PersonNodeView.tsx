@@ -449,7 +449,13 @@ export interface PersonCardProps {
   hasDescendantsInData?: boolean;
   isSubtreeCollapsed?: boolean;
   onAction?: (action: PersonCardAction, personId: string) => void;
-  onNameClick?: (person: { name: string; xref: string; uuid: string | null }) => void;
+  onNameClick?: (person: {
+    name: string;
+    xref: string;
+    uuid: string | null;
+    isLiving?: boolean;
+    birthYear?: number | null;
+  }) => void;
   settings?: PersonCardSettings;
   chartStrategy?: ChartViewStrategyName;
   isMobile?: boolean;
@@ -524,6 +530,8 @@ export const PersonCard = memo(function PersonCard({
     name: `${firstName} ${lastName}`.trim() || "Unknown",
     xref: person.xref ?? id,
     uuid: person.uuid ?? null,
+    isLiving: person.isLiving,
+    birthYear: birthYear ?? null,
   };
   const handleNameClick = useCallback(
     (e: React.MouseEvent) => {

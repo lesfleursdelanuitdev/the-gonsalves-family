@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
+import { redactTreePeopleForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { individualLifeYearsFromRow, mapIndividualRow } from "@/lib/individual-mapper";
 import {
   loadParentChildMaps,
@@ -197,10 +199,12 @@ export async function GET(req: NextRequest) {
         };
       });
 
+    const viewer = await resolvePublicViewer();
+
     return NextResponse.json({
       rootId: root.xref,
       rootUuid: root.id,
-      people,
+      people: redactTreePeopleForViewer(people, viewer),
       unions,
     });
   } catch (err) {

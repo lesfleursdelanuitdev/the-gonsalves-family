@@ -24,6 +24,7 @@ export type PublicIndividual = {
   /** GEDCOM DEAT event has a non-empty `CAUS` / cause field. */
   hasDeathCause: boolean;
   portraitSrc: string | null;
+  isLiving: boolean;
 };
 
 export type PublicIndividualRelation = {
@@ -33,6 +34,7 @@ export type PublicIndividualRelation = {
   deathYear: number | null;
   portraitSrc: string | null;
   relationship: string;
+  isLiving: boolean;
 };
 
 export type PublicIndividualFamilyGroup = {

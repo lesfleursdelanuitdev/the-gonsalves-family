@@ -7,6 +7,12 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import {
+  filterFeaturedIndividualsForViewer,
+  redactFamilyPartnerForViewer,
+  redactSearchIndividualForViewer,
+} from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { type P, mc, parseTerms, termsBlock } from "./sql-helpers";
 
 const LIMIT = 5;
@@ -301,8 +307,8 @@ export async function GET(req: NextRequest) {
             where: { id: { in: familyIds } },
             select: {
               id: true, xref: true, marriageYear: true,
-              husband: { select: { id: true, fullName: true, birthYear: true, deathYear: true } },
-              wife:    { select: { id: true, fullName: true, birthYear: true, deathYear: true } },
+              husband: { select: { id: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
+              wife:    { select: { id: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
             },
           })
         : Promise.resolve([]),
@@ -322,7 +328,7 @@ export async function GET(req: NextRequest) {
             take: LIMIT * 3,
             select: {
               eventId: true,
-              individual: { select: { id: true, fullName: true } },
+              individual: { select: { id: true, fullName: true, isLiving: true } },
             },
           })
         : Promise.resolve([]),
@@ -335,49 +341,63 @@ export async function GET(req: NextRequest) {
     const indOrder = new Map(personIds.map((id, i) => [id, i]));
     const famOrder = new Map(familyIds.map((id, i) => [id, i]));
     const evOrder  = new Map(eventIds.map((id, i) => [id, i]));
+    const viewer = await resolvePublicViewer();
 
-    const linkedIndMap = new Map<string, Array<{ id: string; displayName: string; profileHref: string }>>();
+    const linkedIndMap = new Map<string, Array<{ id: string; displayName: string; profileHref: string; isLiving?: boolean }>>();
     for (const row of linkedIndRows) {
       const arr = linkedIndMap.get(row.eventId) ?? [];
       arr.push({
         id: row.individual.id,
         displayName: formatGedcomFullNameForDisplay(row.individual.fullName),
         profileHref: `/individuals/${encodeURIComponent(row.individual.id)}`,
+        isLiving: row.individual.isLiving,
       });
       linkedIndMap.set(row.eventId, arr);
     }
 
     const people = [...personRows]
       .sort((a, b) => (indOrder.get(a.id) ?? 0) - (indOrder.get(b.id) ?? 0))
-      .map((row) => ({
-        id: row.id,
-        displayName: formatGedcomFullNameForDisplay(row.fullName),
-        birthYear: row.birthYear as number | null,
-        deathYear: row.deathYear as number | null,
-        isLiving: row.isLiving as boolean,
-        gender: row.sex ? (sexMap[row.sex as string] ?? (row.sex as string)) : (row.gender as string | null),
-        portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
-        profileHref: `/individuals/${encodeURIComponent(row.id)}`,
-      }));
+      .map((row) =>
+        redactSearchIndividualForViewer(
+          {
+            id: row.id,
+            displayName: formatGedcomFullNameForDisplay(row.fullName),
+            birthYear: row.birthYear as number | null,
+            deathYear: row.deathYear as number | null,
+            isLiving: row.isLiving as boolean,
+            gender: row.sex ? (sexMap[row.sex as string] ?? (row.sex as string)) : (row.gender as string | null),
+            portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
+            profileHref: `/individuals/${encodeURIComponent(row.id)}`,
+          },
+          viewer,
+        ),
+      );
 
     const families = [...familyRows]
       .sort((a, b) => (famOrder.get(a.id) ?? 0) - (famOrder.get(b.id) ?? 0))
       .map((row) => {
         const makePartner = (p: typeof row.husband) =>
-          p ? {
-            id: p.id,
-            displayName: formatGedcomFullNameForDisplay(p.fullName),
-            birthYear: p.birthYear as number | null,
-            deathYear: p.deathYear as number | null,
-            profileHref: `/individuals/${encodeURIComponent(p.id)}`,
-          } : null;
+          p
+            ? redactFamilyPartnerForViewer(
+                {
+                  id: p.id,
+                  displayName: formatGedcomFullNameForDisplay(p.fullName),
+                  birthYear: p.birthYear as number | null,
+                  deathYear: p.deathYear as number | null,
+                  isLiving: p.isLiving as boolean,
+                  profileHref: `/individuals/${encodeURIComponent(p.id)}`,
+                },
+                viewer,
+              )
+            : null;
         const h = makePartner(row.husband);
         const w = makePartner(row.wife);
         const names = [h?.displayName, w?.displayName].filter(Boolean);
         return {
           id: row.id,
           title: names.length > 0 ? names.join(" & ") : "Unknown Family",
-          husband: h, wife: w,
+          husband: h,
+          wife: w,
           marriageYear: row.marriageYear as number | null,
           profileHref: `/families/${encodeURIComponent(row.id)}`,
         };
@@ -400,7 +420,7 @@ export async function GET(req: NextRequest) {
           dateDisplay: (row.date?.original as string | null) || null,
           year: (row.date?.year as number | null) || null,
           placeDisplay: fullPlaceLabelFromGedcomPlace(row.place) || null,
-          linkedPeople: linkedIndMap.get(row.id as string) ?? [],
+          linkedPeople: filterFeaturedIndividualsForViewer(linkedIndMap.get(row.id as string) ?? [], viewer),
         };
       });
 

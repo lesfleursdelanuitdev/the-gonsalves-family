@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { mapIndividualRow } from "@/lib/individual-mapper";
+import { redactMappedIndividualForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
 import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 import { loadParentChildMaps } from "@/lib/tree-ancestry";
@@ -159,7 +161,13 @@ export async function GET(
     }
     entries.sort((a, b) => a.num - b.num);
 
-    return NextResponse.json({ entries, loadedDepth: maxDepth, hasMore });
+    const viewer = await resolvePublicViewer();
+
+    return NextResponse.json({
+      entries: entries.map((entry) => redactMappedIndividualForViewer(entry, viewer)),
+      loadedDepth: maxDepth,
+      hasMore,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database error";
     return NextResponse.json({ error: message }, { status: 500 });

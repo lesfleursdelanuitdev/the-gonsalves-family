@@ -59,11 +59,23 @@ export interface CompactPersonCardProps {
   hasDescendantsInData: boolean;
   isSubtreeCollapsed: boolean;
   onAction?: (action: PersonCardAction, personId: string) => void;
-  onNameClick?: (person: { name: string; xref: string; uuid: string | null }) => void;
+  onNameClick?: (person: {
+    name: string;
+    xref: string;
+    uuid: string | null;
+    isLiving?: boolean;
+    birthYear?: number | null;
+  }) => void;
   settings: PersonCardSettings;
   actionButtons: ActionBtn[];
   handleNameClick: (e: React.MouseEvent) => void;
-  overlayPerson: { name: string; xref: string; uuid: string | null };
+  overlayPerson: {
+    name: string;
+    xref: string;
+    uuid: string | null;
+    isLiving?: boolean;
+    birthYear?: number | null;
+  };
   initials: string;
   variant: PersonCardVariant;
   cardWidth?: number;

@@ -29,7 +29,13 @@ export interface ChartSettings {
   personCardLayout?: PersonCardLayout;
 }
 
-export type OnNameClick = (person: { name: string; xref: string; uuid: string | null }) => void;
+export type OnNameClick = (person: {
+  name: string;
+  xref: string;
+  uuid: string | null;
+  isLiving?: boolean;
+  birthYear?: number | null;
+}) => void;
 
 export type PedigreeRootSiblingNode = {
   xref: string;

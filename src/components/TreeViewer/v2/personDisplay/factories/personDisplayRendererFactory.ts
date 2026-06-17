@@ -16,7 +16,13 @@ export interface BuildPersonDisplayRendererParams {
   cx: number;
   y: number;
   onAction?: (action: PersonCardAction, personId: string) => void;
-  onNameClick?: (person: { name: string; xref: string; uuid: string | null }) => void;
+  onNameClick?: (person: {
+    name: string;
+    xref: string;
+    uuid: string | null;
+    isLiving?: boolean;
+    birthYear?: number | null;
+  }) => void;
 }
 
 export function buildPersonDisplayRenderer({

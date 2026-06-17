@@ -3,12 +3,8 @@
 import { Calendar, MapPin } from "lucide-react";
 import { COLORS } from "@/lib/person-card-layout";
 import { getNameBackgroundColor, NAME_UNDERLINE_PX } from "@/lib/person-name-accent";
+import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 import type { FanMoreClickPayload } from "./fanPeekTypes";
-
-/** Alive = no death year in data; matches date line “… — present”. */
-function isLiving(p: FanMoreClickPayload): boolean {
-  return p.deathYear == null;
-}
 
 const overlayBase: React.CSSProperties = {
   position: "fixed",
@@ -22,6 +18,10 @@ const overlayBase: React.CSSProperties = {
   zIndex: 260,
 };
 
+function personIsLiving(p: FanMoreClickPayload): boolean {
+  return p.isLiving === true;
+}
+
 function initialsFromPayload(p: FanMoreClickPayload): string {
   const a = (p.firstName?.[0] ?? "").toUpperCase();
   const b = (p.lastName?.[0] ?? "").toUpperCase();
@@ -29,9 +29,12 @@ function initialsFromPayload(p: FanMoreClickPayload): string {
   return s || "?";
 }
 
-function formatDates(p: FanMoreClickPayload): string | null {
+function formatDates(p: FanMoreClickPayload, restricted: boolean): string | null {
   const b = p.birthYear;
   const d = p.deathYear;
+  if (restricted) {
+    return b != null ? String(b) : null;
+  }
   if (b == null && d == null) return null;
   const left = b != null ? String(b) : "?";
   const right = d != null ? String(d) : "present";
@@ -67,16 +70,23 @@ export function FanPersonPeekModal({
   onMakeRoot,
   onChooseParentFamily,
 }: FanPersonPeekModalProps) {
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
+
   if (!open || !payload) return null;
 
-  const datesLine = formatDates(payload);
-  const birthPlaceLine = fullPlace(payload.birthPlace);
-  const deathPlaceLine = fullPlace(payload.deathPlace);
-  const photo = (payload.photoUrl ?? "").trim();
+  const living = personIsLiving(payload);
+  const restricted = shouldShowMinimalLiving(living);
+  const displayName = restricted
+    ? formatMinimalLivingLabel(payload.name.trim() || "Unknown", payload.birthYear ?? null)
+    : payload.name.trim() || "Unknown";
+  const datesLine = formatDates(payload, restricted);
+  const birthPlaceLine = restricted ? null : fullPlace(payload.birthPlace);
+  const deathPlaceLine = restricted ? null : fullPlace(payload.deathPlace);
+  const photo = restricted ? "" : (payload.photoUrl ?? "").trim();
   const initials = initialsFromPayload(payload);
   const avatarPx = isMobile ? 70 : 168;
   const avatarRingPx = isMobile ? 2 : 5;
-  const avatarRingColor = isLiving(payload) ? COLORS.green : COLORS.date;
+  const avatarRingColor = living ? COLORS.green : COLORS.date;
   const iconCal = isMobile ? 16 : 32;
   const iconPlace = isMobile ? 14 : 30;
   const placeFontSize = isMobile ? 12 : 20;
@@ -213,7 +223,6 @@ export function FanPersonPeekModal({
                 letterSpacing: "0.01em",
                 wordBreak: "break-word",
                 hyphens: "auto",
-                /* Match PersonNode name accent (gender-colored underline). */
                 borderBottom: `${isMobile ? 2 : NAME_UNDERLINE_PX}px solid ${getNameBackgroundColor(payload.gender)}`,
                 display: "inline-block",
                 maxWidth: "100%",
@@ -222,10 +231,10 @@ export function FanPersonPeekModal({
                 paddingBottom: 2,
               }}
             >
-              {payload.name.trim() || "Unknown"}
+              {displayName}
             </div>
 
-            {datesLine || birthPlaceLine || deathPlaceLine ? (
+            {(!restricted && (datesLine || birthPlaceLine || deathPlaceLine)) ? (
               <div
                 style={{
                   alignSelf: "stretch",
@@ -357,7 +366,7 @@ export function FanPersonPeekModal({
               style={{ ...btnPrimary, ...(!isMobile ? { flex: 1, minWidth: 0 } : {}) }}
               onClick={onViewProfile}
             >
-              View profile
+              {restricted ? "Sign in to view profile" : "View profile"}
             </button>
             {showChooseParentFamily ? (
               <button

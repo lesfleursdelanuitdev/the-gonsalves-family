@@ -31,6 +31,7 @@ import {
   mobileProfileSectionHref,
 } from "@/lib/individuals/profile-section-ids";
 import { cn } from "@/lib/utils";
+import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 import { MobileProfileNotes } from "@/components/notes/MobileProfileNotes";
 import { MobileProfileTimeline } from "@/components/timeline/MobileProfileTimeline";
 import { ProfileCharts } from "./ProfileCharts";
@@ -194,6 +195,8 @@ function RelationsGroup({
   items: PublicIndividualRelation[] | PublicIndividualAssociate[];
   relationSuffix?: (item: PublicIndividualRelation | PublicIndividualAssociate) => string | null;
 }) {
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
+
   if (items.length === 0) return null;
 
   return (
@@ -208,6 +211,18 @@ function RelationsGroup({
       <ul className="divide-y divide-dotted divide-border-subtle rounded-xl border border-border-subtle/80 px-4">
         {items.map((item) => {
           const suffix = relationSuffix?.(item);
+          const restricted = shouldShowMinimalLiving(item.isLiving);
+
+          if (restricted) {
+            return (
+              <li key={`${label}-${item.id}`} className="py-4">
+                <span className="block truncate font-heading text-[0.94rem] font-semibold leading-snug text-heading">
+                  {formatMinimalLivingLabel(item.fullName, item.birthYear)}
+                </span>
+              </li>
+            );
+          }
+
           return (
             <li key={`${label}-${item.id}`}>
               <Link
@@ -645,15 +660,17 @@ export function MobileIndividualProfile({
                         }) ?? "Unknown",
                     },
                     {
+                      // Show the full place name (e.g. "Concord, California, United States"),
+                      // never a single segment — see the "Full place names" rule in CLAUDE.md.
                       label: "Born",
                       icon: Baby,
-                      sub: person.birthPlace?.split(",").pop()?.trim() ?? person.birthPlace ?? "—",
+                      sub: person.birthPlace?.trim() || "—",
                     },
                     {
                       label: "Died",
                       icon: CalendarDays,
                       sub: person.deathYear
-                        ? person.deathPlace?.split(",").pop()?.trim() ?? "Recorded"
+                        ? person.deathPlace?.trim() || "Recorded"
                         : "Living",
                     },
                     {

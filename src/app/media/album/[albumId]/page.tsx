@@ -6,6 +6,10 @@ import type { AlbumViewModel } from "@ligneous/album-view";
 import { AlbumViewRouteShell } from "@/components/album/AlbumViewRouteShell";
 import { PublicAlbumLayout } from "@/components/album/PublicAlbumLayout";
 import { readJsonResponse } from "@/lib/read-json-response";
+import {
+  handleAuthRequiredResponse,
+  type AuthRequiredBody,
+} from "@/lib/auth/client-auth-required";
 
 export default function PublicCuratedAlbumPage() {
   const params = useParams();
@@ -27,8 +31,14 @@ export default function PublicCuratedAlbumPage() {
       setLoading(true);
       setErr(null);
       try {
+        const returnPath = `/media/album/${encodeURIComponent(albumId)}`;
         const res = await fetch(`/api/album-view?kind=curated&albumId=${encodeURIComponent(albumId)}`);
-        const body = await readJsonResponse<{ model?: AlbumViewModel; error?: string; detail?: string }>(res);
+        const body = await readJsonResponse<
+          AuthRequiredBody & { model?: AlbumViewModel; error?: string; detail?: string }
+        >(res);
+        if (res.status === 401 && handleAuthRequiredResponse(body, returnPath)) {
+          return;
+        }
         if (!res.ok) {
           const hint = body.detail ? ` ${body.detail}` : "";
           throw new Error((body.error ?? "Could not load album") + hint);

@@ -32,3 +32,8 @@ export function decodeReturnToParam(encoded: string | null | undefined): string 
     return null;
   }
 }
+
+export function buildLoginWallPath(returnPath: string): string {
+  const safe = sanitizePublicReturnPathExcludingLogin(returnPath) ?? "/";
+  return `/login?returnTo=${encodeURIComponent(safe)}`;
+}

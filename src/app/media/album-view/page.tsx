@@ -6,6 +6,10 @@ import type { AlbumViewModel } from "@ligneous/album-view";
 import { AlbumViewRouteShell } from "@/components/album/AlbumViewRouteShell";
 import { PublicAlbumLayout } from "@/components/album/PublicAlbumLayout";
 import { readJsonResponse } from "@/lib/read-json-response";
+import {
+  handleAuthRequiredResponse,
+  type AuthRequiredBody,
+} from "@/lib/auth/client-auth-required";
 
 function Inner() {
   const sp = useSearchParams();
@@ -28,8 +32,14 @@ function Inner() {
       setLoading(true);
       setErr(null);
       try {
+        const returnPath = `/media/album-view?kind=generated&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`;
         const res = await fetch(`/api/album-view?kind=generated&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`);
-        const body = await readJsonResponse<{ model?: AlbumViewModel; error?: string; detail?: string }>(res);
+        const body = await readJsonResponse<
+          AuthRequiredBody & { model?: AlbumViewModel; error?: string; detail?: string }
+        >(res);
+        if (res.status === 401 && handleAuthRequiredResponse(body, returnPath)) {
+          return;
+        }
         if (!res.ok) {
           const hint = body.detail ? ` ${body.detail}` : "";
           throw new Error((body.error ?? "Could not load album") + hint);

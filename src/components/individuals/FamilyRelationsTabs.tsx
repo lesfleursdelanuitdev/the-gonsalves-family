@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Heart, Home, Leaf } from "lucide-react";
 import { useState } from "react";
+import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 import type { PublicIndividualFamilyGroup, PublicIndividualRelation } from "./types";
 
 type FamilyTab = "origin" | "descendants";
@@ -22,7 +23,8 @@ function initials(name: string): string {
   return (first + last) || "?";
 }
 
-function MiniPortrait({ relation }: { relation: PublicIndividualRelation }) {
+function MiniPortrait({ relation, hidden }: { relation: PublicIndividualRelation; hidden?: boolean }) {
+  if (hidden) return null;
   return (
     <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle/80 bg-surface">
       {relation.portraitSrc ? (
@@ -37,6 +39,21 @@ function MiniPortrait({ relation }: { relation: PublicIndividualRelation }) {
 }
 
 function MobilePersonRow({ relation }: { relation: PublicIndividualRelation }) {
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
+  const restricted = shouldShowMinimalLiving(relation.isLiving);
+
+  if (restricted) {
+    return (
+      <div className="flex min-w-0 items-center gap-3 py-2.5">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-heading text-base font-semibold leading-snug text-heading">
+            {formatMinimalLivingLabel(relation.fullName, relation.birthYear)}
+          </span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Link
       href={`/individuals/${encodeURIComponent(relation.id)}`}
@@ -145,6 +162,7 @@ function RelationList({
   maxVisible?: number;
   pageSize?: number;
 }) {
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
   const profilePersonIndex = items.findIndex((item) => item.relationship === "Profile person");
   const defaultPage = pageSize && profilePersonIndex >= 0 ? Math.floor(profilePersonIndex / pageSize) + 1 : 1;
   const [page, setPage] = useState(defaultPage);
@@ -164,6 +182,41 @@ function RelationList({
           <>
             {visibleItems.map((relation) => {
               const isProfilePerson = relation.relationship === "Profile person";
+              const restricted = shouldShowMinimalLiving(relation.isLiving);
+              const rowContent = (
+                <>
+                  <MiniPortrait relation={relation} hidden={restricted} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block break-words font-heading text-base font-semibold leading-snug text-heading group-hover:text-link">
+                      {restricted
+                        ? formatMinimalLivingLabel(relation.fullName, relation.birthYear)
+                        : relation.fullName}
+                    </span>
+                    {!restricted ? (
+                      <>
+                        <span className="mt-0.5 block text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                          {relation.relationship}
+                        </span>
+                        <span className="mt-0.5 block text-sm text-muted">
+                          {lifeLabel(relation.birthYear, relation.deathYear)}
+                        </span>
+                      </>
+                    ) : null}
+                  </span>
+                </>
+              );
+
+              if (restricted) {
+                return (
+                  <div
+                    key={`${title}-${relation.id}`}
+                    className="flex min-w-0 items-center gap-3 px-4 py-3"
+                  >
+                    {rowContent}
+                  </div>
+                );
+              }
+
               return (
                 <Link
                   key={`${title}-${relation.id}`}
@@ -174,16 +227,7 @@ function RelationList({
                       : "border border-transparent"
                   }`}
                 >
-                  <MiniPortrait relation={relation} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block break-words font-heading text-base font-semibold leading-snug text-heading group-hover:text-link">
-                      {relation.fullName}
-                    </span>
-                    <span className="mt-0.5 block text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-                      {relation.relationship}
-                    </span>
-                    <span className="mt-0.5 block text-sm text-muted">{lifeLabel(relation.birthYear, relation.deathYear)}</span>
-                  </span>
+                  {rowContent}
                 </Link>
               );
             })}

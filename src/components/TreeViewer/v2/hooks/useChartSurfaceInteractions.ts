@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { PersonCardAction } from "@/genealogy-visualization-engine";
+import { gateLivingTreePersonAccess } from "@/lib/auth/client-auth-required";
+import { usePublicSession } from "@/hooks/usePublicSession";
 import type { FanMoreClickPayload } from "../fan/fanPeekTypes";
 import type { PersonDetailOverlayPerson } from "../PersonDetailOverlay";
 import { dispatchRefreshViewport } from "../utils/viewportRefresh";
@@ -27,6 +29,16 @@ export interface ChartSurfaceInteractions {
   onFanPeekChooseParentFamily: () => void;
 }
 
+function overlayPersonFromFanPeek(p: FanMoreClickPayload): PersonDetailOverlayPerson {
+  return {
+    name: p.name,
+    xref: p.xref,
+    uuid: p.uuid,
+    isLiving: p.isLiving,
+    birthYear: p.birthYear ?? null,
+  };
+}
+
 export function useChartSurfaceInteractions({
   isFanDisplayFamily,
   fanPeek,
@@ -38,6 +50,8 @@ export function useChartSurfaceInteractions({
   triggerBlinkBack,
   onAction,
 }: UseChartSurfaceInteractionsParams): ChartSurfaceInteractions {
+  const { isAuthenticated } = usePublicSession();
+
   useEffect(() => {
     if (!isFanDisplayFamily) setFanPeek(null);
   }, [isFanDisplayFamily, setFanPeek]);
@@ -46,8 +60,11 @@ export function useChartSurfaceInteractions({
     () =>
       isFanDisplayFamily
         ? undefined
-        : (person: PersonDetailOverlayPerson) => setPersonDetailOverlay(person),
-    [isFanDisplayFamily, setPersonDetailOverlay],
+        : (person: PersonDetailOverlayPerson) => {
+            if (gateLivingTreePersonAccess(person, isAuthenticated)) return;
+            setPersonDetailOverlay(person);
+          },
+    [isFanDisplayFamily, isAuthenticated, setPersonDetailOverlay],
   );
   const onFanMoreClick = useMemo(
     () => (isFanDisplayFamily ? setFanPeek : undefined),
@@ -57,9 +74,14 @@ export function useChartSurfaceInteractions({
   const onFanPeekViewProfile = useCallback(() => {
     if (!fanPeek) return;
     const p = fanPeek;
+    const overlayPerson = overlayPersonFromFanPeek(p);
+    if (gateLivingTreePersonAccess(overlayPerson, isAuthenticated)) {
+      setFanPeek(null);
+      return;
+    }
     setFanPeek(null);
-    setPersonDetailOverlay({ name: p.name, xref: p.xref, uuid: p.uuid });
-  }, [fanPeek, setFanPeek, setPersonDetailOverlay]);
+    setPersonDetailOverlay(overlayPerson);
+  }, [fanPeek, isAuthenticated, setFanPeek, setPersonDetailOverlay]);
 
   const onFanPeekMakeRoot = useCallback(() => {
     if (!fanPeek) return;

@@ -3,7 +3,9 @@ import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
 import {
   getPersonDetailContext,
+  isLivingFromPersonRow,
   nlIndividualAddonFromSqlPerson,
+  requireFullPersonDetailAccess,
   stripSlashesFromName,
   type Row,
 } from "../lib";
@@ -27,6 +29,9 @@ export async function GET(
         { status: code }
       );
     }
+
+    const accessDenied = await requireFullPersonDetailAccess(ctx);
+    if (accessDenied) return accessDenied;
 
     const { fileUuid, personId, person } = ctx;
 
@@ -117,13 +122,14 @@ export async function GET(
         : null,
     };
 
-    const hasDeathEvent = deatRows.length > 0 && deatRows[0] != null;
+    const isLiving = isLivingFromPersonRow(person);
     return NextResponse.json({
       name: stripSlashesFromName(person.full_name as string) ?? null,
       xref: ctx.normalizedXref,
       uuid: person.id,
       ...nlIndividualAddonFromSqlPerson(person),
-      living: !hasDeathEvent,
+      living: isLiving,
+      isLiving,
       gender: formatGender((person.sex as string) ?? null, (person.gender as string) ?? null) ?? null,
       birth,
       death,

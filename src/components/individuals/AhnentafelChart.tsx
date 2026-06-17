@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,10 @@ function extractYear(s: string | null | undefined): string | null {
   return m ? m[1] : null;
 }
 
+function livingBirthYear(e: AhnentafelEntry): string | null {
+  return extractYear(e.birthDate);
+}
+
 function lifespan(e: AhnentafelEntry): string | null {
   if (e.isLiving) return null;
   const b = extractYear(e.birthDate);
@@ -80,6 +85,7 @@ function groupByGeneration(entries: AhnentafelEntry[]): Map<number, AhnentafelEn
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function AhnentafelChart({ xref }: { xref: string }) {
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
   const [depth, setDepth] = useState(INITIAL_DEPTH);
   const [entries, setEntries] = useState<AhnentafelEntry[] | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -177,9 +183,16 @@ export function AhnentafelChart({ xref }: { xref: string }) {
             {/* Entry list */}
             <ul className="divide-y divide-border-subtle/40">
               {genEntries.map((entry) => {
-                const ls = lifespan(entry);
+                const restricted = shouldShowMinimalLiving(entry.isLiving);
+                const ls = restricted ? livingBirthYear(entry) : lifespan(entry);
                 const place = !entry.isLiving ? (entry.birthPlace ?? null) : null;
-                const secondary = [ls, place].filter(Boolean).join(" · ");
+                const secondaryParts = restricted
+                  ? [ls ? `b. ${ls}` : null]
+                  : [ls, place].filter(Boolean);
+                const secondary = secondaryParts.join(" · ");
+                const label = restricted
+                  ? formatMinimalLivingLabel(personName(entry), livingBirthYear(entry) ? Number(livingBirthYear(entry)) : null)
+                  : personName(entry);
 
                 return (
                   <li key={entry.num} className="flex items-start gap-3 py-2.5">
@@ -189,13 +202,17 @@ export function AhnentafelChart({ xref }: { xref: string }) {
                     </span>
 
                     <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/individuals/${encodeURIComponent(entry.id)}`}
-                        className="font-body text-sm font-medium text-link hover:underline"
-                      >
-                        {personName(entry)}
-                      </Link>
-                      {secondary && (
+                      {restricted ? (
+                        <span className="font-body text-sm font-medium text-text">{label}</span>
+                      ) : (
+                        <Link
+                          href={`/individuals/${encodeURIComponent(entry.id)}`}
+                          className="font-body text-sm font-medium text-link hover:underline"
+                        >
+                          {label}
+                        </Link>
+                      )}
+                      {!restricted && secondary && (
                         <p className="mt-0.5 font-body text-xs leading-relaxed text-muted">
                           {secondary}
                         </p>

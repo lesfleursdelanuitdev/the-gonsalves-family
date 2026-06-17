@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { mapIndividualRow } from "@/lib/individual-mapper";
+import { redactMappedIndividualForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
 import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 import {
@@ -111,8 +113,10 @@ export async function GET(
 
     result.sort((a, b) => a.depth - b.depth || (a.lastName ?? "").localeCompare(b.lastName ?? ""));
 
+    const viewer = await resolvePublicViewer();
+
     return NextResponse.json({
-      ancestors: result,
+      ancestors: result.map((row) => redactMappedIndividualForViewer(row, viewer)),
       meta: { total: result.length, maxDepth: result.length ? Math.max(...result.map((r) => r.depth)) : 0 },
     });
   } catch (err) {

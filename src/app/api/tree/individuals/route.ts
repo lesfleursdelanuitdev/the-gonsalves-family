@@ -3,6 +3,8 @@ import { Prisma } from "@ligneous/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { mapIndividualRow, type IndividualRowForMapping } from "@/lib/individual-mapper";
+import { redactSearchIndividualForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
 import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 
@@ -17,6 +19,8 @@ const INDIVIDUAL_SELECT = {
   ...individualBirthDeathPlaceSelect,
   ...gedcomIndividualNlDenormSelect,
   isLiving: true,
+  birthYear: true,
+  deathYear: true,
   sex: true,
   gender: true,
   individualNameForms: {
@@ -55,15 +59,20 @@ function escapeLike(s: string): string {
 }
 
 /** Build response item: uuid, names (givenNames + lastName), xref */
-function toSearchItem(row: IndividualRowForMapping & { id: string; xref: string }) {
+function toSearchItem(
+  row: IndividualRowForMapping & { id: string; xref: string },
+  viewer: Awaited<ReturnType<typeof resolvePublicViewer>>,
+) {
   const mapped = mapIndividualRow(row);
-  return {
+  const base = {
     uuid: row.id,
     names: {
       givenNames: mapped.givenNames,
       lastName: mapped.lastName ?? null,
     },
     xref: row.xref,
+    isLiving: mapped.isLiving,
+    birthYear: row.birthYear ?? null,
     primarySurnameLower: mapped.primarySurnameLower,
     birthCountry: mapped.birthCountry,
     birthCountryLower: mapped.birthCountryLower,
@@ -72,6 +81,17 @@ function toSearchItem(row: IndividualRowForMapping & { id: string; xref: string 
     ageAtDeath: mapped.ageAtDeath,
     generationDepth: mapped.generationDepth,
   };
+  return redactSearchIndividualForViewer(
+    {
+      ...base,
+      id: row.id,
+      displayName: [mapped.givenNames.join(" "), mapped.lastName].filter(Boolean).join(" ").trim() || row.xref,
+      fullName: row.fullName,
+      profileHref: `/individuals/${encodeURIComponent(row.id)}`,
+      portraitSrc: null,
+    },
+    viewer,
+  );
 }
 
 /**
@@ -236,7 +256,8 @@ export async function GET(req: NextRequest) {
       }) as Array<IndividualRowForMapping & { id: string; xref: string }>;
     }
 
-    const individuals = rows.map((row) => toSearchItem(row));
+    const viewer = await resolvePublicViewer();
+    const individuals = rows.map((row) => toSearchItem(row, viewer));
     const hasMore = limit != null && rows.length === limit;
     const nextOffset = limit != null ? offset + rows.length : undefined;
 

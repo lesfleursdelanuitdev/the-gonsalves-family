@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
-import { getPersonDetailContext, type Row } from "../lib";
+import { getPersonDetailContext, requireFullPersonDetailAccess, type Row } from "../lib";
 
 export async function GET(
   req: NextRequest,
@@ -17,6 +17,9 @@ export async function GET(
         { status: code }
       );
     }
+
+    const accessDenied = await requireFullPersonDetailAccess(ctx);
+    if (accessDenied) return accessDenied;
 
     const { fileUuid, personId } = ctx;
 

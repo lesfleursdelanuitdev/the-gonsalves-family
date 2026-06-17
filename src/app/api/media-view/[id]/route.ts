@@ -12,6 +12,8 @@ import {
   resolveMainPhotosViewModelPublic,
   type MainPhotosViewModel,
 } from "@/lib/album/resolve-public-album-view-model";
+import { filterFeaturedIndividualsForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 export async function GET(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -138,6 +140,12 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
       .filter((a): a is { id: string; name: string } => Boolean(a))
       .map((a) => ({ id: a.id, name: a.name }));
 
+    const viewer = await resolvePublicViewer();
+    const linkedIndividuals = filterFeaturedIndividualsForViewer(
+      membership.linkedIndividuals ?? [],
+      viewer,
+    );
+
     return NextResponse.json({
       source: {
         kind: model.kind,
@@ -159,7 +167,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
         fileRef: media.fileRef,
         form: media.form,
         description: media.description,
-        linkedIndividuals: membership.linkedIndividuals ?? [],
+        linkedIndividuals,
         places: media.placeLinks.map((x) => x.place).filter(Boolean),
         dates: media.dateLinks.map((x) => x.date).filter(Boolean),
         events: media.eventMedia.map((x) => x.event).filter(Boolean),

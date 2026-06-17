@@ -135,6 +135,7 @@ const individualMemberSelect = {
   deathDateDisplay: true,
   sex: true,
   gender: true,
+  isLiving: true,
 } as const;
 
 function memberFromIndividual(
@@ -148,6 +149,7 @@ function memberFromIndividual(
     deathYear: number | null;
     birthDateDisplay: string | null;
     deathDateDisplay: string | null;
+    isLiving: boolean;
   },
   role: PublicFamilyMemberRole,
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
@@ -165,6 +167,7 @@ function memberFromIndividual(
     deathDateLabel: row.deathYear != null ? dateLabel(row.deathDateDisplay, row.deathYear) : null,
     birthYear: row.birthYear ?? null,
     deathYear: row.deathYear ?? null,
+    isLiving: row.isLiving,
     partnersCount: relationCounts.partnersCount,
     childrenCount: relationCounts.childrenCount,
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),

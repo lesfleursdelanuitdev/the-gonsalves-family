@@ -1,4 +1,6 @@
 import { Prisma } from "@ligneous/prisma";
+import { NextResponse } from "next/server";
+import { gateLivingIndividualAccessById, isLivingFromPersonRow } from "@/lib/auth/gate-living-individual-access";
 import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
@@ -36,6 +38,16 @@ export interface PersonDetailContext {
   normalizedXref: string;
 }
 
+export { isLivingFromPersonRow } from "@/lib/auth/gate-living-individual-access";
+
+export function personIsLiving(ctx: PersonDetailContext): boolean {
+  return isLivingFromPersonRow(ctx.person);
+}
+
+export async function requireFullPersonDetailAccess(ctx: PersonDetailContext): Promise<NextResponse | null> {
+  return gateLivingIndividualAccessById(personIsLiving(ctx), ctx.personId);
+}
+
 function looksLikeIndividualUuid(raw: string): boolean {
   const s = raw.trim();
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -55,6 +67,7 @@ export async function getPersonDetailContext(
       Prisma.sql`
         SELECT id, xref, full_name, birth_date_display, birth_place_display,
                death_date_display, death_place_display, sex, gender,
+               birth_year, is_living,
                primary_surname_lower, birth_country, birth_country_lower,
                death_country, death_country_lower, age_at_death, generation_depth
         FROM gedcom_individuals_v2
@@ -79,6 +92,7 @@ export async function getPersonDetailContext(
     Prisma.sql`
       SELECT id, full_name, birth_date_display, birth_place_display,
              death_date_display, death_place_display, sex, gender,
+             birth_year, is_living,
              primary_surname_lower, birth_country, birth_country_lower,
              death_country, death_country_lower, age_at_death, generation_depth
       FROM gedcom_individuals_v2

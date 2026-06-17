@@ -22,6 +22,9 @@ import {
   isRasterGedcomMediaForm,
 } from "@/lib/tree/individual-display-photo";
 import { personAgeYears } from "@/lib/individuals/person-age";
+import type { PublicViewer } from "@/lib/auth/public-viewer-context";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import { redactPublicIndividualForViewer, redactRelationForViewer } from "@/lib/auth/living-person-privacy";
 import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
 import type {
   PublicIndividual,
@@ -155,6 +158,7 @@ function relationFromIndividual(
     fullName: string | null;
     birthYear: number | null;
     deathYear: number | null;
+    isLiving: boolean;
   },
   relationship: string,
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
@@ -166,6 +170,7 @@ function relationFromIndividual(
     deathYear: row.deathYear ?? null,
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
     relationship,
+    isLiving: row.isLiving,
   };
 }
 
@@ -276,6 +281,7 @@ const PUBLIC_INDIVIDUAL_LIST_SELECT = {
   hasSpouse: true,
   sex: true,
   gender: true,
+  isLiving: true,
   individualEvents: {
     where: { event: { eventType: { in: ["RESI", "DEAT"] } } },
     select: {
@@ -315,6 +321,7 @@ type PublicIndividualListRow = {
   hasSpouse: boolean;
   sex: string | null;
   gender: string | null;
+  isLiving: boolean;
   individualEvents: Array<{
     event: {
       eventType: string;
@@ -338,6 +345,7 @@ function hasRecordedDeathCause(
 function mapPublicIndividualListRow(
   r: PublicIndividualListRow,
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
+  viewer: PublicViewer,
 ): PublicIndividual {
   const residences = [...r.individualEvents]
     .filter(({ event }) => event.eventType.toUpperCase() === "RESI")
@@ -356,36 +364,40 @@ function mapPublicIndividualListRow(
   ]);
   const childrenCount = r.familyPartnerships.reduce((total, { family }) => total + family.childrenCount, 0);
 
-  return {
-    id: r.id,
-    xref: r.xref,
-    fullName: displayName(r.fullName, r.xref),
-    birthYear: r.birthYear ?? null,
-    deathYear: r.deathYear ?? null,
-    currentLocationLabel: placeLabels[0] ?? null,
-    placeLabels,
-    age:
-      r.ageAtDeath ??
-      personAgeYears({
-        birthDateLabel: r.birthDateDisplay ?? (r.birthYear != null ? String(r.birthYear) : null),
-        birthYear: r.birthYear ?? null,
-        deathDateLabel: r.deathDateDisplay ?? (r.deathYear != null ? String(r.deathYear) : null),
-        deathYear: r.deathYear ?? null,
+  return redactPublicIndividualForViewer(
+    {
+      id: r.id,
+      xref: r.xref,
+      fullName: displayName(r.fullName, r.xref),
+      birthYear: r.birthYear ?? null,
+      deathYear: r.deathYear ?? null,
+      currentLocationLabel: placeLabels[0] ?? null,
+      placeLabels,
+      age:
+        r.ageAtDeath ??
+        personAgeYears({
+          birthDateLabel: r.birthDateDisplay ?? (r.birthYear != null ? String(r.birthYear) : null),
+          birthYear: r.birthYear ?? null,
+          deathDateLabel: r.deathDateDisplay ?? (r.deathYear != null ? String(r.deathYear) : null),
+          deathYear: r.deathYear ?? null,
+        }),
+      childrenCount,
+      role: inferRole({
+        sex: r.sex ?? null,
+        hasChildren: Boolean(r.hasChildren),
+        hasSpouse: Boolean(r.hasSpouse),
+        hasParents: Boolean(r.hasParents),
       }),
-    childrenCount,
-    role: inferRole({
+      gender: r.gender ?? null,
       sex: r.sex ?? null,
+      hasPartner: Boolean(r.hasSpouse),
       hasChildren: Boolean(r.hasChildren),
-      hasSpouse: Boolean(r.hasSpouse),
-      hasParents: Boolean(r.hasParents),
-    }),
-    gender: r.gender ?? null,
-    sex: r.sex ?? null,
-    hasPartner: Boolean(r.hasSpouse),
-    hasChildren: Boolean(r.hasChildren),
-    hasDeathCause: hasRecordedDeathCause(r.individualEvents),
-    portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
-  };
+      hasDeathCause: hasRecordedDeathCause(r.individualEvents),
+      portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
+      isLiving: r.isLiving,
+    },
+    viewer,
+  );
 }
 
 async function loadPublicIndividualListRows(
@@ -445,6 +457,7 @@ export async function loadPublicIndividuals(options?: {
   if (!fileUuid) return [];
 
   const rows = await loadPublicIndividualListRows(fileUuid, options);
+  const viewer = await resolvePublicViewer();
 
   const photoMap = await batchIndividualDisplayPhotoMedia(
     prisma,
@@ -452,7 +465,7 @@ export async function loadPublicIndividuals(options?: {
     rows.map((r) => r.id),
   );
 
-  return rows.map((r) => mapPublicIndividualListRow(r, photoMap));
+  return rows.map((r) => mapPublicIndividualListRow(r, photoMap, viewer));
 }
 
 export async function loadPublicIndividualsByIds(ids: string[]): Promise<PublicIndividual[]> {
@@ -460,11 +473,15 @@ export async function loadPublicIndividualsByIds(ids: string[]): Promise<PublicI
   if (!fileUuid || ids.length === 0) return [];
 
   const rows = await loadPublicIndividualListRows(fileUuid, { ids });
+  const viewer = await resolvePublicViewer();
   const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, rows.map((r) => r.id));
-  return rows.map((r) => mapPublicIndividualListRow(r, photoMap));
+  return rows.map((r) => mapPublicIndividualListRow(r, photoMap, viewer));
 }
 
-export async function loadPublicIndividualById(id: string): Promise<PublicIndividualProfile | null> {
+export async function loadPublicIndividualById(
+  id: string,
+  viewer: PublicViewer,
+): Promise<PublicIndividualProfile | null> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return null;
   const treeId = await resolveTreeId();
@@ -492,6 +509,7 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
       religion: true,
       occupation: true,
       nationality: true,
+      isLiving: true,
     },
   });
   if (!r) return null;
@@ -511,12 +529,12 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
         select: {
           id: true,
           xref: true,
-          husband: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
-          wife: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
+          husband: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
+          wife: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
           familyChildren: {
             orderBy: [{ birthOrder: "asc" }],
             select: {
-              child: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
+              child: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
             },
           },
         },
@@ -530,8 +548,8 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
       xref: true,
       husbandId: true,
       wifeId: true,
-      husband: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
-      wife: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
+      husband: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
+      wife: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
       familyChildren: {
         orderBy: [{ birthOrder: "asc" }],
         select: {
@@ -548,6 +566,7 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
               deathDateDisplay: true,
               deathPlaceDisplay: true,
               deathPlace: { select: GEDCOM_PLACE_DISPLAY_SELECT },
+              isLiving: true,
             },
           },
         },
@@ -715,7 +734,7 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
         relationshipType: true,
         participants: {
           include: {
-            individual: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true } },
+            individual: { select: { id: true, xref: true, fullName: true, birthYear: true, deathYear: true, isLiving: true } },
             role: true,
           },
           orderBy: { sortOrder: "asc" },
@@ -1064,6 +1083,14 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
   ]);
   const photoMap = familyPhotoMap;
 
+  const redactRelation = (relation: PublicIndividualRelation) => redactRelationForViewer(relation, viewer);
+  const redactFamilyGroup = (group: PublicIndividualFamilyGroup): PublicIndividualFamilyGroup => ({
+    ...group,
+    parents: group.parents.map(redactRelation),
+    partners: group.partners.map(redactRelation),
+    children: group.children.map(redactRelation),
+  });
+
   return {
     id: r.id,
     xref: r.xref,
@@ -1081,6 +1108,7 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
         deathYear: r.deathYear ?? null,
       }),
     childrenCount: children.length,
+    isLiving: r.isLiving,
     role,
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.id)),
     biography: buildBiography({
@@ -1105,19 +1133,19 @@ export async function loadPublicIndividualById(id: string): Promise<PublicIndivi
     religion: r.religion ?? null,
     occupation: r.occupation ?? null,
     nationality: r.nationality ?? null,
-    partner,
-    partners,
-    spouse: partner,
-    spouses: partners,
-    parents,
-    siblings,
-    children,
-    familiesAsChild,
-    familiesAsPartner,
+    partner: partner ? redactRelation(partner) : null,
+    partners: partners.map(redactRelation),
+    spouse: partner ? redactRelation(partner) : null,
+    spouses: partners.map(redactRelation),
+    parents: parents.map(redactRelation),
+    siblings: siblings.map(redactRelation),
+    children: children.map(redactRelation),
+    familiesAsChild: familiesAsChild.map(redactFamilyGroup),
+    familiesAsPartner: familiesAsPartner.map(redactFamilyGroup),
     timeline: sortTimeline(timelineItems),
     photos,
     notes,
-    associates,
+    associates: associates.map((item) => redactRelationForViewer(item, viewer)),
     openQuestions,
     linkedAccounts,
   };

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@ligneous/prisma";
+import { gateLivingIndividualAccessById, isLivingFromPersonRow } from "@/lib/auth/gate-living-individual-access";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import {
@@ -35,7 +36,7 @@ export async function GET(
     const personRows = await prisma.$queryRaw<Row[]>(
       Prisma.sql`
         SELECT id, full_name, birth_date_display, birth_place_display,
-               death_date_display, death_place_display,
+               death_date_display, death_place_display, is_living,
                primary_surname_lower, birth_country, birth_country_lower,
                death_country, death_country_lower, age_at_death, generation_depth
         FROM gedcom_individuals_v2
@@ -48,6 +49,9 @@ export async function GET(
       return NextResponse.json({ error: "Person not found" }, { status: 404 });
     }
     const personId = person.id as string;
+
+    const accessDenied = await gateLivingIndividualAccessById(isLivingFromPersonRow(person), personId);
+    if (accessDenied) return accessDenied;
 
     const [birtRows, deatRows, famOriginRows, famSpouseRows, notesRows, sourcesRows, indEventRows] =
       await Promise.all([

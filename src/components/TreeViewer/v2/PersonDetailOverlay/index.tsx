@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import type { BasicPersonDetails, PersonDetailOverlayProps } from "./types";
 import {
@@ -121,6 +122,7 @@ export function PersonDetailOverlay({
         });
 
   const isLoading = basic.status === "loading";
+  const isAuthRequired = basic.status === "auth_required";
   const isError = basic.status === "error";
   const showContent = basic.status === "success" && basicData;
 
@@ -310,6 +312,33 @@ export function PersonDetailOverlay({
                   : null
               }
             />
+
+            {isAuthRequired && (
+              <div style={errorStyle}>
+                <p style={{ margin: "0 0 12px" }}>
+                  Sign in to view this living person&apos;s full profile.
+                </p>
+                {basic.loginUrl ? (
+                  <Link
+                    href={basic.loginUrl}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 8,
+                      padding: "10px 16px",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      background: "var(--tree-accent, #2e7a52)",
+                      color: "#faf7f0",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Sign in
+                  </Link>
+                ) : null}
+              </div>
+            )}
 
             {isError && (
               <div style={errorStyle}>

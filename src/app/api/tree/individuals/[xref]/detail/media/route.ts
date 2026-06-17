@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
 import { prisma } from "@/lib/database/prisma";
 import { batchIndividualDisplayPhotoMedia } from "@/lib/tree/individual-display-photo";
-import { getPersonDetailContext } from "../lib";
+import { getPersonDetailContext, requireFullPersonDetailAccess } from "../lib";
 
 /**
  * GET — profile OBJE (if any), three random linked OBJEs (excluding profile for variety),
@@ -22,6 +22,9 @@ export async function GET(
         { status: code }
       );
     }
+
+    const accessDenied = await requireFullPersonDetailAccess(ctx);
+    if (accessDenied) return accessDenied;
 
     const { fileUuid, personId } = ctx;
 

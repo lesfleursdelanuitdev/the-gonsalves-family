@@ -16,6 +16,7 @@ export type FanMoreClickPayload = {
   birthPlace?: string | null;
   deathPlace?: string | null;
   gender?: string | null;
+  isLiving?: boolean;
   /** True when pedigree API listed this xref in `multiFamilyChildXrefs` (child in multiple families). */
   hasMultipleFamiliesAsChild?: boolean;
 };

@@ -13,6 +13,7 @@ import {
 } from "@/lib/treeViewerUrl";
 import { getNameBackgroundColor } from "@/lib/person-name-accent";
 import { cn } from "@/lib/utils";
+import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 import type { PublicFamilyMember, PublicFamilyPartner } from "./types";
 
 function initials(name: string): string {
@@ -66,9 +67,30 @@ export function FamilyMemberCard({
 }: FamilyMemberCardProps) {
   const router = useRouter();
   const [pedigreePickerOpen, setPedigreePickerOpen] = useState(false);
+  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
+  const restricted = shouldShowMinimalLiving(member.isLiving);
   const borderColor = memberBorderColor(member, partners);
   const born = member.birthDateLabel ?? "Not recorded";
   const died = member.deathYear != null ? (member.deathDateLabel ?? "Recorded") : "Living";
+
+  if (restricted) {
+    return (
+      <article
+        className={cn(
+          "flex flex-col gap-3 rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-4",
+          !flat && "shadow-[0_4px_14px_rgba(40,28,18,0.06)]",
+        )}
+      >
+        <div className="min-w-0">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-crimson">{member.role}</p>
+          <h3 className="mt-0.5 font-heading text-lg font-semibold text-heading" title={member.fullName}>
+            {formatMinimalLivingLabel(member.fullName, member.birthYear)}
+          </h3>
+        </div>
+        <p className="text-sm text-muted">Sign in to view this family member&apos;s profile.</p>
+      </article>
+    );
+  }
 
   const onPedigreeChartSelect = (chart: ChartViewStrategyName) => {
     const strategy = chart as AncestorChartStrategy;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
-import { getPersonDetailContext, stripSlashesFromName, type Row } from "../lib";
+import { getPersonDetailContext, requireFullPersonDetailAccess, stripSlashesFromName, type Row } from "../lib";
 import { formatGender } from "@/lib/individual-mapper";
 
 export async function GET(
@@ -18,6 +18,9 @@ export async function GET(
         { status: code }
       );
     }
+    const accessDenied = await requireFullPersonDetailAccess(ctx);
+    if (accessDenied) return accessDenied;
+
     const { fileUuid, personId } = ctx;
     const famSpouseRows = await prisma.$queryRaw<Row[]>(
       Prisma.sql`

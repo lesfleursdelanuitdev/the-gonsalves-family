@@ -2,6 +2,8 @@
 
 import { useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { gateLivingTreePersonAccess } from "@/lib/auth/client-auth-required";
+import { usePublicSession } from "@/hooks/usePublicSession";
 import {
   useChartSearch,
 } from "@/genealogy-visualization-engine";
@@ -83,11 +85,13 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     embedMode = false,
   } = props;
   const router = useRouter();
+  const { isAuthenticated } = usePublicSession();
   const embedOnNameClick = useCallback(
     (person: PersonDetailOverlayPerson) => {
+      if (gateLivingTreePersonAccess(person, isAuthenticated)) return;
       if (person.uuid) router.push(`/individuals/${encodeURIComponent(person.uuid)}`);
     },
-    [router]
+    [router, isAuthenticated],
   );
   const svgRef = useRef<SVGSVGElement>(null);
   const [showTutorialModal, setShowTutorialModal] = useState(false);

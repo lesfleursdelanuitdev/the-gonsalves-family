@@ -54,13 +54,18 @@ function dedupeById(items: MediaSummary[]): MediaSummary[] {
   return out;
 }
 
-const INDIVIDUAL_LINK_SELECT = { id: true, fullName: true, xref: true } as const;
+const INDIVIDUAL_LINK_SELECT = { id: true, fullName: true, xref: true, isLiving: true } as const;
 
-function linkedPersonFromRow(row: { id: string; fullName: string | null; xref: string }): AlbumMediaLinkedIndividual {
+function linkedPersonFromRow(row: {
+  id: string;
+  fullName: string | null;
+  xref: string;
+  isLiving?: boolean;
+}): AlbumMediaLinkedIndividual {
   const raw = (row.fullName ?? "").trim();
   const gedcomName = raw || row.xref;
   const displayName = gedcomNameToDisplayName(row.fullName, row.xref);
-  return { id: row.id, xref: row.xref, gedcomName, displayName };
+  return { id: row.id, xref: row.xref, gedcomName, displayName, isLiving: row.isLiving };
 }
 
 function sortPeopleByName(people: Iterable<AlbumMediaLinkedIndividual>): AlbumMediaLinkedIndividual[] {

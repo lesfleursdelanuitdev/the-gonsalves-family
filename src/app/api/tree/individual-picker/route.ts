@@ -5,6 +5,8 @@ import {
   batchIndividualDisplayPhotoMedia,
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
+import { redactSearchIndividualForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 const MAX_LIMIT = 25;
 
@@ -43,6 +45,7 @@ export async function GET(req: NextRequest) {
         fullName: true,
         birthDateDisplay: true,
         birthYear: true,
+        isLiving: true,
       },
       orderBy: [{ fullNameLower: "asc" }, { xref: "asc" }],
       take: limit,
@@ -55,14 +58,25 @@ export async function GET(req: NextRequest) {
       rows.map((row) => row.id),
     );
 
+    const viewer = await resolvePublicViewer();
+
     return NextResponse.json({
-      individuals: rows.map((row) => ({
-        id: row.id,
-        xref: row.xref,
-        fullName: displayName(row.fullName, row.xref),
-        birthDateLabel: row.birthDateDisplay ?? (row.birthYear ? String(row.birthYear) : null),
-        portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
-      })),
+      individuals: rows.map((row) =>
+        redactSearchIndividualForViewer(
+          {
+            id: row.id,
+            xref: row.xref,
+            fullName: displayName(row.fullName, row.xref),
+            displayName: displayName(row.fullName, row.xref),
+            birthYear: row.birthYear ?? null,
+            isLiving: row.isLiving,
+            birthDateLabel: row.birthDateDisplay ?? (row.birthYear ? String(row.birthYear) : null),
+            portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
+            profileHref: `/individuals/${encodeURIComponent(row.id)}`,
+          },
+          viewer,
+        ),
+      ),
       hasMore: rows.length === limit,
       nextOffset: offset + rows.length,
     });

@@ -2,6 +2,8 @@ export interface PersonDetailOverlayPerson {
   name: string;
   xref: string;
   uuid: string | null;
+  isLiving?: boolean;
+  birthYear?: number | null;
 }
 
 export interface PersonDetailOverlayProps {

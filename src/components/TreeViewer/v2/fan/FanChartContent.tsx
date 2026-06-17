@@ -438,6 +438,7 @@ export function FanChartContent({
                           birthPlace: person.birthPlace ?? null,
                           deathPlace: person.deathPlace ?? null,
                           gender: person.gender ?? null,
+                          isLiving: person.isLiving,
                           hasMultipleFamiliesAsChild: personHasMultipleFamiliesAsChild(
                             person,
                             pedigreeMultiFamilyChildXrefs
