@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatMinimalLivingLabel,
+  redactHomeStatisticsIndividualExample,
   redactPublicIndividualForViewer,
   redactRelationForViewer,
   redactTreePersonForViewer,
@@ -110,5 +111,16 @@ describe("redactRelationForViewer", () => {
       portraitSrc: null,
       deathYear: null,
     });
+  });
+});
+
+describe("redactHomeStatisticsIndividualExample", () => {
+  it("returns minimal label and no xref for living examples", () => {
+    expect(
+      redactHomeStatisticsIndividualExample(
+        { displayName: "Jane Doe", xref: "@I1@", isLiving: true, birthYear: 1990 },
+        anonymous,
+      ),
+    ).toEqual({ displayName: "Jane Doe · b. 1990", xref: "" });
   });
 });

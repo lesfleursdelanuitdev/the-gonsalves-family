@@ -3,19 +3,42 @@ import { GET } from "@/app/api/tree/events/upcoming/route";
 
 // ── mock ──────────────────────────────────────────────────────────────────────
 
-const { queryUpcomingEventsMock } = vi.hoisted(() => ({
-  queryUpcomingEventsMock: vi.fn(),
-}));
+const { queryUpcomingEventsMock, resolvePublicViewerMock, loadIndividualPrivacyHintsByIdsMock } =
+  vi.hoisted(() => ({
+    queryUpcomingEventsMock: vi.fn(),
+    resolvePublicViewerMock: vi.fn(),
+    loadIndividualPrivacyHintsByIdsMock: vi.fn(),
+  }));
 
 vi.mock("@/lib/upcoming-anniversaries/query-upcoming-events", () => ({
   queryUpcomingEvents: queryUpcomingEventsMock,
+}));
+
+vi.mock("@/lib/auth/public-viewer-context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth/public-viewer-context")>();
+  return {
+    ...actual,
+    resolvePublicViewer: resolvePublicViewerMock,
+  };
+});
+
+vi.mock("@/lib/individuals/load-individual-living-status", () => ({
+  loadIndividualPrivacyHintsByIds: loadIndividualPrivacyHintsByIdsMock,
 }));
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const SAMPLE_RESULT = {
   events: [
-    { id: "e1", eventType: "BIRT", eventLabel: "Birth", date: null, place: null, individual: null, family: null },
+    {
+      id: "e1",
+      eventType: "BIRT",
+      eventLabel: "Birth",
+      date: null,
+      place: { original: "Honolulu", name: "Honolulu" },
+      individual: { id: "p1", xref: "@I1@", fullName: "Jane /Doe/" },
+      family: null,
+    },
   ],
   window: { start: { month: 5, day: 20 }, end: { month: 6, day: 20 } },
 };
@@ -24,6 +47,20 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.DATABASE_URL = "postgresql://test";
   queryUpcomingEventsMock.mockResolvedValue(SAMPLE_RESULT);
+  resolvePublicViewerMock.mockResolvedValue({ kind: "anonymous" });
+  loadIndividualPrivacyHintsByIdsMock.mockResolvedValue(
+    new Map([
+      [
+        "p1",
+        {
+          isLiving: true,
+          birthYear: 1990,
+          fullName: "Jane /Doe/",
+          xref: "@I1@",
+        },
+      ],
+    ]),
+  );
 });
 
 // ── tests ─────────────────────────────────────────────────────────────────────
@@ -45,11 +82,15 @@ describe("GET /api/tree/events/upcoming", () => {
     expect(body.error).toContain("not found");
   });
 
-  it("returns 200 with events result when tree is found", async () => {
+  it("returns 200 with redacted events result when tree is found", async () => {
     const res = await GET();
-    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual(SAMPLE_RESULT);
+    if (res.status !== 200) {
+      throw new Error(`Expected 200, got ${res.status}: ${JSON.stringify(body)}`);
+    }
+    expect(body.window).toEqual(SAMPLE_RESULT.window);
+    expect(body.events[0]?.individual?.fullName).toBe("Jane Doe · b. 1990");
+    expect(body.events[0]?.place).toBeNull();
   });
 
   it("returns 500 when queryUpcomingEvents throws", async () => {

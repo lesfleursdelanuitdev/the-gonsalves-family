@@ -25,6 +25,8 @@ export type PublicFamily = {
   divorcedStatus: DivorcedStatus;
   albumHref: string;
   profileHref: string;
+  /** Set when anonymous viewers must not open the full family profile. */
+  privacyRestricted?: boolean;
 };
 
 export type PublicFamilyMemberRole = "Partner" | "Child";

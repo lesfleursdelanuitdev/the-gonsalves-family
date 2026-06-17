@@ -102,7 +102,7 @@ export function Statistics() {
       label: "Individuals",
       displayValue: isPending ? null : displayN,
       example: data?.examples.individual?.displayName ?? null,
-      exampleHref: data?.examples.individual
+      exampleHref: data?.examples.individual?.xref
         ? `/tree/viewer?xref=${encodeURIComponent(data.examples.individual.xref)}`
         : null,
     },

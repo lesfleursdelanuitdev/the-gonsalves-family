@@ -54,6 +54,7 @@ export function PersonCard({
         <h3 className="break-words font-heading text-xl font-semibold leading-tight text-heading">
           {formatMinimalLivingLabel(person.fullName, person.birthYear)}
         </h3>
+        {occasion ? <CardOccasionRow occasion={{ ...occasion, subtitle: occasion.eventType === "BIRT" ? "Birthday" : occasion.subtitle }} compact /> : null}
         <p className="mt-3 text-sm text-muted">Sign in to view this person&apos;s profile.</p>
       </article>
     );

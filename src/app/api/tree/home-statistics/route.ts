@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { resolveTreeFileUuid, resolveTreeId } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { buildHomeStatisticsPayload } from "@/lib/home-statistics-query";
@@ -16,13 +17,18 @@ export async function GET(request: Request) {
     const rParsed = rRaw != null && rRaw !== "" ? Number.parseInt(rRaw, 10) : NaN;
     const analyticsSeed = Number.isFinite(rParsed) && rParsed > 0 ? rParsed : null;
 
-    const [fileUuid, treeId] = await Promise.all([resolveTreeFileUuid(), resolveTreeId()]);
+    const [fileUuid, treeId, viewer] = await Promise.all([
+      resolveTreeFileUuid(),
+      resolveTreeId(),
+      resolvePublicViewer(),
+    ]);
     if (!fileUuid) {
       return NextResponse.json({ error: "Tree not found" }, { status: 404 });
     }
     const payload = await buildHomeStatisticsPayload(prisma, fileUuid, {
       analyticsSeed,
       treeId: analyticsSeed != null ? treeId : null,
+      viewer,
     });
     return NextResponse.json(payload);
   } catch (err) {

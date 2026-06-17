@@ -224,3 +224,33 @@ export function redactPublicIndividualForViewer<T extends PublicIndividualListPr
     hasDeathCause: false,
   };
 }
+
+export function redactHomeStatisticsIndividualExample(
+  args: { displayName: string; xref: string; isLiving: boolean; birthYear: number | null },
+  viewer: PublicViewer,
+): { displayName: string; xref: string } {
+  if (!shouldRedactLivingPerson(viewer, args.isLiving)) {
+    return { displayName: args.displayName, xref: args.xref };
+  }
+  return {
+    displayName: formatMinimalLivingLabel(args.displayName, args.birthYear),
+    xref: "",
+  };
+}
+
+export function redactHomeStatisticsFamilyExample(
+  args: {
+    displayName: string;
+    xref: string;
+    partners: Array<{ displayName: string; isLiving: boolean; birthYear: number | null }>;
+  },
+  viewer: PublicViewer,
+): { displayName: string; xref: string } {
+  const redactedNames = args.partners.map((partner) => {
+    if (!shouldRedactLivingPerson(viewer, partner.isLiving)) return partner.displayName;
+    return formatMinimalLivingLabel(partner.displayName, partner.birthYear);
+  });
+  const displayName =
+    redactedNames.filter(Boolean).join(" & ").trim() || args.displayName;
+  return { displayName, xref: args.xref };
+}

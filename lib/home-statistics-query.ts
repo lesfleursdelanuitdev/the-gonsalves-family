@@ -6,7 +6,12 @@ import type {
   HomeStatDonutChart,
   HomeStatSlice,
 } from "@/types/tree";
-import { mapIndividualRow, type IndividualRowForMapping } from "@/lib/individual-mapper";
+import {
+  redactHomeStatisticsFamilyExample,
+  redactHomeStatisticsIndividualExample,
+} from "@/lib/auth/living-person-privacy";
+import type { PublicViewer } from "@/lib/auth/public-viewer-context";
+import { mapIndividualRow, type IndividualRowForMapping, yearFromDisplayDateString } from "@/lib/individual-mapper";
 import {
   fullPlaceLabelFromGedcomPlace,
   individualBirthDeathPlaceSelect,
@@ -279,7 +284,7 @@ async function buildHomeMiniCharts(
 export async function buildHomeStatisticsPayload(
   prisma: PrismaClient,
   fileUuid: string,
-  options?: { analyticsSeed?: number | null; treeId?: string | null },
+  options?: { analyticsSeed?: number | null; treeId?: string | null; viewer?: PublicViewer },
 ): Promise<HomeStatisticsPayload> {
   const [individuals, families, surnames, places] = await Promise.all([
     prisma.gedcomIndividual.count({ where: { fileUuid } }),
@@ -358,7 +363,14 @@ export async function buildHomeStatisticsPayload(
       const hn = hm ? displayIndividualName(hm) : "";
       const wn = wm ? displayIndividualName(wm) : "";
       const displayName = [hn, wn].filter(Boolean).join(" & ").trim() || "Family";
-      return { displayName, xref: fam.xref };
+      const partners = [hm, wm]
+        .filter((person): person is NonNullable<typeof person> => person != null)
+        .map((person) => ({
+          displayName: displayIndividualName(person),
+          isLiving: person.isLiving,
+          birthYear: yearFromDisplayDateString(person.birthDate),
+        }));
+      return { displayName, xref: fam.xref, partners };
     })(),
     (async () => {
       const c = await prisma.gedcomSurname.count({ where: { fileUuid } });
@@ -400,14 +412,39 @@ export async function buildHomeStatisticsPayload(
     distribution,
     examples: {
       individual: exInd
-        ? { displayName: displayIndividualName(exInd), xref: exInd.xref }
+        ? redactHomeStatisticsIndividualExample(
+            {
+              displayName: displayIndividualName(exInd),
+              xref: exInd.xref,
+              isLiving: exInd.isLiving,
+              birthYear: yearFromDisplayDateString(exInd.birthDate),
+            },
+            options?.viewer ?? { kind: "anonymous" },
+          )
         : null,
-      family: exFam,
+      family: exFam
+        ? redactHomeStatisticsFamilyExample(
+            {
+              displayName: exFam.displayName,
+              xref: exFam.xref,
+              partners: exFam.partners,
+            },
+            options?.viewer ?? { kind: "anonymous" },
+          )
+        : null,
       surname: exSur,
       place: exPla,
     },
     meetIndividual: meet
-      ? { displayName: displayIndividualName(meet), xref: meet.xref }
+      ? redactHomeStatisticsIndividualExample(
+          {
+            displayName: displayIndividualName(meet),
+            xref: meet.xref,
+            isLiving: meet.isLiving,
+            birthYear: yearFromDisplayDateString(meet.birthDate),
+          },
+          options?.viewer ?? { kind: "anonymous" },
+        )
       : null,
     charts:
       options?.analyticsSeed != null &&

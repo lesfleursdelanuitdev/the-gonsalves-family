@@ -1,5 +1,12 @@
 import { loadPublicFamiliesByIds } from "@/lib/families/load-public-families";
 import { loadPublicIndividualsByIds } from "@/lib/individuals/load-public-individuals";
+import { loadIndividualPrivacyHintsByIds } from "@/lib/individuals/load-individual-living-status";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import {
+  collectUpcomingEventIndividualIds,
+  redactPublicFamilyForAnniversaryViewer,
+  redactUpcomingAnniversaryMonthGroupsForViewer,
+} from "./apply-upcoming-anniversary-living-privacy";
 import {
   buildUpcomingAnniversaryGroups,
   formatUpcomingWindowRange,
@@ -35,17 +42,29 @@ export async function loadUpcomingAnniversariesPageData(): Promise<UpcomingAnniv
     ),
   ];
 
-  const [people, families] = await Promise.all([
+  const viewer = await resolvePublicViewer();
+  const privacyIds = collectUpcomingEventIndividualIds(result.events);
+  const hints = await loadIndividualPrivacyHintsByIds(privacyIds);
+
+  const [people, familiesRaw] = await Promise.all([
     loadPublicIndividualsByIds(individualIds),
     loadPublicFamiliesByIds(familyIds),
   ]);
 
-  const monthGroups = buildUpcomingAnniversaryGroups({
-    window: result.window,
-    events: result.events,
-    peopleById: new Map(people.map((p) => [p.id, p])),
-    familiesById: new Map(families.map((f) => [f.id, f])),
-  });
+  const families = familiesRaw.map((family) =>
+    redactPublicFamilyForAnniversaryViewer(family, viewer, hints),
+  );
+
+  const monthGroups = redactUpcomingAnniversaryMonthGroupsForViewer(
+    buildUpcomingAnniversaryGroups({
+      window: result.window,
+      events: result.events,
+      peopleById: new Map(people.map((p) => [p.id, p])),
+      familiesById: new Map(families.map((f) => [f.id, f])),
+    }),
+    viewer,
+    hints,
+  );
 
   return {
     window: result.window,
