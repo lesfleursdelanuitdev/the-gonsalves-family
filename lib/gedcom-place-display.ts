@@ -4,7 +4,12 @@
  *
  * When a GedcomPlace is linked to a ResolvedPlace (via resolvedLink), the resolved displayName is
  * preferred as the canonical label and the resolved coordinates are preferred for maps.
+ *
+ * The label-building logic itself lives in `@ligneous/gedcom-events` ({@link fullPlaceLabel}) so every
+ * repo formats places identically — see the "Full place names" rule in the workspace CLAUDE.md.
  */
+
+import { fullPlaceLabel } from "@ligneous/gedcom-events";
 
 export const GEDCOM_PLACE_DISPLAY_SELECT = {
   original: true,
@@ -17,6 +22,8 @@ export const GEDCOM_PLACE_DISPLAY_SELECT = {
       resolvedPlace: {
         select: {
           displayName: true,
+          // Required: fullPlaceLabel only uses displayName when status is "active".
+          status: true,
           latitude: true,
           longitude: true,
         },
@@ -33,44 +40,21 @@ export type GedcomPlaceDisplayRow = {
   country: string | null;
   /** Present when the GedcomPlace has been resolved to a canonical ResolvedPlace. */
   resolvedLink?: {
-    resolvedPlace: { displayName: string; latitude: unknown; longitude: unknown };
+    resolvedPlace: { displayName: string; status: string; latitude: unknown; longitude: unknown };
   } | null;
 };
 
 /**
  * Prefer the curated ResolvedPlace displayName when available.
  * Falls back to comma-joined structured fields, then `original` PLAC text.
+ *
+ * Thin wrapper over the shared {@link fullPlaceLabel} so this app's existing call
+ * sites keep working while the logic stays in one place.
  */
 export function fullPlaceLabelFromGedcomPlace(
   place: GedcomPlaceDisplayRow | null | undefined
 ): string | null {
-  if (!place) return null;
-
-  // Resolved canonical name takes priority over raw GEDCOM text
-  const resolvedName = place.resolvedLink?.resolvedPlace?.displayName?.trim();
-  if (resolvedName) return resolvedName;
-  const parts = [place.name, place.county, place.state, place.country]
-    .map((s) => (typeof s === "string" ? s.trim() : ""))
-    .filter((s): s is string => s.length > 0);
-  const seen = new Set<string>();
-  const unique: string[] = [];
-  for (const p of parts) {
-    const k = p.toLowerCase();
-    if (seen.has(k)) continue;
-    seen.add(k);
-    unique.push(p);
-  }
-  const structured = unique.length > 0 ? unique.join(", ") : "";
-  const orig = place.original?.trim() ?? "";
-
-  const segmentCount = (s: string) =>
-    s.split(",").map((x) => x.trim()).filter(Boolean).length;
-
-  if (orig && structured) {
-    return segmentCount(orig) > segmentCount(structured) ? orig : structured;
-  }
-  if (structured) return structured;
-  return orig.length > 0 ? orig : null;
+  return fullPlaceLabel(place);
 }
 
 /** Include on `GedcomIndividual` Prisma `select` so {@link mapIndividualRow} can build full place lines. */

@@ -5,6 +5,7 @@
  */
 
 import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
+import { fullPlaceLabel } from "@ligneous/gedcom-events";
 
 type EventJoinRow = Record<string, unknown> | undefined;
 
@@ -29,9 +30,9 @@ export function dateDisplayFromJoinedEventRow(row: EventJoinRow): string | null 
 
 export function placeDisplayFromJoinedEventRow(row: EventJoinRow): string | null {
   if (!row) return null;
-  const name = row.place_name as string | null | undefined;
-  const orig = row.place_original as string | null | undefined;
-  const n = typeof name === "string" ? name.trim() : "";
-  const o = typeof orig === "string" ? orig.trim() : "";
-  return n || o || null;
+  // Always show the full place name, never the single-segment `place_name`.
+  return fullPlaceLabel({
+    original: row.place_original as string | null | undefined,
+    name: row.place_name as string | null | undefined,
+  });
 }
