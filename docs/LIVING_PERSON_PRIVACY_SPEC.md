@@ -34,7 +34,9 @@ Complements the privacy policy on `/privacy` (“Family Tree And Living People�
 | **Minimal living disclosure** | Display name + birth **year** only (`b. YYYY`). No portrait, profile link, places, full dates, death fields, counts, biography, or media attribution. |
 | **Login wall** | Redirect to `/login?returnTo=<safe-path>`; after login, return to the requested resource. Details: [PUBLIC_SITE_AUTH_UX_SPEC.md](./PUBLIC_SITE_AUTH_UX_SPEC.md). |
 | **Generated individual album** | `/media/album-view?kind=generated&type=individual&id=<individualId>`. |
-| **Curated album attached to a living person** | Public curated album (`/media/album/[albumId]`) linked from that living individual’s profile media section, or designated as their primary curated album in the public profile payload. |
+| **Generated family album (scrapbook)** | `/media/album-view?kind=generated&type=family&id=<familyId>`. |
+| **Living-linked entity** | A curated album, generated scrapbook, or GEDCOM media item whose **linked people set** (§6.6) is non-empty and every member is living. |
+| **Person link** | A GEDCOM association that ties an entity to an individual, or to a family’s husband/wife partners (indirect living-person link). |
 
 ---
 
@@ -42,7 +44,7 @@ Complements the privacy policy on `/privacy` (“Family Tree And Living People�
 
 | Viewer | Living people |
 |--------|----------------|
-| **Anonymous** | Minimal disclosure on lists and tree; **login wall** on profiles and living-person albums; omit living names from “featured people” on shared media |
+| **Anonymous** | Minimal disclosure on lists and tree; **login wall** on profiles and **living-linked** albums/media (§6.6); omit living names from “featured people” on otherwise-public media (§6.7) |
 | **Authenticated** | **Full access** — same presentation as deceased individuals today |
 
 ---
@@ -147,55 +149,98 @@ APIs: `/api/tree/advanced-search`, `/api/tree/advanced-search/general`, list loa
 
 ---
 
-### 6.6 Media — “People featured”
+### 6.6 All-living-linked gate (albums & media)
+
+**In scope:** curated albums, generated scrapbooks (individual and family), and GEDCOM media in every public bucket — **photos**, **documents**, **audio**, and **video**.
+
+**Routes (examples):** `/media/album/[albumId]`, `/media/album-view?kind=generated&…`, `/archive/photos`, `/archive/documents`, `/archive/audio`, `/archive/videos`, `/media`, `/media/[id]`.
+
+#### Linked people set
+
+For each entity, build the set of people linked through GEDCOM **individual** or **family** associations only:
+
+| Link type | People included |
+|-----------|-----------------|
+| Individual media / profile media | That individual |
+| Family media / profile media | The family’s husband and wife (when present) |
+
+**Not included in this set:** tags, places, events, sources, notes, or other metadata. Those associations do **not** exempt an entity from gating and do **not** add people to the set.
+
+For a **curated album**, union the linked-people sets of **all media items** in the album.
+
+For a **generated individual scrapbook**, the subject individual is the linked person.
+
+For a **generated family scrapbook**, the family’s husband and wife are the linked people.
+
+#### Decision table
+
+| Linked people | Anonymous viewer | Authenticated viewer |
+|---------------|------------------|----------------------|
+| **None** | Public (full access) | Public |
+| **At least one deceased** | Public | Public |
+| **Non-empty and all living** | **Guarded** (§6.6.1) | Full access |
+
+Implementation: `lib/auth/living-exclusive-media.ts` (`collectLinkedPeople`, `areAllLinkedPeopleLiving`, `shouldGateAllLivingLinkedEntity`).
+
+#### 6.6.1 Guarded behavior (anonymous)
+
+| Surface | Behavior |
+|---------|----------|
+| **Media list** (`/archive/*`, `/media` hub) | Show card with placeholder thumbnail (`/images/personCardBg.png`); no lightbox; click → login wall |
+| **Media detail** (`/media/[id]`, `/api/media-view/[id]`) | 401 + `loginUrl`; no file URL in payload |
+| **Curated album list** | Album remains listed; cover uses placeholder image |
+| **Curated album view** (`/media/album/[albumId]`) | Login wall before album JSON |
+| **Generated individual/family scrapbook lists** | **Omit** from anonymous browse lists (same as living-subject individual scrapbooks today) |
+| **Generated scrapbook view** | Login wall before album JSON |
+
+Authenticated viewers see real thumbnails, files, and album contents.
+
+---
+
+### 6.7 Media — “People featured” (otherwise-public media)
 
 **Routes:** `/media/[id]`, album lightbox, `PublicAlbumLayout`.
 
-When media is visible elsewhere and tags people:
+When media is **public** under §6.6 (not all-living-linked) and still tags people:
 
 | Viewer | Living tagged person |
 |--------|----------------------|
 | Anonymous | **Omit** from featured-people list. **Photo stays visible.** |
 | Authenticated | Listed with name and links |
 
-Data: `linkedIndividuals` in media detail, `resolve-public-album-view-model.ts`, `/api/media-view/[id]`.
+Data: `linkedIndividuals` in media detail, `resolve-public-album-view-model.ts`, `apply-public-album-living-privacy.ts`, `/api/media-view/[id]`.
 
 ---
 
-### 6.7 Generated albums — living subject
+### 6.8 Generated scrapbooks — living subjects
 
-**Route:** `/media/album-view?kind=generated&type=individual&id=<livingId>`
+**Routes:** `/media/album-view?kind=generated&type=individual|family&id=…`
 
-| Viewer | Behavior |
-|--------|----------|
-| Anonymous | Login wall |
-| Authenticated | Full album |
+Covered by §6.6:
 
-API: 401 when anonymous + living subject. Other generated types stay public in v1 except `type=individual` for living people.
+- **Individual:** gated when the subject is living.
+- **Family:** gated when every linked partner (husband/wife) is living.
+
+Other generated types (event, place, date, tag, note) remain public in v1 unless future rules say otherwise.
 
 ---
 
-### 6.8 Curated albums attached to living people
+### 6.9 Curated albums
 
 **Route:** `/media/album/[albumId]`
 
-| Viewer | Behavior |
-|--------|----------|
-| Anonymous | Login wall when album is attached (see §3) |
-| Authenticated | Full album |
-
-Albums that only **tag** a living person in some photos but are not **attached** stay public; apply §6.6 for names.
+Covered by §6.6: gated when **every person linked across all album media** is living — not merely when the album is “attached” to one living profile.
 
 ---
 
-### 6.9 Ahnentafel & charts
+### 6.10 Ahnentafel & charts
 
 - Anonymous: name + birth year; no profile link for living entries.
 - Authenticated: full entry with links.
 
 ---
 
-### 6.10 Statistics & anniversaries
+### 6.11 Statistics & anniversaries
 
 | Data | Anonymous |
 |------|-----------|
@@ -212,8 +257,10 @@ Protected for **anonymous** viewers only:
 | Resource | Condition |
 |----------|-----------|
 | `/individuals/[id]` | Person is living |
-| `/media/album-view?kind=generated&type=individual&id=…` | Subject is living |
-| `/media/album/[albumId]` | Curated album attached to living person |
+| `/media/album-view?kind=generated&type=individual&id=…` | Subject individual is living |
+| `/media/album-view?kind=generated&type=family&id=…` | All family partners linked to the scrapbook are living |
+| `/media/album/[albumId]` | All people linked across album media are living (§6.6) |
+| `/media/[id]`, `/archive/photos`, `/archive/documents`, `/archive/audio`, `/archive/videos` | Media item’s linked-people set is non-empty and all living (§6.6) |
 
 **Document requests:** server `redirect()` to login.
 
@@ -263,8 +310,7 @@ function redactLivingInPayload<T>(payload: T, viewer: PublicViewer): T;
 | Family UI | `src/components/families/FamilyMemberCard.tsx` |
 | Individual relations | `IndividualProfilePage.tsx`, `MobileIndividualProfile.tsx` |
 | Tree | `src/app/api/tree/**`, `PersonDetailOverlay/*` |
-| Albums | `lib/album/resolve-public-album-view-model.ts`, `src/app/api/album-view/route.ts` |
-| Media | `src/app/media/[id]/page.tsx`, `src/app/api/media-view/[id]/route.ts` |
+| Albums & media | `lib/auth/living-exclusive-media.ts`, `lib/auth/gate-living-album-access.ts`, `lib/album/load-public-albums-page-data.ts`, `lib/media/load-public-media.ts`, `resolve-public-album-view-model.ts`, `src/app/api/album-view/route.ts`, `src/app/api/media-view/[id]/route.ts` |
 | Search | `AdvancedSearchPage.tsx`, advanced-search routes |
 
 ---
@@ -276,8 +322,10 @@ function redactLivingInPayload<T>(payload: T, viewer: PublicViewer): T;
 - [ ] Family page living member: name + birth year only; no photo; no profile button.
 - [ ] Living relation on deceased profile: same minimal rule.
 - [ ] Tree: no living photos for anonymous; full for authenticated.
-- [ ] Media: living omitted from “People featured” for anonymous; photo visible.
-- [ ] Generated + attached curated albums: login wall for anonymous.
+- [ ] Media (photos, documents, audio, video): all-living-linked items show placeholder + login for anonymous; full file for authenticated.
+- [ ] Curated albums: login wall when all linked people across album media are living.
+- [ ] Generated individual & family scrapbooks: login wall / hidden list when all linked people are living.
+- [ ] Otherwise-public media: living omitted from “People featured” for anonymous.
 - [ ] Authenticated: no redaction anywhere.
 
 ---
@@ -291,8 +339,8 @@ function redactLivingInPayload<T>(payload: T, viewer: PublicViewer): T;
 | **P2** | Family + relation minimal cards |
 | **P3** | Tree viewer + tree APIs |
 | **P4** | Search/list redaction |
-| **P5** | Media featured-people filter |
-| **P6** | Album login walls |
+| **P5** | Media featured-people filter (§6.7) |
+| **P6** | All-living-linked album & media gates (§6.6) |
 
 Depends on auth UX (session resolution) from [PUBLIC_SITE_AUTH_UX_SPEC.md](./PUBLIC_SITE_AUTH_UX_SPEC.md) — can stub viewer as anonymous until P7 there lands.
 
@@ -311,3 +359,4 @@ Depends on auth UX (session resolution) from [PUBLIC_SITE_AUTH_UX_SPEC.md](./PUB
 | Date | Change |
 |------|--------|
 | 2026-06-15 | Split from combined spec; initial privacy spec |
+| 2026-06-17 | §6.6 unified all-living-linked gate for albums, scrapbooks, and all media buckets; family indirect links |

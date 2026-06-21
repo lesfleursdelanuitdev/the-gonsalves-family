@@ -1,4 +1,4 @@
-import { authCookieName, getCurrentUserFromToken, type SessionUser } from "@ligneous/auth";
+import { authCookieName, getCurrentUserFromToken } from "@ligneous/auth";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/database/prisma";
 import {
@@ -6,21 +6,14 @@ import {
   decodeReturnToParam,
   sanitizePublicReturnPathExcludingLogin,
 } from "@/lib/auth/public-return-path";
+import type { PublicViewer } from "@/lib/auth/public-viewer";
 
-export { buildLoginWallPath };
-
-export type PublicViewer =
-  | { kind: "anonymous" }
-  | { kind: "authenticated"; user: SessionUser };
-
-export function isAuthenticatedViewer(viewer: PublicViewer): viewer is { kind: "authenticated"; user: SessionUser } {
-  return viewer.kind === "authenticated";
-}
-
-export function canViewFullIndividual(viewer: PublicViewer, isLiving: boolean): boolean {
-  if (!isLiving) return true;
-  return isAuthenticatedViewer(viewer);
-}
+export {
+  buildLoginWallPath,
+  canViewFullIndividual,
+  isAuthenticatedViewer,
+  type PublicViewer,
+} from "@/lib/auth/public-viewer";
 
 export async function resolvePublicViewer(): Promise<PublicViewer> {
   const jar = await cookies();

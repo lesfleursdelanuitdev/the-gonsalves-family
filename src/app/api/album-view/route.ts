@@ -9,6 +9,7 @@ import {
 import { applyAlbumViewModelLivingPrivacy } from "@/lib/album/apply-public-album-living-privacy";
 import {
   gateCuratedAlbumAttachedToLivingAccess,
+  gateGeneratedFamilyAlbumAccess,
   gateLivingIndividualAlbumAccess,
 } from "@/lib/auth/gate-living-album-access";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
@@ -73,6 +74,11 @@ export async function GET(request: NextRequest) {
       if (source.type === "individual") {
         const returnPath = `/media/album-view?kind=generated&type=individual&id=${encodeURIComponent(source.individualId)}`;
         const accessDenied = await gateLivingIndividualAlbumAccess(source.individualId, returnPath);
+        if (accessDenied) return accessDenied;
+      }
+      if (source.type === "family") {
+        const returnPath = `/media/album-view?kind=generated&type=family&id=${encodeURIComponent(source.familyId)}`;
+        const accessDenied = await gateGeneratedFamilyAlbumAccess(prisma, fileUuid, source.familyId, returnPath);
         if (accessDenied) return accessDenied;
       }
 

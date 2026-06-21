@@ -1,6 +1,6 @@
 import type { AlbumViewModel } from "@ligneous/album-view";
 import { filterFeaturedIndividualsForViewer } from "@/lib/auth/living-person-privacy";
-import type { PublicViewer } from "@/lib/auth/public-viewer-context";
+import type { PublicViewer } from "@/lib/auth/public-viewer";
 
 type LinkedPerson = {
   id: string;

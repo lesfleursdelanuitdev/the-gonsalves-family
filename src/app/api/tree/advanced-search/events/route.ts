@@ -248,9 +248,12 @@ export async function GET(req: NextRequest) {
       }),
       prisma.gedcomIndividualEvent.findMany({
         where: { eventId: { in: eventIds } },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
           eventId: true,
           role: true,
+          participantKind: true,
+          sortOrder: true,
           individual: { select: { id: true, fullName: true } },
         },
       }),
@@ -271,13 +274,14 @@ export async function GET(req: NextRequest) {
     ]);
 
     // Build lookup maps
-    const indsByEvent = new Map<string, { id: string; displayName: string; role: string; profileHref: string }[]>();
+    const indsByEvent = new Map<string, { id: string; displayName: string; role: string; participantKind: string; profileHref: string }[]>();
     for (const row of linkedIndRows) {
       const arr = indsByEvent.get(row.eventId) ?? [];
       arr.push({
         id: row.individual.id,
         displayName: formatGedcomFullNameForDisplay(row.individual.fullName),
         role: row.role,
+        participantKind: row.participantKind,
         profileHref: `/individuals/${encodeURIComponent(row.individual.id)}`,
       });
       indsByEvent.set(row.eventId, arr);

@@ -13,6 +13,9 @@ import {
   Users,
 } from "lucide-react";
 import type { MediaBucket, MediaLinkKind, MediaListItem } from "./types";
+import { LIVING_MEDIA_PLACEHOLDER_COVER } from "@/lib/auth/living-media-constants";
+
+const RESTRICTED_THUMB = LIVING_MEDIA_PLACEHOLDER_COVER;
 
 const LINK_ICON: Record<MediaLinkKind, typeof User> = {
   person: User,
@@ -31,6 +34,23 @@ const BUCKET_ICON: Record<Exclude<MediaBucket, "image">, typeof FileText> = {
 const MAX_CHIPS = 4;
 
 function MediaThumb({ item }: { item: MediaListItem }) {
+  if (item.privacyRestricted) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Image
+          src={RESTRICTED_THUMB}
+          alt=""
+          fill
+          className="object-cover object-center sepia-[0.28] saturate-[0.72]"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(247,241,228,0.06),rgba(64,41,24,0.18))]" />
+        <p className="relative z-10 rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-white">
+          Sign in to view
+        </p>
+      </div>
+    );
+  }
   if (item.bucket === "image") {
     return (
       <>

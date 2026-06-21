@@ -21,6 +21,7 @@ import { SITE_NAV_GROUPS } from "@/components/homepage/HeroAndMenu/Navbar/site-n
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { loadPublicAlbumsPageData } from "@/lib/album/load-public-albums-page-data";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import type {
   CuratedAlbum,
   GeneratedAlbum,
@@ -180,12 +181,13 @@ function ScrapbookCard({ album }: { album: GeneratedAlbum }) {
 
 export default async function FamilyArchivePage() {
   const fileUuid = await resolveTreeFileUuid();
+  const viewer = await resolvePublicViewer();
 
   let albumsData: PublicAlbumsPageData = EMPTY_ALBUMS_DATA;
   let latestStories: StoryListItem[] = [];
   try {
     [albumsData, latestStories] = await Promise.all([
-      fileUuid ? loadPublicAlbumsPageData(prisma, fileUuid) : Promise.resolve(EMPTY_ALBUMS_DATA),
+      fileUuid ? loadPublicAlbumsPageData(prisma, fileUuid, viewer) : Promise.resolve(EMPTY_ALBUMS_DATA),
       fetchPublishedStoriesList([StoryKind.story, StoryKind.folklore]).then((s) => s.slice(0, 3)),
     ]);
   } catch {

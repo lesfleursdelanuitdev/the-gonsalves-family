@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildLoginWallPath } from "@/lib/auth/public-viewer-context";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 
 export type AuthRequiredBody = {
   error: string;

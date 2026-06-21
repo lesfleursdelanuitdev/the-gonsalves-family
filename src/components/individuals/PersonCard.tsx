@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarCheck, GitBranch, MapPin, User, UsersRound } from "lucide-react";
 import { CardOccasionRow } from "@/components/cards/CardOccasionRow";
 import type { CardOccasionHighlight } from "@/components/cards/card-occasion";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
 import type { PublicIndividual } from "./types";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
@@ -14,6 +15,11 @@ function lifespanLabel(person: PublicIndividual): string {
   const born = person.birthYear ? String(person.birthYear) : "Unknown";
   const died = person.deathYear ? String(person.deathYear) : "Present";
   return `${born} - ${died}`;
+}
+
+function restrictedLifespanLabel(birthYear: number | null): string {
+  if (birthYear == null) return "Birth year unknown";
+  return `b. ${birthYear}`;
 }
 
 function initials(name: string): string {
@@ -44,21 +50,21 @@ export function PersonCard({
   /** When set (e.g. upcoming anniversaries), replaces Places / Age / Children metrics. */
   occasion?: CardOccasionHighlight;
 }) {
-  const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
+  const { shouldShowMinimalLiving } = useLivingPrivacyDisplay();
   const restricted = shouldShowMinimalLiving(person.isLiving);
   const compactHeader = Boolean(occasion);
-
-  if (restricted) {
-    return (
-      <article className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated p-4 shadow-[0_8px_24px_rgba(60,45,25,0.08)]">
-        <h3 className="break-words font-heading text-xl font-semibold leading-tight text-heading">
-          {formatMinimalLivingLabel(person.fullName, person.birthYear)}
-        </h3>
-        {occasion ? <CardOccasionRow occasion={{ ...occasion, subtitle: occasion.eventType === "BIRT" ? "Birthday" : occasion.subtitle }} compact /> : null}
-        <p className="mt-3 text-sm text-muted">Sign in to view this person&apos;s profile.</p>
-      </article>
-    );
-  }
+  const portraitSrc = restricted ? null : person.portraitSrc;
+  const displayName = person.fullName;
+  const displayLifespan = restricted
+    ? restrictedLifespanLabel(person.birthYear)
+    : lifespanLabel(person);
+  const profileHref = restricted
+    ? buildLoginWallPath(`/individuals/${person.id}`)
+    : `/individuals/${encodeURIComponent(person.id)}`;
+  const occasionHighlight =
+    occasion && restricted && occasion.eventType === "BIRT"
+      ? { ...occasion, subtitle: "Birthday" }
+      : occasion;
 
   return (
     <article className="group min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/80 bg-surface-elevated shadow-[0_8px_24px_rgba(60,45,25,0.08)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(60,45,25,0.14)]">
@@ -67,11 +73,11 @@ export function PersonCard({
           compactHeader ? "hidden aspect-[5/3] sm:block" : "aspect-[4/5]"
         }`}
       >
-        {person.portraitSrc ? (
+        {portraitSrc ? (
           <>
             <Image
-              src={person.portraitSrc}
-              alt={person.fullName}
+              src={portraitSrc}
+              alt={displayName}
               fill
               className="object-cover sepia-[0.2] transition duration-500 group-hover:scale-[1.03]"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -108,25 +114,25 @@ export function PersonCard({
       <div className={`min-w-0 ${compactHeader ? "space-y-2 p-3" : "space-y-4 p-4 sm:p-5"}`}>
         {compactHeader ? (
           <div className="flex min-w-0 items-start gap-2.5">
-            <PersonInlineAvatar portraitSrc={person.portraitSrc} fullName={person.fullName} size="lg" />
+            <PersonInlineAvatar portraitSrc={portraitSrc} fullName={person.fullName} size="lg" />
             <div className="min-w-0 flex-1 space-y-0.5">
               <h3 className="break-words font-heading text-lg font-semibold leading-tight text-heading">
-                {person.fullName}
+                {displayName}
               </h3>
-              <p className="text-xs text-muted">{lifespanLabel(person)}</p>
+              <p className="text-xs text-muted">{displayLifespan}</p>
             </div>
           </div>
         ) : (
           <div className="min-w-0 space-y-0.5">
             <h3 className="break-words font-heading text-xl font-semibold leading-tight text-heading">
-              {person.fullName}
+              {displayName}
             </h3>
-            <p className="text-sm text-muted">{lifespanLabel(person)}</p>
+            <p className="text-sm text-muted">{displayLifespan}</p>
           </div>
         )}
 
-        {occasion ? (
-          <CardOccasionRow occasion={occasion} compact />
+        {occasionHighlight ? (
+          <CardOccasionRow occasion={occasionHighlight} compact />
         ) : (
           <div className="grid grid-cols-3 divide-x divide-border-subtle/70 border-y border-border-subtle/70 py-3">
             <div className="min-w-0 px-2 first:pl-0">
@@ -151,7 +157,7 @@ export function PersonCard({
 
         <div className={`flex min-w-0 gap-2 ${compactHeader ? "flex-row sm:flex-col" : "flex-col"}`}>
           <Link
-            href={`/individuals/${encodeURIComponent(person.id)}`}
+            href={profileHref}
             aria-label={compactHeader ? "View profile" : undefined}
             className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg ${
               compactHeader ? "flex-1 sm:w-full" : "w-full"

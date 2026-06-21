@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
+import { resolveEventPrimaryParticipants } from "@ligneous/gedcom-events";
 
 export const UPCOMING_EVENT_TYPES = ["BIRT", "DEAT", "MARR"] as const;
 export type UpcomingEventType = (typeof UPCOMING_EVENT_TYPES)[number];
@@ -85,8 +86,11 @@ export async function queryUpcomingEvents(): Promise<{
         select: { original: true, name: true },
       },
       individualEvents: {
-        take: 1,
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
+          participantKind: true,
+          role: true,
+          sortOrder: true,
           individual: {
             select: { id: true, xref: true, fullName: true },
           },
@@ -118,8 +122,13 @@ export async function queryUpcomingEvents(): Promise<{
       return ordinalInWindow(ord, startOrdinal, endOrdinal);
     })
     .map((row) => {
-      const individual = row.individualEvents[0]?.individual;
+      const resolved = resolveEventPrimaryParticipants({
+        individualEvents: row.individualEvents,
+        familyEvents: row.familyEvents,
+      });
       const family = row.familyEvents[0]?.family;
+      const primary = resolved.individuals[0];
+
       return {
         id: row.id,
         eventType: row.eventType as UpcomingEventType,
@@ -135,13 +144,14 @@ export async function queryUpcomingEvents(): Promise<{
         place: row.place
           ? { original: row.place.original, name: row.place.name }
           : null,
-        individual: individual
-          ? {
-              id: individual.id,
-              xref: individual.xref,
-              fullName: individual.fullName ?? individual.xref,
-            }
-          : null,
+        individual:
+          resolved.source !== "family-partners" && primary
+            ? {
+                id: primary.id,
+                xref: primary.xref ?? "",
+                fullName: primary.fullName ?? primary.xref ?? "",
+              }
+            : null,
         family: family
           ? {
               id: family.id,

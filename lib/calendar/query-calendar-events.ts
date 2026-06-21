@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
+import { resolveEventPrimaryParticipants } from "@ligneous/gedcom-events";
 
 export type CalendarEventType = "BIRT" | "DEAT" | "MARR";
 
@@ -31,8 +32,11 @@ export async function queryCalendarEvents(
       eventType: true,
       date: { select: { year: true, day: true } },
       individualEvents: {
-        take: 1,
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
+          participantKind: true,
+          role: true,
+          sortOrder: true,
           individual: { select: { id: true, xref: true, fullName: true } },
         },
       },
@@ -58,20 +62,24 @@ export async function queryCalendarEvents(
     const day = row.date?.day;
     if (!day) continue;
 
-    const individual = row.individualEvents[0]?.individual;
+    const resolved = resolveEventPrimaryParticipants({
+      individualEvents: row.individualEvents,
+      familyEvents: row.familyEvents,
+    });
     const family = row.familyEvents[0]?.family;
 
     let displayName: string;
     let profileHref: string;
 
-    if (individual) {
-      displayName = formatGedcomFullNameForDisplay(individual.fullName ?? individual.xref);
-      profileHref = `/individuals/${individual.id}`;
-    } else if (family) {
+    if (resolved.source === "family-partners" && family) {
       const h = formatGedcomFullNameForDisplay(family.husband?.fullName ?? family.husband?.xref ?? null);
       const w = formatGedcomFullNameForDisplay(family.wife?.fullName ?? family.wife?.xref ?? null);
       displayName = h && w ? `${h} & ${w}` : h || w || family.xref;
       profileHref = `/families/${family.id}`;
+    } else if (resolved.individuals[0]) {
+      const primary = resolved.individuals[0];
+      displayName = formatGedcomFullNameForDisplay(primary.fullName ?? primary.xref);
+      profileHref = `/individuals/${primary.id}`;
     } else {
       continue;
     }
@@ -86,7 +94,6 @@ export async function queryCalendarEvents(
     });
   }
 
-  // Sort each day's events: BIRT first, MARR second, DEAT last; then alphabetically
   const ORDER: Record<CalendarEventType, number> = { BIRT: 0, MARR: 1, DEAT: 2 };
   for (const events of Object.values(byDay)) {
     events.sort(

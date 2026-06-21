@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Filter, Search } from "lucide-react";
 import { ListPageFilterSheet, ListPageMobileControls } from "@/components/list-page";
 import { PublicAlbumLightbox } from "@/components/album/PublicAlbumLayout";
 import { Footer } from "@/components/homepage";
+import { redirectToLoginWall } from "@/lib/auth/client-auth-required";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
 import {
@@ -112,17 +113,22 @@ export function MediaListPage({ items, bucket }: { items: MediaListItem[]; bucke
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [isNarrow, safePage, totalPages]);
 
-  // Image lightbox navigates over the full filtered+sorted list.
-  const lightboxItems = useMemo(() => filtered.map((p) => p.media), [filtered]);
+  // Image lightbox navigates over unrestricted items in the filtered list.
+  const lightboxItems = useMemo(
+    () => filtered.filter((item) => !item.privacyRestricted).map((p) => p.media),
+    [filtered],
+  );
   const lightboxOpen =
     lightboxIndex !== null && lightboxIndex >= 0 && lightboxIndex < lightboxItems.length;
 
   const openLightboxForId = useCallback(
     (id: string) => {
-      const i = filtered.findIndex((p) => p.id === id);
+      const item = filtered.find((p) => p.id === id);
+      if (!item || item.privacyRestricted) return;
+      const i = lightboxItems.findIndex((m) => m.id === id);
       if (i >= 0) setLightboxIndex(i);
     },
-    [filtered],
+    [filtered, lightboxItems],
   );
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
   const lightboxPrev = useCallback(() => {
@@ -160,6 +166,10 @@ export function MediaListPage({ items, bucket }: { items: MediaListItem[]; bucke
 
   const handleOpen = useCallback(
     (item: MediaListItem) => {
+      if (item.privacyRestricted && item.loginHref) {
+        redirectToLoginWall(item.loginHref);
+        return;
+      }
       if (item.bucket === "image") {
         openLightboxForId(item.id);
         return;

@@ -1,8 +1,8 @@
+import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
+import { fullPlaceLabelFromGedcomPlace, GEDCOM_PLACE_DISPLAY_SELECT } from "@/lib/gedcom-place-display";
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
-import { fullPlaceLabelFromGedcomPlace, GEDCOM_PLACE_DISPLAY_SELECT } from "@/lib/gedcom-place-display";
-import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
-import { formatNoteLinkedEventLabel } from "@ligneous/gedcom-events";
+import { formatNoteLinkedEventLabel, resolveEventPrimaryParticipants } from "@ligneous/gedcom-events";
 import type { PublicEvent, PublicEventProfile } from "@/components/events/types";
 
 function familyTitle(
@@ -26,23 +26,28 @@ const EVENT_LIST_SELECT = {
   date: { select: { original: true, year: true } },
   place: { select: { ...GEDCOM_PLACE_DISPLAY_SELECT, id: true } },
   individualEvents: {
-    take: 1,
-    select: { individual: { select: { id: true, fullName: true, xref: true } } },
+    orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }],
+    select: {
+      participantKind: true,
+      role: true,
+      sortOrder: true,
+      individual: { select: { id: true, fullName: true, xref: true } },
+    },
   },
   familyEvents: {
-    take: 1,
+    orderBy: { createdAt: "asc" as const },
     select: {
       family: {
         select: {
           id: true,
           xref: true,
-          husband: { select: { fullName: true, xref: true } },
-          wife: { select: { fullName: true, xref: true } },
+          husband: { select: { id: true, fullName: true, xref: true } },
+          wife: { select: { id: true, fullName: true, xref: true } },
         },
       },
     },
   },
-} as const;
+} ;
 
 type EventListRow = {
   id: string;
@@ -53,29 +58,41 @@ type EventListRow = {
   cause: string | null;
   date: { original: string | null; year: number | null } | null;
   place: { id: string; original: string; name: string | null; county: string | null; state: string | null; country: string | null } | null;
-  individualEvents: { individual: { id: string; fullName: string | null; xref: string } }[];
+  individualEvents: {
+    participantKind: string;
+    role: string;
+    sortOrder: number;
+    individual: { id: string; fullName: string | null; xref: string };
+  }[];
   familyEvents: {
     family: {
       id: string;
       xref: string;
-      husband: { fullName: string | null; xref: string } | null;
-      wife: { fullName: string | null; xref: string } | null;
+      husband: { id: string; fullName: string | null; xref: string } | null;
+      wife: { id: string; fullName: string | null; xref: string } | null;
     };
   }[];
 };
 
 function mapEventRow(row: EventListRow): PublicEvent {
-  const individual = row.individualEvents[0]?.individual ?? null;
-  const family = row.familyEvents[0]?.family ?? null;
+  const resolved = resolveEventPrimaryParticipants({
+    individualEvents: row.individualEvents,
+    familyEvents: row.familyEvents,
+  });
 
   let subjectName: string | null = null;
   let subjectHref: string | null = null;
-  if (individual) {
-    subjectName = formatGedcomFullNameForDisplay(individual.fullName ?? individual.xref);
-    subjectHref = `/individuals/${individual.id}`;
-  } else if (family) {
-    subjectName = familyTitle(family.husband, family.wife, family.xref);
-    subjectHref = `/families/${family.id}`;
+
+  if (resolved.source === "family-partners") {
+    const family = row.familyEvents[0]?.family;
+    if (family) {
+      subjectName = familyTitle(family.husband, family.wife, family.xref);
+      subjectHref = `/families/${family.id}`;
+    }
+  } else if (resolved.individuals[0]) {
+    const primary = resolved.individuals[0];
+    subjectName = formatGedcomFullNameForDisplay(primary.fullName ?? primary.xref ?? null);
+    subjectHref = `/individuals/${primary.id}`;
   }
 
   return {

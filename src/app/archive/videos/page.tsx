@@ -1,3 +1,4 @@
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { loadPublicMedia } from "@/lib/media/load-public-media";
 import { MediaListPage } from "@/components/media-list/MediaListPage";
 
@@ -8,6 +9,7 @@ export const metadata = {
 };
 
 export default async function ArchiveVideosPage() {
-  const items = await loadPublicMedia("video");
+  const viewer = await resolvePublicViewer();
+  const items = await loadPublicMedia("video", viewer);
   return <MediaListPage items={items} bucket="video" />;
 }

@@ -13,6 +13,7 @@ import {
   type MainPhotosViewModel,
 } from "@/lib/album/resolve-public-album-view-model";
 import { filterFeaturedIndividualsForViewer } from "@/lib/auth/living-person-privacy";
+import { gateAllLivingLinkedMediaAccess } from "@/lib/auth/living-exclusive-media";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 export async function GET(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -27,6 +28,15 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
     if (!fileUuid) {
       return NextResponse.json({ error: "Tree not configured" }, { status: 503 });
     }
+
+    const returnPath = `/media/${encodeURIComponent(mediaId)}${request.nextUrl.search}`;
+    const mediaAccessDenied = await gateAllLivingLinkedMediaAccess(
+      prisma,
+      fileUuid,
+      mediaId,
+      returnPath,
+    );
+    if (mediaAccessDenied) return mediaAccessDenied;
 
     const kindParam = (request.nextUrl.searchParams.get("kind") ?? "").trim().toLowerCase();
 
@@ -93,21 +103,25 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
                 eventType: true,
                 customType: true,
                 individualEvents: {
+                  orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
                   select: {
+                    participantKind: true,
+                    role: true,
+                    sortOrder: true,
                     individual: { select: { id: true, fullName: true, xref: true } },
                   },
-                  take: 1,
                 },
                 familyEvents: {
+                  take: 1,
                   select: {
                     family: {
                       select: {
+                        id: true,
                         husband: { select: { id: true, fullName: true, xref: true } },
                         wife: { select: { id: true, fullName: true, xref: true } },
                       },
                     },
                   },
-                  take: 1,
                 },
               },
             },

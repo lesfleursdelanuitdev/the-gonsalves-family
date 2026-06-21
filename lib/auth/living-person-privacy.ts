@@ -1,5 +1,5 @@
-import type { PublicViewer } from "@/lib/auth/public-viewer-context";
-import { canViewFullIndividual } from "@/lib/auth/public-viewer-context";
+import type { PublicViewer } from "@/lib/auth/public-viewer";
+import { canViewFullIndividual } from "@/lib/auth/public-viewer";
 import type { MappedIndividual } from "@/lib/individual-mapper";
 import { yearFromDisplayDateString } from "@/lib/individual-mapper";
 
@@ -104,10 +104,13 @@ export function redactRelationsForViewer<T extends RelationPrivacyFields>(
 
 export type SearchIndividualPrivacyFields = {
   id: string;
+  xref?: string;
   fullName?: string | null;
   displayName?: string | null;
   birthYear?: number | null;
   deathYear?: number | null;
+  sex?: string | null;
+  gender?: string | null;
   isLiving: boolean;
   portraitSrc?: string | null;
   profileHref?: string | null;

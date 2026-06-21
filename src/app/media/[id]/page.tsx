@@ -20,8 +20,10 @@ import {
 } from "lucide-react";
 import { gedcomNameToDisplayName } from "@ligneous/album-view";
 import { gedcomEventTypeDisplayLabel } from "@/lib/gedcom-event-display";
+import { resolveEventPrimaryParticipants } from "@ligneous/gedcom-events";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
 import { readJsonResponse } from "@/lib/read-json-response";
+import { handleAuthRequiredResponse } from "@/lib/auth/client-auth-required";
 import { buildPublicMediaPath, parseSourceFromSearchParams, sourceToAlbumPath } from "@/lib/album/public-album-links";
 import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
 
@@ -46,8 +48,13 @@ type MediaViewPayload = {
       id: string;
       eventType: string;
       customType: string | null;
-      individualEvents: Array<{ individual: { id: string; fullName: string | null; xref: string } | null }>;
-      familyEvents: Array<{ family: { husband: { id: string; fullName: string | null; xref: string } | null; wife: { id: string; fullName: string | null; xref: string } | null } | null }>;
+      individualEvents: Array<{
+        participantKind?: string | null;
+        role?: string | null;
+        sortOrder?: number | null;
+        individual: { id: string; fullName: string | null; xref: string } | null;
+      }>;
+      familyEvents: Array<{ family: { id: string; husband: { id: string; fullName: string | null; xref: string } | null; wife: { id: string; fullName: string | null; xref: string } | null } | null }>;
     }>;
     families: Array<{
       id: string;
@@ -85,9 +92,22 @@ function formatEventLabel(e: MediaViewPayload["media"]["events"][number]): strin
       ? (e.customType ?? "").trim()
       : gedcomEventTypeDisplayLabel(e.eventType);
 
-  const individual = e.individualEvents?.[0]?.individual;
-  if (individual) {
-    const n = gedcomNameToDisplayName(individual.fullName, individual.xref);
+  const resolved = resolveEventPrimaryParticipants({
+    individualEvents: (e.individualEvents ?? [])
+      .filter((row): row is typeof row & { individual: NonNullable<typeof row.individual> } => row.individual != null)
+      .map((row) => ({
+        participantKind: row.participantKind,
+        role: row.role,
+        sortOrder: row.sortOrder,
+        individual: row.individual,
+      })),
+    familyEvents: (e.familyEvents ?? [])
+      .filter((row): row is typeof row & { family: NonNullable<typeof row.family> } => row.family != null)
+      .map((row) => ({ family: row.family })),
+  });
+  const primary = resolved.individuals[0];
+  if (primary) {
+    const n = gedcomNameToDisplayName(primary.fullName ?? null, primary.xref ?? "");
     return `${base} of ${n}`;
   }
 
@@ -429,7 +449,10 @@ function Inner() {
       try {
         const qs = sp.toString();
         const res = await fetch(`/api/media-view/${encodeURIComponent(mediaId)}?${qs}`);
-        const body = await readJsonResponse<MediaViewPayload & { error?: string; detail?: string }>(res);
+        const body = await readJsonResponse<MediaViewPayload & { error?: string; detail?: string; requiresAuth?: boolean; loginUrl?: string }>(res);
+        if (res.status === 401 && handleAuthRequiredResponse(body, `/media/${encodeURIComponent(mediaId)}?${qs}`)) {
+          return;
+        }
         if (!res.ok) {
           const hint = body.detail ? ` ${body.detail}` : "";
           throw new Error((body.error ?? "Could not load media") + hint);

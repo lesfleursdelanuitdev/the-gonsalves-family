@@ -4,17 +4,19 @@ export function PageContainer({
   children,
   narrow,
   fullWidth,
+  className,
 }: {
   children: React.ReactNode;
   /** Journey-strip width cap (list/profile-style pages). */
   narrow?: boolean;
   /** Use full main content width (no max-w-5xl cap). */
   fullWidth?: boolean;
+  className?: string;
 }) {
   const maxWidthClass = narrow || fullWidth ? "" : "max-w-5xl";
   return (
     <div
-      className={`mx-auto w-full px-6 py-4 ${maxWidthClass}`}
+      className={`mx-auto w-full px-6 py-4 ${maxWidthClass}${className ? ` ${className}` : ""}`}
       style={narrow ? { maxWidth: NARROW_SECTION_MAX_WIDTH } : undefined}
     >
       {children}

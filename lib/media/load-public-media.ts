@@ -1,6 +1,15 @@
 import { gedcomNameToDisplayName, inferMediaBucketKind, type MediaSummary } from "@ligneous/album-view";
 import { prisma } from "@/lib/database/prisma";
 import {
+  buildMediaLoginPath,
+  isMediaLinkedOnlyToLivingPeople,
+  LIVING_MEDIA_PLACEHOLDER_COVER,
+  shouldGateAllLivingLinkedEntity,
+} from "@/lib/auth/living-exclusive-media";
+import type { PublicViewer } from "@/lib/auth/public-viewer";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
+import {
   GEDCOM_PLACE_DISPLAY_SELECT,
   fullPlaceLabelFromGedcomPlace,
 } from "@/lib/gedcom-place-display";
@@ -88,7 +97,10 @@ const MEDIA_SELECT = {
   form: true,
   createdAt: true,
   individualMedia: {
-    select: { individual: { select: { id: true, xref: true, fullName: true } } },
+    select: { individual: { select: { id: true, xref: true, fullName: true, isLiving: true } } },
+  },
+  individualProfileFor: {
+    select: { individual: { select: { id: true, xref: true, fullName: true, isLiving: true } } },
   },
   familyMedia: {
     select: {
@@ -96,8 +108,18 @@ const MEDIA_SELECT = {
         select: {
           id: true,
           xref: true,
-          husband: { select: { xref: true, fullName: true } },
-          wife: { select: { xref: true, fullName: true } },
+          husband: { select: { id: true, xref: true, fullName: true, isLiving: true } },
+          wife: { select: { id: true, xref: true, fullName: true, isLiving: true } },
+        },
+      },
+    },
+  },
+  familyProfileFor: {
+    select: {
+      family: {
+        select: {
+          husband: { select: { id: true, isLiving: true } },
+          wife: { select: { id: true, isLiving: true } },
         },
       },
     },
@@ -121,9 +143,13 @@ const MEDIA_SELECT = {
  * For the image bucket, each item also carries an album-shaped summary (with
  * linked individuals/places/dates/tags) for the shared lightbox.
  */
-export async function loadPublicMedia(bucket: MediaBucket): Promise<MediaListItem[]> {
+export async function loadPublicMedia(
+  bucket: MediaBucket,
+  viewer?: PublicViewer,
+): Promise<MediaListItem[]> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return [];
+  const resolvedViewer = viewer ?? (await resolvePublicViewer());
 
   const [rows, summaryById] = await Promise.all([
     prisma.gedcomMedia.findMany({
@@ -152,12 +178,27 @@ export async function loadPublicMedia(bucket: MediaBucket): Promise<MediaListIte
     const fileUrl = resolveGedcomMediaFileRef(m.fileRef).trim();
     if (!fileUrl) continue;
 
+    const allLinkedLiving = isMediaLinkedOnlyToLivingPeople(m);
+    const privacyRestricted = shouldGateAllLivingLinkedEntity(resolvedViewer, allLinkedLiving);
+
     const linkedTo: MediaLink[] = [];
+    const personHref = (individualId: string) =>
+      privacyRestricted
+        ? buildLoginWallPath(`/individuals/${individualId}`)
+        : `/individuals/${individualId}`;
+
     for (const l of m.individualMedia) {
       linkedTo.push({
         kind: "person",
         label: personLabel(l.individual.fullName, l.individual.xref),
-        href: `/individuals/${l.individual.id}`,
+        href: personHref(l.individual.id),
+      });
+    }
+    for (const l of m.individualProfileFor) {
+      linkedTo.push({
+        kind: "person",
+        label: personLabel(l.individual.fullName, l.individual.xref),
+        href: personHref(l.individual.id),
       });
     }
     for (const l of m.familyMedia) {
@@ -186,16 +227,26 @@ export async function loadPublicMedia(bucket: MediaBucket): Promise<MediaListIte
       });
     }
 
+    const mainPhotosQuery = "kind=mainPhotos";
+    const loginHref = privacyRestricted ? buildMediaLoginPath(m.id, mainPhotosQuery) : undefined;
+    const displayFileUrl = privacyRestricted ? LIVING_MEDIA_PLACEHOLDER_COVER : fileUrl;
+    const summary = summaryById.get(m.id) ?? basicSummary;
+    const publicSummary: MediaSummary = privacyRestricted
+      ? { ...summary, fileRef: null }
+      : summary;
+
     items.push({
       id: m.id,
       filename: fileNameFromRef(m.fileRef),
       title: m.title?.trim() || null,
       description: m.description?.trim() || null,
       bucket,
-      fileUrl,
+      fileUrl: displayFileUrl,
       linkedTo,
       createdAt: m.createdAt.toISOString(),
-      media: summaryById.get(m.id) ?? basicSummary,
+      media: publicSummary,
+      privacyRestricted,
+      loginHref,
     });
   }
 

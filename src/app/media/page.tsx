@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PublicAlbumsPage } from "@/components/albums/PublicAlbumsPage";
 import { loadPublicAlbumsPageData } from "@/lib/album/load-public-albums-page-data";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { prisma } from "@/lib/database/prisma";
 import type { PublicAlbumsPageData } from "@/lib/album/public-albums-page-types";
 import { parseMediaHubCollection } from "@/lib/media/media-hub-collection";
@@ -25,8 +26,9 @@ export default async function MediaPage({ searchParams }: { searchParams: Search
   const activeCollection = parseMediaHubCollection(sp.collection);
 
   const fileUuid = await resolveTreeFileUuid();
+  const viewer = await resolvePublicViewer();
   const data = fileUuid
-    ? await loadPublicAlbumsPageData(prisma, fileUuid)
+    ? await loadPublicAlbumsPageData(prisma, fileUuid, viewer)
     : EMPTY_ALBUMS_DATA;
 
   return (

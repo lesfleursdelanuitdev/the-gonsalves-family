@@ -1,6 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/tree/individuals/route";
+
+const { resolvePublicViewerMock } = vi.hoisted(() => ({
+  resolvePublicViewerMock: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/public-viewer-context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth/public-viewer-context")>();
+  return {
+    ...actual,
+    resolvePublicViewer: resolvePublicViewerMock,
+  };
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  resolvePublicViewerMock.mockResolvedValue({ kind: "anonymous" });
+});
 
 function req(url = "http://localhost/api/tree/individuals") {
   return new NextRequest(url);

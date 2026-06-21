@@ -1,8 +1,17 @@
 import type { PrismaClient } from "@ligneous/prisma";
 import { NextResponse } from "next/server";
 import { authRequiredResponse } from "@/lib/auth/auth-required-response";
-import { canViewFullIndividual, resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import {
+  isCuratedAlbumLinkedOnlyToLivingPeople,
+  isFamilyAllLivingPartners,
+} from "@/lib/auth/living-exclusive-media";
+import { canViewFullIndividual, isAuthenticatedViewer, resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { loadIndividualLivingStatus } from "@/lib/individuals/load-individual-living-status";
+
+const FAMILY_PARTNERS_SELECT = {
+  husband: { select: { id: true, isLiving: true } },
+  wife: { select: { id: true, isLiving: true } },
+} as const;
 
 export async function gateLivingIndividualAlbumAccess(
   individualId: string,
@@ -15,64 +24,38 @@ export async function gateLivingIndividualAlbumAccess(
   return authRequiredResponse(returnPath);
 }
 
-/**
- * Curated album is "attached" to a living person when every OBJE in the album is
- * linked via gedcomIndividualMedia to the same living individual (exclusive subject).
- */
-export async function findCuratedAlbumExclusiveLivingSubjectId(
+export async function gateGeneratedFamilyAlbumAccess(
   prisma: PrismaClient,
   fileUuid: string,
-  albumId: string,
-): Promise<string | null> {
-  const joins = await prisma.albumGedcomMedia.findMany({
-    where: { albumId, gedcomMedia: { fileUuid } },
-    select: { gedcomMediaId: true },
+  familyId: string,
+  returnPath: string,
+): Promise<NextResponse | null> {
+  const family = await prisma.gedcomFamily.findFirst({
+    where: { id: familyId, fileUuid },
+    select: FAMILY_PARTNERS_SELECT,
   });
-  const mediaIds = joins.map((j) => j.gedcomMediaId);
-  if (mediaIds.length === 0) return null;
+  if (!family || !isFamilyAllLivingPartners(family)) return null;
 
-  const links = await prisma.gedcomIndividualMedia.findMany({
-    where: { fileUuid, mediaId: { in: mediaIds } },
-    select: {
-      mediaId: true,
-      individualId: true,
-      individual: { select: { isLiving: true } },
-    },
-  });
+  const viewer = await resolvePublicViewer();
+  if (isAuthenticatedViewer(viewer)) return null;
 
-  const mediaToIndividuals = new Map<string, Set<string>>();
-  for (const link of links) {
-    let set = mediaToIndividuals.get(link.mediaId);
-    if (!set) {
-      set = new Set();
-      mediaToIndividuals.set(link.mediaId, set);
-    }
-    set.add(link.individualId);
-  }
-
-  let subjectId: string | null = null;
-  for (const mediaId of mediaIds) {
-    const inds = mediaToIndividuals.get(mediaId);
-    if (!inds || inds.size !== 1) return null;
-    const id = [...inds][0]!;
-    if (subjectId === null) subjectId = id;
-    else if (subjectId !== id) return null;
-  }
-
-  if (!subjectId) return null;
-  const living = links.find((l) => l.individualId === subjectId)?.individual.isLiving;
-  return living ? subjectId : null;
+  return authRequiredResponse(returnPath);
 }
 
+/** Curated album gated when every person linked across all album media is living (§6.6). */
 export async function gateCuratedAlbumAttachedToLivingAccess(
   prisma: PrismaClient,
   fileUuid: string,
   albumId: string,
 ): Promise<NextResponse | null> {
-  const subjectId = await findCuratedAlbumExclusiveLivingSubjectId(prisma, fileUuid, albumId);
-  if (!subjectId) return null;
-  return gateLivingIndividualAlbumAccess(
-    subjectId,
-    `/media/album/${encodeURIComponent(albumId)}`,
-  );
+  const allLiving = await isCuratedAlbumLinkedOnlyToLivingPeople(prisma, fileUuid, albumId);
+  if (!allLiving) return null;
+
+  const viewer = await resolvePublicViewer();
+  if (isAuthenticatedViewer(viewer)) return null;
+
+  return authRequiredResponse(`/media/album/${encodeURIComponent(albumId)}`);
 }
+
+/** @deprecated Use gateCuratedAlbumAttachedToLivingAccess — name kept for call sites. */
+export const gateCuratedAlbumAllLivingLinkedAccess = gateCuratedAlbumAttachedToLivingAccess;

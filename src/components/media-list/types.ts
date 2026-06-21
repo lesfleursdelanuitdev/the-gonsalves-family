@@ -26,6 +26,10 @@ export type MediaListItem = {
   createdAt: string;
   /** Album-shaped summary (with linked individuals/places/dates/tags); used by the image lightbox. */
   media: MediaSummary;
+  /** Anonymous viewers must sign in before opening this item. */
+  privacyRestricted?: boolean;
+  /** Login wall target when `privacyRestricted` is true. */
+  loginHref?: string;
 };
 
 export type MediaLinkFilter = "all" | MediaLinkKind | "unlinked";
