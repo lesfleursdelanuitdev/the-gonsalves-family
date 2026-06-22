@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarCheck, GitBranch, MapPin, User, UsersRound } from "lucide-react";

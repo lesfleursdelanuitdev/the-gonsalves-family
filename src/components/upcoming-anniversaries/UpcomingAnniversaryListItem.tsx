@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { PersonInlineAvatar } from "@/components/individuals/PersonInlineAvatar";
