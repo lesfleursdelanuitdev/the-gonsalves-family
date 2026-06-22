@@ -1,0 +1,25 @@
+# Used via `podman build --ignorefile` with context = /srv/apps (the monorepo root),
+# so patterns are relative to /srv/apps, not this app directory.
+
+# Build artifacts, caches, VCS — everywhere
+**/node_modules
+**/.next
+**/.git
+**/.turbo
+**/dist
+**/build
+**/.cache
+**/coverage
+**/.pytest_cache
+**/__pycache__
+**/.venv
+**/*.log
+
+# Secrets — never copy into the image
+**/.env
+**/.env.*
+
+# Sibling apps the public build does not need (keeps the context small)
+ligneous-gedcom-lib-api
+ligneous-gedcom-flask-api
+the-gonsalves-family-admin

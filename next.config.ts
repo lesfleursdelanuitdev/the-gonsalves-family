@@ -24,6 +24,7 @@ if (ligneousUrl) {
 }
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: [
     "@ligneous/auth",
     "@ligneous/prisma",
