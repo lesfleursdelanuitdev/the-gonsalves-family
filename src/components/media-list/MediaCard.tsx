@@ -115,12 +115,26 @@ export function MediaCard({ item, onOpen }: { item: MediaListItem; onOpen?: () =
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {shownLinks.map((link, i) => {
                 const Icon = LINK_ICON[link.kind];
+                const chipClass =
+                  "inline-flex max-w-full items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[11px] font-medium text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg";
+                if (link.isLivingSummary || !link.href) {
+                  return (
+                    <span
+                      key={`${link.kind}-${i}`}
+                      title={link.label}
+                      className="inline-flex max-w-full items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[11px] font-medium text-muted"
+                    >
+                      <Icon className="h-3 w-3 shrink-0" aria-hidden />
+                      <span className="min-w-0 truncate">{link.label}</span>
+                    </span>
+                  );
+                }
                 return (
                   <Link
                     key={`${link.kind}-${i}`}
                     href={link.href}
                     title={`${link.kind}: ${link.label}`}
-                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[11px] font-medium text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
+                    className={chipClass}
                   >
                     <Icon className="h-3 w-3 shrink-0" aria-hidden />
                     <span className="min-w-0 truncate">{link.label}</span>

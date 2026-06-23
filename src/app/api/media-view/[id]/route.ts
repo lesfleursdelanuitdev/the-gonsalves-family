@@ -12,8 +12,8 @@ import {
   resolveMainPhotosViewModelPublic,
   type MainPhotosViewModel,
 } from "@/lib/album/resolve-public-album-view-model";
-import { filterFeaturedIndividualsForViewer } from "@/lib/auth/living-person-privacy";
-import { gateAllLivingLinkedMediaAccess } from "@/lib/auth/living-exclusive-media";
+import { collapseLinkedIndividualsForViewer, countFeaturedPeople } from "@/lib/auth/living-person-privacy";
+import { gateLivingLinkedMediaAccess } from "@/lib/auth/living-exclusive-media";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 export async function GET(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
     }
 
     const returnPath = `/media/${encodeURIComponent(mediaId)}${request.nextUrl.search}`;
-    const mediaAccessDenied = await gateAllLivingLinkedMediaAccess(
+    const mediaAccessDenied = await gateLivingLinkedMediaAccess(
       prisma,
       fileUuid,
       mediaId,
@@ -155,9 +155,13 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
       .map((a) => ({ id: a.id, name: a.name }));
 
     const viewer = await resolvePublicViewer();
-    const linkedIndividuals = filterFeaturedIndividualsForViewer(
+    const linkedIndividuals = collapseLinkedIndividualsForViewer(
       membership.linkedIndividuals ?? [],
       viewer,
+    );
+    const featuredPeopleCount = countFeaturedPeople(
+      linkedIndividuals,
+      (membership.linkedIndividuals ?? []).filter((person) => person.isLiving).length,
     );
 
     return NextResponse.json({
@@ -182,6 +186,7 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
         form: media.form,
         description: media.description,
         linkedIndividuals,
+        featuredPeopleCount,
         places: media.placeLinks.map((x) => x.place).filter(Boolean),
         dates: media.dateLinks.map((x) => x.date).filter(Boolean),
         events: media.eventMedia.map((x) => x.event).filter(Boolean),

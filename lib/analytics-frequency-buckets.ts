@@ -13,6 +13,26 @@ export function bucketByOccurrenceCount(f: number): string {
   return "50+";
 }
 
+/** Human-readable bucket label for charts (how often a name appears in the tree). */
+export function formatFrequencyBucketDisplayLabel(bucket: string): string {
+  switch (bucket) {
+    case "1":
+      return "Used once";
+    case "2-5":
+      return "Used 2–5 times";
+    case "6-10":
+      return "Used 6–10 times";
+    case "11-25":
+      return "Used 11–25 times";
+    case "26-50":
+      return "Used 26–50 times";
+    case "50+":
+      return "Used 50+ times";
+    default:
+      return bucket;
+  }
+}
+
 export function frequencyDistributionFromOccurrences(freqs: number[]): FrequencyBucket[] {
   const counts = new Map<string, number>();
   for (const f of freqs) {

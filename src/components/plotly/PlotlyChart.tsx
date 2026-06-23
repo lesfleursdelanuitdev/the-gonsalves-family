@@ -16,12 +16,24 @@ export type PlotlyChartProps = {
   /** Applied to the outer wrapper ``div``. */
   className?: string;
   style?: CSSProperties;
+  /**
+   * When false, skip ResizeObserver relayouts (avoids duplicate bar/trace ghosts on
+   * small fixed-height cards). Default true for large responsive charts.
+   */
+  useResizeHandler?: boolean;
 };
 
 /**
  * Next.js–safe Plotly wrapper (loads on the client only).
  */
-export function PlotlyChart({ data, layout, config, className, style }: PlotlyChartProps) {
+export function PlotlyChart({
+  data,
+  layout,
+  config,
+  className,
+  style,
+  useResizeHandler = true,
+}: PlotlyChartProps) {
   const outer: CSSProperties = {
     width: "100%",
     overflow: "hidden",
@@ -40,7 +52,7 @@ export function PlotlyChart({ data, layout, config, className, style }: PlotlyCh
         data={data}
         layout={layout ?? {}}
         config={config}
-        useResizeHandler
+        useResizeHandler={useResizeHandler}
         style={{
           width: "100%",
           height: plotHeight,

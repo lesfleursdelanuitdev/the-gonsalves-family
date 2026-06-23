@@ -2,10 +2,14 @@ import { gedcomNameToDisplayName, inferMediaBucketKind, type MediaSummary } from
 import { prisma } from "@/lib/database/prisma";
 import {
   buildMediaLoginPath,
-  isMediaLinkedOnlyToLivingPeople,
+  isMediaLinkedToAnyLivingPeople,
   LIVING_MEDIA_PLACEHOLDER_COVER,
-  shouldGateAllLivingLinkedEntity,
+  shouldGateLivingLinkedEntity,
 } from "@/lib/auth/living-exclusive-media";
+import {
+  buildCollapsedPersonMediaLinks,
+  collectUniquePersonLinksFromMediaRow,
+} from "@/lib/auth/living-person-privacy";
 import type { PublicViewer } from "@/lib/auth/public-viewer";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { buildLoginWallPath } from "@/lib/auth/public-viewer";
@@ -43,19 +47,6 @@ function personLabel(fullName: string | null, xref: string | null): string {
 function eventLabel(eventType: string | null, customType: string | null): string {
   const type = (eventType ?? "").toUpperCase();
   return EVENT_TYPE_LABELS[type] ?? customType?.trim() ?? eventType ?? "Event";
-}
-
-function familyLabel(
-  husband: { fullName: string | null; xref: string | null } | null,
-  wife: { fullName: string | null; xref: string | null } | null,
-  xref: string,
-): string {
-  const h = husband ? personLabel(husband.fullName, husband.xref) : null;
-  const w = wife ? personLabel(wife.fullName, wife.xref) : null;
-  if (h && w) return `${h} & ${w}`;
-  if (h) return h;
-  if (w) return w;
-  return `Family ${xref.replace(/^@+|@+$/g, "").trim() || xref}`;
 }
 
 function sourceLabel(source: {
@@ -178,8 +169,8 @@ export async function loadPublicMedia(
     const fileUrl = resolveGedcomMediaFileRef(m.fileRef).trim();
     if (!fileUrl) continue;
 
-    const allLinkedLiving = isMediaLinkedOnlyToLivingPeople(m);
-    const privacyRestricted = shouldGateAllLivingLinkedEntity(resolvedViewer, allLinkedLiving);
+    const hasLivingLinked = isMediaLinkedToAnyLivingPeople(m);
+    const privacyRestricted = shouldGateLivingLinkedEntity(resolvedViewer, hasLivingLinked);
 
     const linkedTo: MediaLink[] = [];
     const personHref = (individualId: string) =>
@@ -187,27 +178,21 @@ export async function loadPublicMedia(
         ? buildLoginWallPath(`/individuals/${individualId}`)
         : `/individuals/${individualId}`;
 
-    for (const l of m.individualMedia) {
+    const personLinks = buildCollapsedPersonMediaLinks({
+      people: collectUniquePersonLinksFromMediaRow(m),
+      viewer: resolvedViewer,
+      personLabel,
+      personHref,
+    });
+    for (const link of personLinks) {
       linkedTo.push({
         kind: "person",
-        label: personLabel(l.individual.fullName, l.individual.xref),
-        href: personHref(l.individual.id),
+        label: link.label,
+        href: link.href,
+        isLivingSummary: link.isLivingSummary,
       });
     }
-    for (const l of m.individualProfileFor) {
-      linkedTo.push({
-        kind: "person",
-        label: personLabel(l.individual.fullName, l.individual.xref),
-        href: personHref(l.individual.id),
-      });
-    }
-    for (const l of m.familyMedia) {
-      linkedTo.push({
-        kind: "family",
-        label: familyLabel(l.family.husband, l.family.wife, l.family.xref),
-        href: `/families/${l.family.id}`,
-      });
-    }
+
     for (const l of m.eventMedia) {
       linkedTo.push({
         kind: "event",

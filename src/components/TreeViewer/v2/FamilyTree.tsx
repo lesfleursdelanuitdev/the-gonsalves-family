@@ -154,6 +154,7 @@ export function FamilyTree(props: FamilyTreeProps = {}) {
     rootId,
     setShowTutorialModal,
     onRootChange: handleRootChangeLifecycle,
+    embedMode,
   });
   const {
     pedigreeFamcFromState,

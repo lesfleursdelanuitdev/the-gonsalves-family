@@ -1,4 +1,5 @@
 import type { HomeStatisticsPayload, HomeStatDonutChart, HomeStatSlice } from "@/types/tree";
+import { formatFrequencyBucketDisplayLabel } from "@/lib/analytics-frequency-buckets";
 
 const PYTHON_API_URL = (process.env.PYTHON_API_URL ?? "http://127.0.0.1:5001").replace(/\/$/, "");
 
@@ -132,7 +133,7 @@ function slicesFromFreqDist(rows: SurnamesJson["frequency_distribution"]): HomeS
   if (!Array.isArray(rows)) return [];
   return rows
     .map((r) => ({
-      label: String(r.bucket ?? "—"),
+      label: formatFrequencyBucketDisplayLabel(String(r.bucket ?? "—")),
       value: num(r.count),
     }))
     .filter((s) => s.value > 0);
@@ -293,10 +294,13 @@ export async function buildHomeChartsFromPythonAnalytics(
       surChart =
         slices.length > 0
           ? {
-              titleLine1: "Surname frequency",
-              titleLine2: "buckets",
+              titleLine1: "Distinct surnames",
+              titleLine2: "by occurrence",
               slices,
               variant: "donut",
+              legendCountLabel: "surnames",
+              caption:
+                "Each slice is how many unique surnames appear that often in the tree — not a share of people.",
             }
           : {
               titleLine1: "Surname",

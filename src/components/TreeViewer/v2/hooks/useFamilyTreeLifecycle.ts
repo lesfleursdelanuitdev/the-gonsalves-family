@@ -10,6 +10,8 @@ export interface UseFamilyTreeLifecycleParams {
   setShowTutorialModal: Dispatch<SetStateAction<boolean>>;
   onRootChange: () => void;
   tutorialSeenStorageKey?: string;
+  /** Embedded charts should not auto-open the getting-started tutorial. */
+  embedMode?: boolean;
 }
 
 export function useFamilyTreeLifecycle({
@@ -17,8 +19,10 @@ export function useFamilyTreeLifecycle({
   setShowTutorialModal,
   onRootChange,
   tutorialSeenStorageKey = DEFAULT_TUTORIAL_SEEN_KEY,
+  embedMode = false,
 }: UseFamilyTreeLifecycleParams) {
   useEffect(() => {
+    if (embedMode) return;
     try {
       if (typeof window !== "undefined" && !window.localStorage.getItem(tutorialSeenStorageKey)) {
         setShowTutorialModal(true);
@@ -26,7 +30,7 @@ export function useFamilyTreeLifecycle({
     } catch {
       // ignore
     }
-  }, [setShowTutorialModal, tutorialSeenStorageKey]);
+  }, [embedMode, setShowTutorialModal, tutorialSeenStorageKey]);
 
   const handleCloseTutorial = useCallback(() => {
     try {

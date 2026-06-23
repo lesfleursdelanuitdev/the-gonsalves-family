@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  collapseLinkedIndividualsForViewer,
+  formatLivingPeopleCountSuffix,
+  formatLivingPeopleOnlyLabel,
   formatMinimalLivingLabel,
   redactHomeStatisticsIndividualExample,
+  redactEventLinkedPeopleForViewer,
   redactPublicIndividualForViewer,
   redactRelationForViewer,
   redactTreePersonForViewer,
@@ -122,5 +126,82 @@ describe("redactHomeStatisticsIndividualExample", () => {
         anonymous,
       ),
     ).toEqual({ displayName: "Jane Doe · b. 1990", xref: "" });
+  });
+});
+
+describe("redactEventLinkedPeopleForViewer", () => {
+  it("keeps profile links for all viewers", () => {
+    const people = [
+      {
+        id: "l1",
+        displayName: "Aaron Peter Gonsalves",
+        profileHref: "/individuals/l1",
+        isLiving: true,
+      },
+      {
+        id: "d1",
+        displayName: "Martin Gonsalves",
+        profileHref: "/individuals/d1",
+        isLiving: false,
+      },
+    ];
+    expect(redactEventLinkedPeopleForViewer(people, anonymous)).toEqual(people);
+    expect(redactEventLinkedPeopleForViewer(people, authenticated)).toEqual(people);
+  });
+});
+
+describe("living people label helpers", () => {
+  it("formats singular and plural suffixes", () => {
+    expect(formatLivingPeopleCountSuffix(1)).toBe("+ 1 living person");
+    expect(formatLivingPeopleCountSuffix(2)).toBe("+ 2 living people");
+    expect(formatLivingPeopleOnlyLabel(1)).toBe("1 living person");
+    expect(formatLivingPeopleOnlyLabel(3)).toBe("3 living people");
+  });
+});
+
+describe("collapseLinkedIndividualsForViewer", () => {
+  const people = [
+    { id: "d1", displayName: "Norman Peter Gonsalves", isLiving: false },
+    { id: "d2", displayName: "Maria Gonsalves", isLiving: false },
+    { id: "l1", displayName: "James Gonsalves", isLiving: true },
+    { id: "l2", displayName: "Sarah Gonsalves", isLiving: true },
+  ];
+
+  it("collapses living names for anonymous viewers", () => {
+    expect(collapseLinkedIndividualsForViewer(people, anonymous)).toEqual([
+      people[0],
+      people[1],
+      {
+        id: "__living-people-summary__",
+        xref: "",
+        gedcomName: "",
+        displayName: "+ 2 living people",
+        isLivingSummary: true,
+      },
+    ]);
+  });
+
+  it("returns only a living count when no deceased names exist", () => {
+    expect(
+      collapseLinkedIndividualsForViewer(
+        [
+          { id: "l1", displayName: "James Gonsalves", isLiving: true },
+          { id: "l2", displayName: "Sarah Gonsalves", isLiving: true },
+        ],
+        anonymous,
+      ),
+    ).toEqual([
+      {
+        id: "__living-people-summary__",
+        xref: "",
+        gedcomName: "",
+        displayName: "2 living people",
+        isLivingSummary: true,
+      },
+    ]);
+  });
+
+  it("leaves authenticated payloads unchanged", () => {
+    expect(collapseLinkedIndividualsForViewer(people, authenticated)).toEqual(people);
   });
 });

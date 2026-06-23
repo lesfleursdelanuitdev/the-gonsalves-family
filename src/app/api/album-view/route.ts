@@ -12,6 +12,7 @@ import {
   gateGeneratedFamilyAlbumAccess,
   gateLivingIndividualAlbumAccess,
 } from "@/lib/auth/gate-living-album-access";
+import { MEDIA_LIVING_LINK_SELECT, loadMediaLivingLinksById } from "@/lib/auth/living-exclusive-media";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 function parseGeneratedSource(
@@ -63,7 +64,10 @@ export async function GET(request: NextRequest) {
       const model = await resolveCuratedAlbumViewModelPublic(prisma, fileUuid, albumId);
       if (!model) return NextResponse.json({ error: "Album not found" }, { status: 404 });
       const viewer = await resolvePublicViewer();
-      return NextResponse.json({ model: applyAlbumViewModelLivingPrivacy(model, viewer) });
+      const livingLinks = await loadMediaLivingLinksById(prisma, fileUuid, model.media.map((m) => m.id));
+      return NextResponse.json({
+        model: applyAlbumViewModelLivingPrivacy(model, viewer, livingLinks),
+      });
     }
 
     if (kind === "generated") {
@@ -83,8 +87,12 @@ export async function GET(request: NextRequest) {
       }
 
       const model = await resolveGeneratedAlbumViewModelPublic(prisma, fileUuid, source);
+      if (!model) return NextResponse.json({ error: "Album not found" }, { status: 404 });
       const viewer = await resolvePublicViewer();
-      return NextResponse.json({ model: applyAlbumViewModelLivingPrivacy(model, viewer) });
+      const livingLinks = await loadMediaLivingLinksById(prisma, fileUuid, model.media.map((m) => m.id));
+      return NextResponse.json({
+        model: applyAlbumViewModelLivingPrivacy(model, viewer, livingLinks),
+      });
     }
 
     return NextResponse.json({ error: "kind must be curated or generated" }, { status: 400 });

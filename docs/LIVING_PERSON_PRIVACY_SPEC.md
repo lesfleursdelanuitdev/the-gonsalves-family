@@ -149,11 +149,11 @@ APIs: `/api/tree/advanced-search`, `/api/tree/advanced-search/general`, list loa
 
 ---
 
-### 6.6 All-living-linked gate (albums & media)
+### 6.6 Living-linked gate (albums & media)
 
-**In scope:** curated albums, generated scrapbooks (individual and family), and GEDCOM media in every public bucket — **photos**, **documents**, **audio**, and **video**.
+**In scope:** curated albums, generated scrapbooks (individual and family), and GEDCOM media in public buckets — **photos**, **audio**, **video**, and **albums** (curated + generated). **Documents** follow the same gate when they share the media listing pipeline. **Stories** are out of scope (§11).
 
-**Routes (examples):** `/media/album/[albumId]`, `/media/album-view?kind=generated&…`, `/archive/photos`, `/archive/documents`, `/archive/audio`, `/archive/videos`, `/media`, `/media/[id]`.
+**Routes (examples):** `/media/album/[albumId]`, `/media/album-view?kind=generated&…`, `/archive/photos`, `/archive/audio`, `/archive/videos`, `/media`, `/media/[id]`.
 
 #### Linked people set
 
@@ -162,53 +162,83 @@ For each entity, build the set of people linked through GEDCOM **individual** or
 | Link type | People included |
 |-----------|-----------------|
 | Individual media / profile media | That individual |
-| Family media / profile media | The family’s husband and wife (when present) |
+| Family media / profile media | The family’s husband and wife (when present), each counted separately |
 
-**Not included in this set:** tags, places, events, sources, notes, or other metadata. Those associations do **not** exempt an entity from gating and do **not** add people to the set.
+**Not included in this set:** tags, places, events, sources, notes, or other metadata. Those associations do **not** add people to the set.
 
-For a **curated album**, union the linked-people sets of **all media items** in the album.
+For a **curated album**, union the linked-people sets of **all media items** in the album (album-level gate).
+
+Each **media item inside an album** also evaluates its own linked-people set (item-level gate).
 
 For a **generated individual scrapbook**, the subject individual is the linked person.
 
-For a **generated family scrapbook**, the family’s husband and wife are the linked people.
+For a **generated family scrapbook**, the family’s husband and wife are the linked people (each counted separately).
 
 #### Decision table
 
 | Linked people | Anonymous viewer | Authenticated viewer |
 |---------------|------------------|----------------------|
 | **None** | Public (full access) | Public |
-| **At least one deceased** | Public | Public |
-| **Non-empty and all living** | **Guarded** (§6.6.1) | Full access |
+| **Deceased only** | Public | Public |
+| **Living only** | **Guarded** (§6.6.1) | Full access |
+| **Mixed living + deceased** | **Guarded** (§6.6.1) | Full access |
 
-Implementation: `lib/auth/living-exclusive-media.ts` (`collectLinkedPeople`, `areAllLinkedPeopleLiving`, `shouldGateAllLivingLinkedEntity`).
+**Rule:** gate when the linked-people set is non-empty and contains **at least one living** person. A deceased link no longer makes mixed media public.
+
+Implementation: `lib/auth/living-exclusive-media.ts` (`collectLinkedPeople`, `hasAnyLivingLinkedPeople`, `shouldGateLivingLinkedEntity`).
 
 #### 6.6.1 Guarded behavior (anonymous)
 
 | Surface | Behavior |
 |---------|----------|
-| **Media list** (`/archive/*`, `/media` hub) | Show card with placeholder thumbnail (`/images/personCardBg.png`); no lightbox; click → login wall |
+| **Media list** (`/archive/photos`, `/archive/audio`, `/archive/videos`, `/media` hub) | Placeholder thumbnail (`/images/personCardBg.png`); no lightbox; click → login wall |
 | **Media detail** (`/media/[id]`, `/api/media-view/[id]`) | 401 + `loginUrl`; no file URL in payload |
-| **Curated album list** | Album remains listed; cover uses placeholder image |
-| **Curated album view** (`/media/album/[albumId]`) | Login wall before album JSON |
-| **Generated individual/family scrapbook lists** | **Omit** from anonymous browse lists (same as living-subject individual scrapbooks today) |
-| **Generated scrapbook view** | Login wall before album JSON |
+| **Curated album list** | Album remains listed; cover uses placeholder when album-level gate applies |
+| **Curated album view** (`/media/album/[albumId]`) | Login wall when album-level gate applies |
+| **Generated individual/family scrapbook lists** | **Omit** when subject / any family partner is living |
+| **Generated scrapbook view** | Login wall when album-level gate applies |
+| **Items inside a public album** | Per-item placeholder + login when that item’s linked-people set includes any living person |
 
 Authenticated viewers see real thumbnails, files, and album contents.
 
+#### 6.6.2 Linked-people labels (list cards & “People featured”)
+
+On **photos**, **audio**, **video**, and **album** surfaces (list cards, detail pages, album lightbox, `PublicAlbumLayout` “People featured”):
+
+| Viewer | Living person | Deceased person |
+|--------|---------------|-----------------|
+| Anonymous | **Never** show by name — collapse into a count | Show full display name |
+| Authenticated | Full name + links | Full name + links |
+
+**Anonymous label format:**
+
+- Deceased names listed individually (e.g. chips or comma-separated).
+- Living people collapsed to a count suffix with correct grammar:
+  - `+ 1 living person`
+  - `+ 2 living people`
+- When **only** living people are linked and no deceased names to show:
+  - `1 living person` or `2 living people` (no `+` prefix).
+
+**Example:** Norman (deceased), Maria (deceased), James (living), Sarah (living) →  
+`Norman Peter Gonsalves · Maria Gonsalves · + 2 living people`
+
+**Example:** Norman (deceased), James (living) →  
+`Norman Peter Gonsalves · + 1 living person`
+
+**Example:** James and Sarah (both living) →  
+`2 living people`
+
+Family media links expand to husband and wife as separate people for this label.
+
+Data: `collapseLinkedIndividualsForViewer` in `lib/auth/living-person-privacy.ts`, `load-public-media.ts`, `apply-public-album-living-privacy.ts`, `/api/media-view/[id]`.
+
 ---
 
-### 6.7 Media — “People featured” (otherwise-public media)
+### 6.7 Media — “People featured”
 
 **Routes:** `/media/[id]`, album lightbox, `PublicAlbumLayout`.
 
-When media is **public** under §6.6 (not all-living-linked) and still tags people:
-
-| Viewer | Living tagged person |
-|--------|----------------------|
-| Anonymous | **Omit** from featured-people list. **Photo stays visible.** |
-| Authenticated | Listed with name and links |
-
-Data: `linkedIndividuals` in media detail, `resolve-public-album-view-model.ts`, `apply-public-album-living-privacy.ts`, `/api/media-view/[id]`.
+Covered by §6.6.2: deceased names visible; living names collapsed to `+ n living person(s)`. When the item is **guarded** under §6.6, the media file itself is not shown to anonymous viewers.
 
 ---
 
@@ -219,7 +249,7 @@ Data: `linkedIndividuals` in media detail, `resolve-public-album-view-model.ts`,
 Covered by §6.6:
 
 - **Individual:** gated when the subject is living.
-- **Family:** gated when every linked partner (husband/wife) is living.
+- **Family:** gated when **any** linked partner (husband/wife) is living (including mixed living/deceased couples).
 
 Other generated types (event, place, date, tag, note) remain public in v1 unless future rules say otherwise.
 
@@ -229,7 +259,10 @@ Other generated types (event, place, date, tag, note) remain public in v1 unless
 
 **Route:** `/media/album/[albumId]`
 
-Covered by §6.6: gated when **every person linked across all album media** is living — not merely when the album is “attached” to one living profile.
+Covered by §6.6:
+
+- **Album-level:** gated when the union of linked people across all album media includes **any living** person.
+- **Item-level:** each member item is gated independently when its own linked-people set includes any living person.
 
 ---
 
@@ -258,9 +291,9 @@ Protected for **anonymous** viewers only:
 |----------|-----------|
 | `/individuals/[id]` | Person is living |
 | `/media/album-view?kind=generated&type=individual&id=…` | Subject individual is living |
-| `/media/album-view?kind=generated&type=family&id=…` | All family partners linked to the scrapbook are living |
-| `/media/album/[albumId]` | All people linked across album media are living (§6.6) |
-| `/media/[id]`, `/archive/photos`, `/archive/documents`, `/archive/audio`, `/archive/videos` | Media item’s linked-people set is non-empty and all living (§6.6) |
+| `/media/album-view?kind=generated&type=family&id=…` | Any family partner (husband/wife) linked to the scrapbook is living |
+| `/media/album/[albumId]` | Union of linked people across album media includes any living person (§6.6) |
+| `/media/[id]`, `/archive/photos`, `/archive/audio`, `/archive/videos` | Media item’s linked-people set includes any living person (§6.6) |
 
 **Document requests:** server `redirect()` to login.
 
@@ -322,10 +355,11 @@ function redactLivingInPayload<T>(payload: T, viewer: PublicViewer): T;
 - [ ] Family page living member: name + birth year only; no photo; no profile button.
 - [ ] Living relation on deceased profile: same minimal rule.
 - [ ] Tree: no living photos for anonymous; full for authenticated.
-- [ ] Media (photos, documents, audio, video): all-living-linked items show placeholder + login for anonymous; full file for authenticated.
-- [ ] Curated albums: login wall when all linked people across album media are living.
-- [ ] Generated individual & family scrapbooks: login wall / hidden list when all linked people are living.
-- [ ] Otherwise-public media: living omitted from “People featured” for anonymous.
+- [ ] Media (photos, audio, video): any-living-linked items show placeholder + login for anonymous; full file for authenticated.
+- [ ] Mixed living + deceased media: gated for anonymous (not public because a deceased person is linked).
+- [ ] Curated albums: login wall when union of linked people includes any living person; per-item gate inside public albums.
+- [ ] Generated individual & family scrapbooks: login wall / hidden list when subject or any partner is living.
+- [ ] Linked-people labels: deceased names + `+ n living person(s)` on list cards and “People featured” for anonymous.
 - [ ] Authenticated: no redaction anywhere.
 
 ---
@@ -360,3 +394,4 @@ Depends on auth UX (session resolution) from [PUBLIC_SITE_AUTH_UX_SPEC.md](./PUB
 |------|--------|
 | 2026-06-15 | Split from combined spec; initial privacy spec |
 | 2026-06-17 | §6.6 unified all-living-linked gate for albums, scrapbooks, and all media buckets; family indirect links |
+| 2026-06-21 | §6.6 gate any living-linked media (including mixed living/deceased); §6.6.2 collapsed living labels on cards and “People featured”; album + per-item gates |

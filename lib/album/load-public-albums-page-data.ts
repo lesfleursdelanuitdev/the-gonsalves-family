@@ -4,7 +4,7 @@ import { resolveEventPrimaryParticipants } from "@ligneous/gedcom-events";
 import { Prisma } from "@ligneous/prisma";
 import type { PrismaClient } from "@ligneous/prisma";
 import {
-  batchCuratedAlbumIdsLinkedOnlyToLivingPeople,
+  batchCuratedAlbumIdsWithLivingLinkedPeople,
   canViewLivingFamilyGeneratedAlbum,
   canViewLivingIndividualGeneratedAlbum,
   LIVING_MEDIA_PLACEHOLDER_COVER,
@@ -126,7 +126,7 @@ async function loadCuratedAlbums(
   const out: CuratedAlbum[] = [];
   const livingAttachedAlbumIds = isAuthenticatedViewer(viewer)
     ? new Set<string>()
-    : await batchCuratedAlbumIdsLinkedOnlyToLivingPeople(
+    : await batchCuratedAlbumIdsWithLivingLinkedPeople(
         prisma,
         fileUuid,
         albums.map((album) => album.id),

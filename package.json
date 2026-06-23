@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "NEXT_DIST_DIR=.next-dev-local next dev --webpack -p 3000",
     "dev:webpack": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",

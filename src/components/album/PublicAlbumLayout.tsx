@@ -10,7 +10,12 @@ import type {
   MediaSummary,
 } from "@ligneous/album-view";
 import { inferMediaBucketKind, matchesAlbumIndividualSearch } from "@ligneous/album-view";
-import type { AlbumMediaDateRangeFilter } from "@/lib/album/album-media-filter-utils";
+import { countFeaturedPeople } from "@/lib/auth/living-person-privacy";
+import { LIVING_MEDIA_PLACEHOLDER_COVER } from "@/lib/auth/living-media-constants";
+import {
+  FeaturedPeopleHeading,
+  FeaturedPeopleLinks,
+} from "@/components/media/FeaturedPeopleLinks";
 import {
   buildPlacesWithCounts,
   buildTagsWithCounts,
@@ -18,6 +23,7 @@ import {
   formatAlbumLinkedPlaceLabel,
   mediaMatchesDateRangeFilter,
   summarizeDateRangeFilter,
+  type AlbumMediaDateRangeFilter,
 } from "@/lib/album/album-media-filter-utils";
 import { resolveGedcomMediaFileRef } from "@/lib/images";
 import { Button } from "@/components/ui/button";
@@ -74,6 +80,7 @@ export type PublicAlbumMediaKind = MediaBucketKind;
 export type PublicAlbumMediaTypeFilter = AlbumMediaTypeFilter;
 
 function rasterSrc(m: MediaSummary): string | null {
+  if (m.privacyRestricted) return LIVING_MEDIA_PLACEHOLDER_COVER;
   const ref = (m.fileRef ?? "").trim();
   if (!ref || !isLikelyRasterImage(ref, m.form ?? "")) return null;
   const resolved = resolveGedcomMediaFileRef(normalizeSiteMediaPath(ref));
@@ -200,22 +207,37 @@ const DEFAULT_PAGE_SIZE: PageSizeOption = 12;
 
 function MediaTile({ m, onOpen }: { m: MediaSummary; onOpen: () => void }) {
   const src = rasterSrc(m);
+  const restricted = m.privacyRestricted === true;
+  const handleOpen = () => {
+    if (restricted && m.loginHref) {
+      window.location.assign(m.loginHref);
+      return;
+    }
+    onOpen();
+  };
   return (
     <button
       type="button"
-      onClick={onOpen}
-      disabled={!src}
+      onClick={handleOpen}
+      disabled={!src && !restricted}
       className="group relative aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg border-0 bg-transparent shadow-none outline-none ring-1 ring-inset ring-black/[0.05] transition-[opacity,transform,box-shadow] duration-200 ease-out focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 hover:shadow-[0_8px_22px_rgba(60,45,25,0.1)]"
-      aria-label={src ? "Open full-size viewer" : "No preview available"}
+      aria-label={restricted ? "Sign in to view" : src ? "Open full-size viewer" : "No preview available"}
     >
       {src ? (
-        // eslint-disable-next-line @next/next/no-img-element -- HEIC and cross-origin admin URLs
-        <img
-          src={src}
-          alt=""
-          className="size-full object-cover object-center transition-transform duration-200 ease-out will-change-transform group-hover:scale-[1.015] group-active:scale-100 group-disabled:scale-100"
-          loading="lazy"
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- HEIC and cross-origin admin URLs */}
+          <img
+            src={src}
+            alt=""
+            className="size-full object-cover object-center transition-transform duration-200 ease-out will-change-transform group-hover:scale-[1.015] group-active:scale-100 group-disabled:scale-100"
+            loading="lazy"
+          />
+          {restricted ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/45 px-2 text-center text-xs font-semibold text-white">
+              Sign in to view
+            </span>
+          ) : null}
+        </>
       ) : (
         <div className="flex size-full items-center justify-center bg-surface-inset/40 p-2 text-center text-xs text-muted">
           No preview
@@ -227,11 +249,19 @@ function MediaTile({ m, onOpen }: { m: MediaSummary; onOpen: () => void }) {
 
 function MediaListRow({ m, onOpen }: { m: MediaSummary; onOpen: () => void }) {
   const src = rasterSrc(m);
+  const restricted = m.privacyRestricted === true;
+  const handleOpen = () => {
+    if (restricted && m.loginHref) {
+      window.location.assign(m.loginHref);
+      return;
+    }
+    onOpen();
+  };
   return (
     <button
       type="button"
-      onClick={onOpen}
-      disabled={!src}
+      onClick={handleOpen}
+      disabled={!src && !restricted}
       className="flex w-full cursor-zoom-in items-center gap-4 rounded-xl border border-border/70 bg-surface-elevated p-3 text-left outline-none transition-colors hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50"
       aria-label={src ? "Open full-size viewer" : "No preview available"}
     >
@@ -653,22 +683,13 @@ export function PublicAlbumLightbox({
 
           {(m?.linkedIndividuals?.length ?? 0) > 0 ? (
             <div className="mt-3 w-full shrink-0 border-t border-border/40 px-1 pt-3 text-left sm:px-0">
-              <p className="font-heading text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b2e2e]">
-                People Featured ({(m?.linkedIndividuals ?? []).length})
-              </p>
-              <p className="mt-2 font-body text-sm leading-relaxed text-text">
-                {(m?.linkedIndividuals ?? []).map((p, i) => (
-                  <span key={p.id} className="inline">
-                    {i > 0 ? <span aria-hidden>, </span> : null}
-                    <Link
-                      href={`/media/album-view?kind=generated&type=individual&id=${encodeURIComponent(p.id)}`}
-                      className="font-medium text-link underline-offset-2 transition-colors hover:text-link-hover hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                    >
-                      {p.displayName}
-                    </Link>
-                  </span>
-                ))}
-              </p>
+              <FeaturedPeopleHeading
+                count={countFeaturedPeople(
+                  m?.linkedIndividuals ?? [],
+                  (m?.linkedIndividuals ?? []).filter((person) => person.isLiving).length,
+                )}
+              />
+              <FeaturedPeopleLinks people={m?.linkedIndividuals ?? []} />
             </div>
           ) : null}
 
@@ -1067,6 +1088,11 @@ function PublicAlbumLayoutInner({ model }: PublicAlbumLayoutProps) {
 
   const openLightboxForId = useCallback(
     (id: string) => {
+      const item = filteredItems.find((x) => x.id === id);
+      if (item?.privacyRestricted && item.loginHref) {
+        window.location.assign(item.loginHref);
+        return;
+      }
       const i = filteredItems.findIndex((x) => x.id === id);
       if (i >= 0) setLightboxIndex(i);
     },
@@ -1676,7 +1702,12 @@ function PublicAlbumLayoutInner({ model }: PublicAlbumLayoutProps) {
                 {(model.linkedIndividuals?.length ?? 0) > 0 ? (
                   <div className="space-y-3">
                     <p className="font-heading text-sm font-semibold uppercase tracking-[0.16em] text-[#8b2e2e] md:text-base">
-                      People Featured ({(model.linkedIndividuals ?? []).length})
+                      People Featured (
+                      {countFeaturedPeople(
+                        model.linkedIndividuals ?? [],
+                        (model.linkedIndividuals ?? []).filter((person) => person.isLiving).length,
+                      )}
+                      )
                     </p>
                     <p className="font-body text-sm leading-relaxed text-muted">
                       The people who appear in these moments. Follow a name to explore their story through images and
@@ -1684,7 +1715,7 @@ function PublicAlbumLayoutInner({ model }: PublicAlbumLayoutProps) {
                     </p>
                     <div
                       role="region"
-                      aria-label={`People featured (${(model.linkedIndividuals ?? []).length})`}
+                      aria-label={`People featured (${countFeaturedPeople(model.linkedIndividuals ?? [], (model.linkedIndividuals ?? []).filter((person) => person.isLiving).length)})`}
                       className="max-h-52 overflow-y-auto overflow-x-hidden overscroll-y-contain rounded-lg border border-border/50 bg-surface/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] sm:max-h-60 md:max-h-64"
                     >
                       <ul className="list-none divide-y divide-border/40 px-3 py-1">
@@ -1693,14 +1724,22 @@ function PublicAlbumLayoutInner({ model }: PublicAlbumLayoutProps) {
                             key={p.id}
                             className="font-body flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2.5 text-sm text-text first:pt-2 last:pb-2"
                           >
-                            <Link
-                              href={`/media/album-view?kind=generated&type=individual&id=${encodeURIComponent(p.id)}`}
-                              className="min-w-0 max-w-full truncate font-medium text-link underline-offset-2 transition-colors hover:text-link-hover hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-                              aria-label={`View all media for ${p.displayName}`}
-                            >
-                              {p.displayName}
-                            </Link>
-                            <span className="shrink-0 font-mono text-[11px] text-muted tabular-nums">{p.xref}</span>
+                            {p.isLivingSummary ? (
+                              <span className="min-w-0 max-w-full truncate font-medium text-muted">
+                                {p.displayName}
+                              </span>
+                            ) : (
+                              <Link
+                                href={`/media/album-view?kind=generated&type=individual&id=${encodeURIComponent(p.id)}`}
+                                className="min-w-0 max-w-full truncate font-medium text-link underline-offset-2 transition-colors hover:text-link-hover hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                                aria-label={`View all media for ${p.displayName}`}
+                              >
+                                {p.displayName}
+                              </Link>
+                            )}
+                            {!p.isLivingSummary ? (
+                              <span className="shrink-0 font-mono text-[11px] text-muted tabular-nums">{p.xref}</span>
+                            ) : null}
                           </li>
                         ))}
                       </ul>

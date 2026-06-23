@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { Data, Layout } from "plotly.js";
 import { PlotlyChart } from "@/components/plotly/PlotlyChart";
+import { mergeStatSlicesByLabel } from "@/lib/home-stat-slices";
 import { cn } from "@/lib/utils";
 import type { HomeStatDonutChart, HomeStatSlice } from "@/types/tree";
 
@@ -145,6 +146,48 @@ function buildDonutPlot(
   return { data: d, layout: baseLayout };
 }
 
+function StatCardChartLegend({
+  slices,
+  countLabel,
+}: {
+  slices: HomeStatSlice[];
+  countLabel?: string;
+}) {
+  const filtered = slices.filter((slice) => slice.value > 0);
+  const total = filtered.reduce((sum, slice) => sum + slice.value, 0);
+  if (filtered.length === 0 || total <= 0) return null;
+
+  return (
+    <ul
+      className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 border-t border-border-subtle/50 pt-2"
+      aria-label="Chart legend"
+    >
+      {filtered.map((slice, index) => {
+        const pct = Math.round((slice.value / total) * 1000) / 10;
+        const countText = countLabel
+          ? `${slice.value.toLocaleString()} ${countLabel}`
+          : slice.value.toLocaleString();
+        return (
+          <li
+            key={`${slice.label}-${index}`}
+            className="inline-flex max-w-full min-w-0 items-center gap-1.5 font-body text-[10px] leading-tight text-muted sm:text-[11px]"
+          >
+            <span
+              className="size-2 shrink-0 rounded-full ring-1 ring-black/[0.08]"
+              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+              aria-hidden
+            />
+            <span className="min-w-0 truncate text-text/85">{slice.label}</span>
+            <span className="shrink-0 tabular-nums text-muted/90">
+              {countText} ({pct}%)
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function buildLinePlot(
   slices: HomeStatSlice[],
   titleLine1: string,
@@ -256,7 +299,7 @@ function buildBarPlot(
   titleLine2: string | undefined,
   options?: { xAxisTitle?: string; hoverCountsLabel?: string },
 ): { data: Data[]; layout: Partial<Layout> } {
-  const filtered = slices.filter((s) => s.value > 0);
+  const filtered = mergeStatSlicesByLabel(slices.filter((s) => s.value > 0));
   const titleText = titleAnnotationHtml(titleLine1, titleLine2);
   const maxX = Math.max(1, ...filtered.map((s) => s.value));
   const xAxisTitle = options?.xAxisTitle ?? "Births";
@@ -358,6 +401,8 @@ export function StatCardDonut({
     lineHoverCountsLabel,
     barXAxisTitle,
     barHoverCountsLabel,
+    legendCountLabel,
+    caption,
   } = chart;
 
   const effectiveVariant = chartVariant ?? variant;
@@ -401,13 +446,25 @@ export function StatCardDonut({
     );
   }
 
+  const showLegend = effectiveVariant === "donut" || effectiveVariant === "staggered";
+
   return (
-    <PlotlyChart
-      data={data}
-      layout={layout}
-      config={PLOT_CONFIG}
-      className={cn("[&_.js-plotly-plot]:cursor-default", className)}
-      style={{ height: PLOT_HEIGHT, minHeight: PLOT_HEIGHT }}
-    />
+    <div className={cn("min-w-0", className)}>
+      <PlotlyChart
+        key={`${effectiveVariant}:${titleLine1}:${slices.map((s) => `${s.label}=${s.value}`).join("|")}`}
+        data={data}
+        layout={layout}
+        config={PLOT_CONFIG}
+        className="[&_.js-plotly-plot]:cursor-default"
+        style={{ height: PLOT_HEIGHT, minHeight: PLOT_HEIGHT }}
+        useResizeHandler={false}
+      />
+      {showLegend ? (
+        <StatCardChartLegend slices={slices} countLabel={legendCountLabel} />
+      ) : null}
+      {showLegend && caption ? (
+        <p className="mt-2 font-body text-[10px] leading-snug text-muted/90 sm:text-[11px]">{caption}</p>
+      ) : null}
+    </div>
   );
 }

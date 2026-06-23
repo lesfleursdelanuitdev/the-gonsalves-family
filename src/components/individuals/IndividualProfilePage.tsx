@@ -10,6 +10,7 @@ import { MobileIndividualProfile } from "./MobileIndividualProfile";
 import { PersonCardTreeModalTrigger } from "./PersonCardTreeModal";
 import { ProfileMediaSection } from "./ProfileMediaSection";
 import { ProfileNotes } from "./ProfileNotes";
+import { ProfileStoriesSection } from "./ProfileStoriesSection";
 import { ProfileCharts } from "./ProfileCharts";
 import { ProfileTimeline } from "./ProfileTimeline";
 import { ProfileRelationshipCalculator } from "./ProfileRelationshipCalculator";
@@ -114,8 +115,10 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
   const associates = person.associates ?? [];
   const openQuestions = person.openQuestions ?? [];
   const linkedAccounts = person.linkedAccounts ?? [];
+  const stories = person.stories ?? [];
   const hasMedia = person.photos.length > 0;
   const hasNotes = notes.length > 0;
+  const hasStories = stories.length > 0;
   const hasAssociates = associates.length > 0;
   const hasOpenQuestions = openQuestions.length > 0;
   const ageLabel = formatPersonAgeLabel({
@@ -130,6 +133,7 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
     "Overview",
     "Family",
     ...(hasAssociates ? ["Associates"] : []),
+    ...(hasStories ? ["Stories"] : []),
     ...(hasNotes ? ["Notes"] : []),
     ...(linkedAccounts.length > 0 ? ["Linked Accounts"] : []),
     "Events",
@@ -321,6 +325,10 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
                   ))}
                 </div>
               </section>
+            ) : null}
+
+            {hasStories ? (
+              <ProfileStoriesSection stories={stories} />
             ) : null}
 
             {hasNotes ? (

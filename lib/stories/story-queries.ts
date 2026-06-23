@@ -154,7 +154,9 @@ export type StoryListItem = Omit<StoryListRaw, "body"> & {
   coverUrl: string | null;
 };
 
-async function batchResolveCoverUrls(rows: StoryListRaw[]): Promise<Map<string, string>> {
+type CoverMediaRefs = { coverMediaId: string | null; profileMediaId: string | null };
+
+async function batchResolveCoverUrls(rows: CoverMediaRefs[]): Promise<Map<string, string>> {
   const urlMap = new Map<string, string>();
 
   const allIds = [
@@ -263,6 +265,89 @@ async function batchResolveAuthorAvatars(
 
   const photos = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, [...personIds]);
   return { xrefToPersonId, photoByPersonId: photos };
+}
+
+export type IndividualProfileStory = {
+  id: string;
+  slug: string;
+  title: string;
+  kind: "story" | "article" | "post" | "folklore";
+  kindLabel: string;
+  href: string;
+  excerpt: string | null;
+  coverUrl: string | null;
+  updatedAtLabel: string;
+};
+
+export function storyPublicHref(kind: StoryKind, slugOrId: string): string {
+  if (kind === StoryKind.article || kind === StoryKind.post) {
+    return `/culture/articles/${encodeURIComponent(slugOrId)}`;
+  }
+  return `/stories/${encodeURIComponent(slugOrId)}`;
+}
+
+export function storyKindLabel(kind: StoryKind): string {
+  if (kind === StoryKind.article) return "Article";
+  if (kind === StoryKind.post) return "Post";
+  if (kind === StoryKind.folklore) return "Folklore";
+  return "Story";
+}
+
+const PROFILE_STORY_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  kind: true,
+  excerpt: true,
+  coverMediaId: true,
+  profileMediaId: true,
+  updatedAt: true,
+} satisfies Prisma.StorySelect;
+
+export async function fetchPublishedStoriesForIndividual(
+  individualId: string,
+): Promise<IndividualProfileStory[]> {
+  const treeId = process.env.PUBLIC_STORY_TREE_ID?.trim();
+  if (!treeId) return [];
+
+  const rows = await prisma.story.findMany({
+    where: {
+      treeId,
+      deletedAt: null,
+      status: StoryStatus.published,
+      storyIndividuals: { some: { individualId } },
+    },
+    select: PROFILE_STORY_SELECT,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const coverUrlMap = await batchResolveCoverUrls(rows);
+
+  return rows.map((row) => {
+    const slug = row.slug?.trim() || row.id;
+    const coverFromMedia = row.coverMediaId ? (coverUrlMap.get(row.coverMediaId) ?? null) : null;
+    const profileFromMedia = row.profileMediaId ? (coverUrlMap.get(row.profileMediaId) ?? null) : null;
+    const coverUrl =
+      row.kind === StoryKind.article || row.kind === StoryKind.post
+        ? (coverFromMedia ?? profileFromMedia ?? ARTICLE_DEFAULT_COVER_URL)
+        : coverFromMedia;
+
+    return {
+      id: row.id,
+      slug,
+      title: row.title,
+      kind: prismaKindToPublic(row.kind),
+      kindLabel: storyKindLabel(row.kind),
+      href: storyPublicHref(row.kind, slug),
+      excerpt: row.excerpt?.trim() || null,
+      coverUrl,
+      updatedAtLabel: row.updatedAt.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    };
+  });
 }
 
 export async function fetchPublishedStoriesList(kinds: StoryKind[]): Promise<StoryListItem[]> {

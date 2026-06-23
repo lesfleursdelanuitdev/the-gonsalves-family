@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  areAllLinkedPeopleLiving,
   canViewLivingFamilyGeneratedAlbum,
   collectFamilyPartners,
   collectLinkedPeople,
-  isFamilyAllLivingPartners,
-  isMediaLinkedOnlyToLivingPeople,
-  shouldGateAllLivingLinkedEntity,
+  hasAnyLivingFamilyPartners,
+  hasAnyLivingLinkedPeople,
+  isMediaLinkedToAnyLivingPeople,
+  shouldGateLivingLinkedEntity,
 } from "@/lib/auth/living-exclusive-media";
 import type { PublicViewer } from "@/lib/auth/public-viewer";
 
@@ -50,38 +50,59 @@ describe("collectLinkedPeople", () => {
   });
 });
 
-describe("isMediaLinkedOnlyToLivingPeople", () => {
+describe("hasAnyLivingLinkedPeople", () => {
+  it("returns false when no people are linked", () => {
+    expect(hasAnyLivingLinkedPeople(new Map())).toBe(false);
+  });
+
+  it("returns false when only deceased people are linked", () => {
+    expect(
+      hasAnyLivingLinkedPeople(
+        new Map([
+          ["p1", false],
+          ["p2", false],
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  it("returns true when any linked person is living", () => {
+    expect(
+      hasAnyLivingLinkedPeople(
+        new Map([
+          ["p1", true],
+          ["p2", false],
+        ]),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("isMediaLinkedToAnyLivingPeople", () => {
   it("returns true when all linked people are living", () => {
     expect(
-      isMediaLinkedOnlyToLivingPeople({
+      isMediaLinkedToAnyLivingPeople({
         individualMedia: [
           { individual: { id: "p1", isLiving: true } },
           { individual: { id: "p2", isLiving: true } },
         ],
         individualProfileFor: [],
-        familyMedia: [
-          {
-            family: {
-              husband: { id: "p2", isLiving: true },
-              wife: null,
-            },
-          },
-        ],
+        familyMedia: [],
         familyProfileFor: [],
       }),
     ).toBe(true);
   });
 
-  it("returns true even when tags or places exist on the entity", () => {
+  it("returns true for mixed living and deceased links", () => {
     expect(
-      isMediaLinkedOnlyToLivingPeople({
+      isMediaLinkedToAnyLivingPeople({
         individualMedia: [{ individual: { id: "p1", isLiving: true } }],
         individualProfileFor: [],
         familyMedia: [
           {
             family: {
-              husband: { id: "p2", isLiving: true },
-              wife: null,
+              husband: null,
+              wife: { id: "p2", isLiving: false },
             },
           },
         ],
@@ -90,10 +111,10 @@ describe("isMediaLinkedOnlyToLivingPeople", () => {
     ).toBe(true);
   });
 
-  it("returns false when any linked person is deceased", () => {
+  it("returns false when only deceased people are linked", () => {
     expect(
-      isMediaLinkedOnlyToLivingPeople({
-        individualMedia: [{ individual: { id: "p1", isLiving: true } }],
+      isMediaLinkedToAnyLivingPeople({
+        individualMedia: [{ individual: { id: "p1", isLiving: false } }],
         individualProfileFor: [],
         familyMedia: [
           {
@@ -109,49 +130,25 @@ describe("isMediaLinkedOnlyToLivingPeople", () => {
   });
 
   it("returns false when no people are linked", () => {
-    expect(isMediaLinkedOnlyToLivingPeople(emptyInput)).toBe(false);
+    expect(isMediaLinkedToAnyLivingPeople(emptyInput)).toBe(false);
   });
 });
 
-describe("areAllLinkedPeopleLiving", () => {
-  it("requires at least one linked person", () => {
-    expect(areAllLinkedPeopleLiving(new Map())).toBe(false);
-  });
-});
-
-describe("isFamilyAllLivingPartners", () => {
-  it("returns true when every partner is living", () => {
+describe("hasAnyLivingFamilyPartners", () => {
+  it("returns true when any partner is living", () => {
     expect(
-      isFamilyAllLivingPartners({
-        husband: { id: "h1", isLiving: true },
-        wife: { id: "w1", isLiving: true },
-      }),
-    ).toBe(true);
-  });
-
-  it("returns true for a single living partner", () => {
-    expect(
-      isFamilyAllLivingPartners({
-        husband: { id: "h1", isLiving: true },
-        wife: null,
-      }),
-    ).toBe(true);
-  });
-
-  it("returns false when any partner is deceased", () => {
-    expect(
-      isFamilyAllLivingPartners({
+      hasAnyLivingFamilyPartners({
         husband: { id: "h1", isLiving: true },
         wife: { id: "w1", isLiving: false },
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it("returns false when no partners are linked", () => {
+  it("returns false when every partner is deceased", () => {
     expect(
-      isFamilyAllLivingPartners({
-        husband: null,
-        wife: null,
+      hasAnyLivingFamilyPartners({
+        husband: { id: "h1", isLiving: false },
+        wife: { id: "w1", isLiving: false },
       }),
     ).toBe(false);
   });
@@ -163,18 +160,24 @@ describe("canViewLivingFamilyGeneratedAlbum", () => {
     wife: { id: "w1", isLiving: true },
   };
 
-  it("blocks anonymous viewers for all-living families", () => {
+  it("blocks anonymous viewers when any partner is living", () => {
     expect(canViewLivingFamilyGeneratedAlbum(anonymous, allLivingFamily)).toBe(false);
-  });
-
-  it("allows authenticated viewers for all-living families", () => {
-    expect(canViewLivingFamilyGeneratedAlbum(authenticated, allLivingFamily)).toBe(true);
-  });
-
-  it("allows anonymous viewers when a partner is deceased", () => {
     expect(
       canViewLivingFamilyGeneratedAlbum(anonymous, {
         husband: { id: "h1", isLiving: true },
+        wife: { id: "w1", isLiving: false },
+      }),
+    ).toBe(false);
+  });
+
+  it("allows authenticated viewers when any partner is living", () => {
+    expect(canViewLivingFamilyGeneratedAlbum(authenticated, allLivingFamily)).toBe(true);
+  });
+
+  it("allows anonymous viewers when every partner is deceased", () => {
+    expect(
+      canViewLivingFamilyGeneratedAlbum(anonymous, {
+        husband: { id: "h1", isLiving: false },
         wife: { id: "w1", isLiving: false },
       }),
     ).toBe(true);
@@ -192,16 +195,16 @@ describe("collectFamilyPartners", () => {
   });
 });
 
-describe("shouldGateAllLivingLinkedEntity", () => {
-  it("gates anonymous viewers when all linked people are living", () => {
-    expect(shouldGateAllLivingLinkedEntity(anonymous, true)).toBe(true);
+describe("shouldGateLivingLinkedEntity", () => {
+  it("gates anonymous viewers when any living person is linked", () => {
+    expect(shouldGateLivingLinkedEntity(anonymous, true)).toBe(true);
   });
 
   it("allows authenticated viewers", () => {
-    expect(shouldGateAllLivingLinkedEntity(authenticated, true)).toBe(false);
+    expect(shouldGateLivingLinkedEntity(authenticated, true)).toBe(false);
   });
 
-  it("allows public entities with deceased links", () => {
-    expect(shouldGateAllLivingLinkedEntity(anonymous, false)).toBe(false);
+  it("allows public entities with deceased-only links", () => {
+    expect(shouldGateLivingLinkedEntity(anonymous, false)).toBe(false);
   });
 });

@@ -101,8 +101,13 @@ export function MobileNavDrawer({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmed = searchQuery.trim();
     onClose();
-    router.push(SITE_NAV_SEARCH_HREF);
+    if (trimmed) {
+      router.push(`/search?mode=general&q=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push(SITE_NAV_SEARCH_HREF);
+    }
     setSearchQuery("");
   };
 

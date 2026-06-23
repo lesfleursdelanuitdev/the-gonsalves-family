@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Baby,
+  BookOpen,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -266,6 +267,7 @@ function MobileBottomBar({
   hasAssociates,
   hasNotes,
   hasMedia,
+  hasStories,
   hasResearch,
 }: {
   person: PublicIndividualProfile;
@@ -274,6 +276,7 @@ function MobileBottomBar({
   hasAssociates: boolean;
   hasNotes: boolean;
   hasMedia: boolean;
+  hasStories: boolean;
   hasResearch: boolean;
 }) {
   const [navOpen, setNavOpen] = useState(true);
@@ -310,12 +313,13 @@ function MobileBottomBar({
     const links: { label: string; href: string }[] = [];
     if (hasAssociates) links.push({ label: "Associates", href: mobileProfileSectionHref("associates") });
     if (hasMedia) links.push({ label: "Media", href: mobileProfileSectionHref("media") });
+    if (hasStories) links.push({ label: "Stories", href: mobileProfileSectionHref("stories") });
     if (hasNotes) links.push({ label: "Notes", href: mobileProfileSectionHref("notes") });
     if (hasResearch) links.push({ label: "Research", href: mobileProfileSectionHref("openQuestions") });
     links.push({ label: "Relationship", href: mobileProfileSectionHref("relationship") });
     links.push({ label: "Contribute", href: contributionHref });
     return links;
-  }, [contributionHref, hasAssociates, hasMedia, hasNotes, hasResearch]);
+  }, [contributionHref, hasAssociates, hasMedia, hasNotes, hasStories, hasResearch]);
 
   const navBtnClass = (isActive: boolean) =>
     cn(
@@ -500,8 +504,10 @@ export function MobileIndividualProfile({
   const associates = person.associates ?? [];
   const linkedAccounts = person.linkedAccounts ?? [];
   const openQuestions = person.openQuestions ?? [];
+  const stories = person.stories ?? [];
   const hasMedia = person.photos.length > 0;
   const hasNotes = notes.length > 0;
+  const hasStories = stories.length > 0;
   const hasAssociates = associates.length > 0;
   const hasResearch = openQuestions.length > 0;
   const avatarSrc = person.portraitSrc ?? person.photos[0]?.src ?? null;
@@ -895,6 +901,50 @@ export function MobileIndividualProfile({
         </div>
       </section>
 
+      {hasStories ? (
+        <section id={MOBILE_PROFILE_SECTION_ID.stories} className="scroll-mt-[7.5rem] border-t border-border-subtle px-4 py-8">
+          <div className="text-center">
+            <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">Stories</p>
+            <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-heading">Linked Stories</h2>
+            <p className="mx-auto mt-2 max-w-sm font-body text-sm leading-relaxed text-muted">
+              Family stories, articles, and folklore featuring this person.
+            </p>
+          </div>
+          <ul className="mt-5 space-y-3">
+            {stories.map((story) => (
+              <li key={story.id}>
+                <Link
+                  href={story.href}
+                  className="flex min-w-0 items-start gap-3 rounded-xl border border-border-subtle bg-surface-elevated p-3"
+                >
+                  {story.coverUrl ? (
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-inset">
+                      <Image src={story.coverUrl} alt="" fill className="object-cover sepia-[0.15]" sizes="56px" />
+                    </div>
+                  ) : (
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border-subtle bg-link-soft-bg text-link">
+                      <BookOpen className="h-5 w-5" aria-hidden />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-link/20 bg-link-soft-bg px-2 py-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-link">
+                        {story.kindLabel}
+                      </span>
+                      <span className="text-[0.68rem] text-muted">{story.updatedAtLabel}</span>
+                    </div>
+                    <p className="mt-1 font-heading text-base font-semibold leading-snug text-heading">{story.title}</p>
+                    {story.excerpt ? (
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{story.excerpt}</p>
+                    ) : null}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {hasNotes ? <MobileProfileNotes notes={notes} subjectName={person.fullName} /> : null}
 
       {hasResearch ? (
@@ -944,6 +994,7 @@ export function MobileIndividualProfile({
         hasAssociates={hasAssociates}
         hasNotes={hasNotes}
         hasMedia={hasMedia}
+        hasStories={hasStories}
         hasResearch={hasResearch}
       />
     </div>

@@ -25,6 +25,8 @@ if (ligneousUrl) {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Use NEXT_DIST_DIR=.next-dev-local when the production .next tree is immutable (svc-public).
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   transpilePackages: [
     "@ligneous/auth",
     "@ligneous/prisma",

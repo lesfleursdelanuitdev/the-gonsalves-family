@@ -25,6 +25,7 @@ import { personAgeYears } from "@/lib/individuals/person-age";
 import type { PublicViewer } from "@/lib/auth/public-viewer-context";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { redactPublicIndividualForViewer, redactRelationForViewer } from "@/lib/auth/living-person-privacy";
+import { fetchPublishedStoriesForIndividual } from "@/lib/stories/story-queries";
 import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
 import type {
   PublicIndividual,
@@ -1090,6 +1091,7 @@ export async function loadPublicIndividualById(
     partners: group.partners.map(redactRelation),
     children: group.children.map(redactRelation),
   });
+  const stories = await fetchPublishedStoriesForIndividual(r.id);
 
   return {
     id: r.id,
@@ -1148,5 +1150,6 @@ export async function loadPublicIndividualById(
     associates: associates.map((item) => redactRelationForViewer(item, viewer)),
     openQuestions,
     linkedAccounts,
+    stories,
   };
 }

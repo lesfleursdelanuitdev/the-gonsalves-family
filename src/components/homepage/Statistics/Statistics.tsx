@@ -118,7 +118,9 @@ export function Statistics() {
       label: "Families",
       displayValue: isPending ? null : displayX,
       example: data?.examples.family?.displayName ?? null,
-      exampleHref: "/families",
+      exampleHref: data?.examples.family?.id
+        ? `/families/${encodeURIComponent(data.examples.family.id)}`
+        : null,
     },
     {
       key: "places",
@@ -174,11 +176,11 @@ export function Statistics() {
               Randomize
             </button>
             <Link
-              href="/tree/statistics"
+              href="/research"
               className="inline-flex items-center gap-2 rounded-md px-5 py-2.5 font-sans text-sm font-semibold text-white transition hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1D3D2F]/50"
               style={{ backgroundColor: GREEN }}
             >
-              Explore more statistics
+              Explore more research
               <ArrowRight className="size-4" aria-hidden />
             </Link>
           </div>
