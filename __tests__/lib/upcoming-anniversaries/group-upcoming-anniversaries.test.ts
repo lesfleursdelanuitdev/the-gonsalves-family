@@ -11,6 +11,7 @@ const person: PublicIndividual = {
   fullName: "Jane Doe",
   birthYear: 1920,
   deathYear: 1990,
+  isLiving: false,
   currentLocationLabel: null,
   placeLabels: [],
   age: null,

@@ -15,6 +15,7 @@ const FAMILY_PARTNERS_SELECT = {
 } as const;
 
 export const MEDIA_LIVING_LINK_SELECT = {
+  id: true,
   individualMedia: {
     select: { individual: { select: LINKED_PERSON_SELECT } },
   },

@@ -162,23 +162,23 @@ export type LinkedIndividualForPrivacy = {
   id: string;
   displayName: string;
   isLiving?: boolean;
+  isLivingSummary?: boolean;
   xref?: string;
   gedcomName?: string;
   mediaCount?: number;
   thumbnailUrl?: string | null;
 };
 
-export function countFeaturedPeople<T extends { isLivingSummary?: boolean; isLiving?: boolean }>(
-  people: T[],
-  livingSummaryCount?: number,
-): number {
+export function countFeaturedPeople<
+  T extends { isLivingSummary?: boolean; isLiving?: boolean; displayName?: string },
+>(people: T[], livingSummaryCount?: number): number {
   const summary = people.find((person) => person.isLivingSummary);
   const deceasedCount = people.filter((person) => !person.isLivingSummary).length;
   if (summary && livingSummaryCount != null && livingSummaryCount > 0) {
     return deceasedCount + livingSummaryCount;
   }
   if (summary) {
-    const match = summary.displayName.match(/^(\d+)\s+living/);
+    const match = summary.displayName?.match(/^(\d+)\s+living/);
     if (match) return deceasedCount + Number(match[1]);
   }
   return people.length;
@@ -264,10 +264,12 @@ export function buildCollapsedPersonMediaLinks(args: {
   }
 
   const deceased = args.people.filter((person) => !person.isLiving);
-  const links = deceased.map((person) => ({
-    label: args.personLabel(person.fullName, person.xref),
-    href: args.personHref(person.id),
-  }));
+  const links: Array<{ label: string; href?: string; isLivingSummary?: boolean }> = deceased.map(
+    (person) => ({
+      label: args.personLabel(person.fullName, person.xref),
+      href: args.personHref(person.id),
+    }),
+  );
 
   links.push({
     label:

@@ -79,7 +79,7 @@ describe("redactPublicIndividualForViewer", () => {
     hasDeathCause: false,
     portraitSrc: "/photo.jpg",
     isLiving: true,
-    role: null as const,
+    role: null,
     gender: "Female",
     sex: "F",
     hasPartner: true,

@@ -109,8 +109,8 @@ const MEDIA_SELECT = {
     select: {
       family: {
         select: {
-          husband: { select: { id: true, isLiving: true } },
-          wife: { select: { id: true, isLiving: true } },
+          husband: { select: { id: true, xref: true, fullName: true, isLiving: true } },
+          wife: { select: { id: true, xref: true, fullName: true, isLiving: true } },
         },
       },
     },
