@@ -5,8 +5,10 @@ import { Prisma } from "@ligneous/prisma";
 import type { PrismaClient } from "@ligneous/prisma";
 import {
   batchCuratedAlbumIdsWithLivingLinkedPeople,
-  canViewLivingFamilyGeneratedAlbum,
-  canViewLivingIndividualGeneratedAlbum,
+  generatedAlbumPlaceholderCover,
+  hasAnyLivingEventParticipants,
+  hasAnyLivingFamilyPartners,
+  resolveGeneratedMediaUnionScrapbookListCover,
   LIVING_MEDIA_PLACEHOLDER_COVER,
 } from "@/lib/auth/living-exclusive-media";
 import type { PublicViewer } from "@/lib/auth/public-viewer";
@@ -77,10 +79,10 @@ export async function loadPublicAlbumsPageData(
       loadCuratedAlbums(prisma, fileUuid, viewer),
       loadTopGeneratedIndividuals(prisma, fileUuid, viewer),
       loadTopGeneratedFamilies(prisma, fileUuid, viewer),
-      loadTopGeneratedEvents(prisma, fileUuid),
-      loadTopGeneratedPlaces(prisma, fileUuid),
-      loadTopGeneratedDates(prisma, fileUuid),
-      loadTopGeneratedTags(prisma, fileUuid),
+      loadTopGeneratedEvents(prisma, fileUuid, viewer),
+      loadTopGeneratedPlaces(prisma, fileUuid, viewer),
+      loadTopGeneratedDates(prisma, fileUuid, viewer),
+      loadTopGeneratedTags(prisma, fileUuid, viewer),
     ]);
 
   return {
@@ -217,7 +219,6 @@ async function loadTopGeneratedIndividuals(
   return rows.flatMap((r) => {
     const ind = nameById.get(r.individual_id);
     if (!ind) return [];
-    if (!canViewLivingIndividualGeneratedAlbum(viewer, ind.isLiving)) return [];
     const title = gedcomNameToDisplayName(ind.fullName, ind.xref);
     const thumb =
       individualDisplayPhotoMediaToPublicUrl(photoMap.get(r.individual_id)) ?? FALLBACK_THUMB;
@@ -226,14 +227,18 @@ async function loadTopGeneratedIndividuals(
         id: r.individual_id,
         title,
         photoCount: r.media_count,
-        thumbSrc: thumb,
+        thumbSrc: generatedAlbumPlaceholderCover(viewer, ind.isLiving, thumb),
         href: sourceToAlbumPath({ type: "individual", individualId: r.individual_id }),
       },
     ];
   });
 }
 
-async function loadTopGeneratedEvents(prisma: PrismaClient, fileUuid: string): Promise<GeneratedAlbum[]> {
+async function loadTopGeneratedEvents(
+  prisma: PrismaClient,
+  fileUuid: string,
+  viewer: PublicViewer,
+): Promise<GeneratedAlbum[]> {
   const rows = await prisma.$queryRaw<Array<{ event_id: string; media_count: number }>>(
     Prisma.sql`
       WITH rows AS (
@@ -269,13 +274,12 @@ async function loadTopGeneratedEvents(prisma: PrismaClient, fileUuid: string): P
       eventType: true,
       customType: true,
       familyEvents: {
-        take: 1,
         select: {
           family: {
             select: {
               id: true,
-              husband: { select: { id: true, fullName: true, xref: true } },
-              wife: { select: { id: true, fullName: true, xref: true } },
+              husband: { select: { id: true, fullName: true, xref: true, isLiving: true } },
+              wife: { select: { id: true, fullName: true, xref: true, isLiving: true } },
             },
           },
         },
@@ -286,7 +290,7 @@ async function loadTopGeneratedEvents(prisma: PrismaClient, fileUuid: string): P
           participantKind: true,
           role: true,
           sortOrder: true,
-          individual: { select: { id: true, fullName: true, xref: true } },
+          individual: { select: { id: true, fullName: true, xref: true, isLiving: true } },
         },
       },
     },
@@ -323,13 +327,20 @@ async function loadTopGeneratedEvents(prisma: PrismaClient, fileUuid: string): P
     }),
   );
 
-  return rows.map((r) => ({
-    id: r.event_id,
-    title: titleById.get(r.event_id) ?? "Event media",
-    photoCount: r.media_count,
-    thumbSrc: thumbByEvent.get(r.event_id) ?? FALLBACK_THUMB,
-    href: sourceToAlbumPath({ type: "event", eventId: r.event_id }),
-  }));
+  const eventById = new Map(events.map((ev) => [ev.id, ev]));
+
+  return rows.map((r) => {
+    const ev = eventById.get(r.event_id);
+    const thumb = thumbByEvent.get(r.event_id) ?? FALLBACK_THUMB;
+    const hasLiving = ev ? hasAnyLivingEventParticipants(ev) : false;
+    return {
+      id: r.event_id,
+      title: titleById.get(r.event_id) ?? "Event media",
+      photoCount: r.media_count,
+      thumbSrc: generatedAlbumPlaceholderCover(viewer, hasLiving, thumb),
+      href: sourceToAlbumPath({ type: "event", eventId: r.event_id }),
+    };
+  });
 }
 
 async function batchEventRasterThumbUrls(
@@ -471,19 +482,19 @@ async function loadTopGeneratedFamilies(
   return rows.flatMap((r) => {
     const family = familyById.get(r.family_id);
     if (!family) return [];
-    if (!canViewLivingFamilyGeneratedAlbum(viewer, family)) return [];
     const pair = familyPairLabel({
       husbandFullName: family.husband?.fullName,
       wifeFullName: family.wife?.fullName,
       husbandXref: family.husband?.xref ?? null,
       wifeXref: family.wife?.xref ?? null,
     });
+    const thumb = thumbByFamily.get(r.family_id) ?? FALLBACK_THUMB;
     return [
       {
         id: r.family_id,
         title: pair ?? "Family",
         photoCount: r.media_count,
-        thumbSrc: thumbByFamily.get(r.family_id) ?? FALLBACK_THUMB,
+        thumbSrc: generatedAlbumPlaceholderCover(viewer, hasAnyLivingFamilyPartners(family), thumb),
         href: sourceToAlbumPath({ type: "family", familyId: r.family_id }),
       },
     ];
@@ -523,7 +534,11 @@ async function batchPlaceRasterThumbUrls(
   return out;
 }
 
-async function loadTopGeneratedPlaces(prisma: PrismaClient, fileUuid: string): Promise<GeneratedAlbum[]> {
+async function loadTopGeneratedPlaces(
+  prisma: PrismaClient,
+  fileUuid: string,
+  viewer: PublicViewer,
+): Promise<GeneratedAlbum[]> {
   const rows = await prisma.$queryRaw<Array<{ place_id: string; media_count: number }>>(
     Prisma.sql`
       WITH agg AS (
@@ -552,13 +567,25 @@ async function loadTopGeneratedPlaces(prisma: PrismaClient, fileUuid: string): P
   ]);
   const titleById = new Map(places.map((p) => [p.id, placeRowTitle(p)] as const));
 
-  return rows.map((r) => ({
-    id: r.place_id,
-    title: titleById.get(r.place_id) ?? "Place",
-    photoCount: r.media_count,
-    thumbSrc: thumbByPlace.get(r.place_id) ?? FALLBACK_THUMB,
-    href: sourceToAlbumPath({ type: "place", placeId: r.place_id }),
-  }));
+  return Promise.all(
+    rows.map(async (r) => {
+      const thumb = thumbByPlace.get(r.place_id) ?? FALLBACK_THUMB;
+      const thumbSrc = await resolveGeneratedMediaUnionScrapbookListCover(
+        prisma,
+        fileUuid,
+        viewer,
+        { type: "place", placeId: r.place_id },
+        thumb,
+      );
+      return {
+        id: r.place_id,
+        title: titleById.get(r.place_id) ?? "Place",
+        photoCount: r.media_count,
+        thumbSrc,
+        href: sourceToAlbumPath({ type: "place", placeId: r.place_id }),
+      };
+    }),
+  );
 }
 
 async function batchDateRasterThumbUrls(
@@ -594,7 +621,11 @@ async function batchDateRasterThumbUrls(
   return out;
 }
 
-async function loadTopGeneratedDates(prisma: PrismaClient, fileUuid: string): Promise<GeneratedAlbum[]> {
+async function loadTopGeneratedDates(
+  prisma: PrismaClient,
+  fileUuid: string,
+  viewer: PublicViewer,
+): Promise<GeneratedAlbum[]> {
   const rows = await prisma.$queryRaw<Array<{ date_id: string; media_count: number }>>(
     Prisma.sql`
       WITH agg AS (
@@ -623,16 +654,32 @@ async function loadTopGeneratedDates(prisma: PrismaClient, fileUuid: string): Pr
   ]);
   const titleById = new Map(dates.map((d) => [d.id, dateRowTitle(d)] as const));
 
-  return rows.map((r) => ({
-    id: r.date_id,
-    title: titleById.get(r.date_id) ?? "Date",
-    photoCount: r.media_count,
-    thumbSrc: thumbByDate.get(r.date_id) ?? FALLBACK_THUMB,
-    href: sourceToAlbumPath({ type: "date", dateId: r.date_id }),
-  }));
+  return Promise.all(
+    rows.map(async (r) => {
+      const thumb = thumbByDate.get(r.date_id) ?? FALLBACK_THUMB;
+      const thumbSrc = await resolveGeneratedMediaUnionScrapbookListCover(
+        prisma,
+        fileUuid,
+        viewer,
+        { type: "date", dateId: r.date_id },
+        thumb,
+      );
+      return {
+        id: r.date_id,
+        title: titleById.get(r.date_id) ?? "Date",
+        photoCount: r.media_count,
+        thumbSrc,
+        href: sourceToAlbumPath({ type: "date", dateId: r.date_id }),
+      };
+    }),
+  );
 }
 
-async function loadTopGeneratedTags(prisma: PrismaClient, fileUuid: string): Promise<GeneratedAlbum[]> {
+async function loadTopGeneratedTags(
+  prisma: PrismaClient,
+  fileUuid: string,
+  viewer: PublicViewer,
+): Promise<GeneratedAlbum[]> {
   const rows = await prisma.$queryRaw<Array<{ tag_id: string; media_count: number }>>(
     Prisma.sql`
       WITH rows AS (
@@ -667,13 +714,25 @@ async function loadTopGeneratedTags(prisma: PrismaClient, fileUuid: string): Pro
   ]);
   const nameById = new Map(tags.map((t) => [t.id, t.name]));
 
-  return rows.map((r) => ({
-    id: r.tag_id,
-    title: (nameById.get(r.tag_id) ?? "Tag").trim() || "Tag",
-    photoCount: r.media_count,
-    thumbSrc: thumbByTag.get(r.tag_id) ?? FALLBACK_THUMB,
-    href: sourceToAlbumPath({ type: "tag", tagId: r.tag_id }),
-  }));
+  return Promise.all(
+    rows.map(async (r) => {
+      const thumb = thumbByTag.get(r.tag_id) ?? FALLBACK_THUMB;
+      const thumbSrc = await resolveGeneratedMediaUnionScrapbookListCover(
+        prisma,
+        fileUuid,
+        viewer,
+        { type: "tag", tagId: r.tag_id },
+        thumb,
+      );
+      return {
+        id: r.tag_id,
+        title: (nameById.get(r.tag_id) ?? "Tag").trim() || "Tag",
+        photoCount: r.media_count,
+        thumbSrc,
+        href: sourceToAlbumPath({ type: "tag", tagId: r.tag_id }),
+      };
+    }),
+  );
 }
 
 async function batchTagRasterThumbUrls(

@@ -174,6 +174,10 @@ For a **generated individual scrapbook**, the subject individual is the linked p
 
 For a **generated family scrapbook**, the family’s husband and wife are the linked people (each counted separately).
 
+For a **generated event scrapbook**, linked people are every individual listed as an event participant, plus the husband and wife of each family attached to the event.
+
+For a **generated place, date, tag, or note scrapbook**, linked people are the union of linked-people sets across **all media** in the scrapbook (same album-level rule as curated albums).
+
 #### Decision table
 
 | Linked people | Anonymous viewer | Authenticated viewer |
@@ -185,7 +189,7 @@ For a **generated family scrapbook**, the family’s husband and wife are the li
 
 **Rule:** gate when the linked-people set is non-empty and contains **at least one living** person. A deceased link no longer makes mixed media public.
 
-Implementation: `lib/auth/living-exclusive-media.ts` (`collectLinkedPeople`, `hasAnyLivingLinkedPeople`, `shouldGateLivingLinkedEntity`).
+Implementation: `lib/auth/living-exclusive-media.ts` (`collectLinkedPeople`, `collectEventLinkedPeople`, `isMediaIdsLinkedToAnyLivingPeople`, `isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople`, `hasAnyLivingLinkedPeople`, `hasAnyLivingEventParticipants`, `shouldGateLivingLinkedEntity`, `generatedAlbumPlaceholderCover`, `resolveGeneratedMediaUnionScrapbookListCover`).
 
 #### 6.6.1 Guarded behavior (anonymous)
 
@@ -193,10 +197,10 @@ Implementation: `lib/auth/living-exclusive-media.ts` (`collectLinkedPeople`, `ha
 |---------|----------|
 | **Media list** (`/archive/photos`, `/archive/audio`, `/archive/videos`, `/media` hub) | Placeholder thumbnail (`/images/personCardBg.png`); no lightbox; click → login wall |
 | **Media detail** (`/media/[id]`, `/api/media-view/[id]`) | 401 + `loginUrl`; no file URL in payload |
-| **Curated album list** | Album remains listed; cover uses placeholder when album-level gate applies |
+| **Curated album list** (`/archive`, `/media`) | Album remains listed; cover uses placeholder when album-level gate applies |
+| **Generated scrapbook lists** (`/archive`, `/media`) | Scrapbook remains listed; cover uses placeholder when album-level gate applies (all generated types) |
 | **Curated album view** (`/media/album/[albumId]`) | Login wall when album-level gate applies |
-| **Generated individual/family scrapbook lists** | **Omit** when subject / any family partner is living |
-| **Generated scrapbook view** | Login wall when album-level gate applies |
+| **Generated scrapbook view** (`/media/album-view?kind=generated&…`) | Login wall when album-level gate applies |
 | **Items inside a public album** | Per-item placeholder + login when that item’s linked-people set includes any living person |
 
 Authenticated viewers see real thumbnails, files, and album contents.
@@ -244,14 +248,16 @@ Covered by §6.6.2: deceased names visible; living names collapsed to `+ n livin
 
 ### 6.8 Generated scrapbooks — living subjects
 
-**Routes:** `/media/album-view?kind=generated&type=individual|family&id=…`
+**Routes:** `/media/album-view?kind=generated&type=individual|family|event|place|date|tag|note&id=…`
 
 Covered by §6.6:
 
 - **Individual:** gated when the subject is living.
 - **Family:** gated when **any** linked partner (husband/wife) is living (including mixed living/deceased couples).
+- **Event:** gated when **any** event participant (individual or family partner) is living.
+- **Place / date / tag / note:** gated when the union of linked people across all scrapbook media includes **any** living person.
 
-Other generated types (event, place, date, tag, note) remain public in v1 unless future rules say otherwise.
+**List surfaces** (`/archive`, `/media`): scrapbooks remain visible; anonymous viewers see the placeholder cover (`/images/personCardBg.png`) when gated.
 
 ---
 
@@ -292,6 +298,8 @@ Protected for **anonymous** viewers only:
 | `/individuals/[id]` | Person is living |
 | `/media/album-view?kind=generated&type=individual&id=…` | Subject individual is living |
 | `/media/album-view?kind=generated&type=family&id=…` | Any family partner (husband/wife) linked to the scrapbook is living |
+| `/media/album-view?kind=generated&type=event&id=…` | Any event participant (individual or family partner) is living |
+| `/media/album-view?kind=generated&type=place|date|tag|note&id=…` | Union of linked people across scrapbook media includes any living person (§6.6) |
 | `/media/album/[albumId]` | Union of linked people across album media includes any living person (§6.6) |
 | `/media/[id]`, `/archive/photos`, `/archive/audio`, `/archive/videos` | Media item’s linked-people set includes any living person (§6.6) |
 
@@ -358,7 +366,7 @@ function redactLivingInPayload<T>(payload: T, viewer: PublicViewer): T;
 - [ ] Media (photos, audio, video): any-living-linked items show placeholder + login for anonymous; full file for authenticated.
 - [ ] Mixed living + deceased media: gated for anonymous (not public because a deceased person is linked).
 - [ ] Curated albums: login wall when union of linked people includes any living person; per-item gate inside public albums.
-- [ ] Generated individual & family scrapbooks: login wall / hidden list when subject or any partner is living.
+- [ ] Generated scrapbooks (all types): placeholder list cover + login wall on view when gate applies.
 - [ ] Linked-people labels: deceased names + `+ n living person(s)` on list cards and “People featured” for anonymous.
 - [ ] Authenticated: no redaction anywhere.
 
@@ -395,3 +403,5 @@ Depends on auth UX (session resolution) from [PUBLIC_SITE_AUTH_UX_SPEC.md](./PUB
 | 2026-06-15 | Split from combined spec; initial privacy spec |
 | 2026-06-17 | §6.6 unified all-living-linked gate for albums, scrapbooks, and all media buckets; family indirect links |
 | 2026-06-21 | §6.6 gate any living-linked media (including mixed living/deceased); §6.6.2 collapsed living labels on cards and “People featured”; album + per-item gates |
+| 2026-06-24 | §6.8 event scrapbooks gated like individual/family; generated scrapbook lists use placeholder covers instead of omitting rows |
+| 2026-06-24 | §6.8 place/date/tag/note scrapbooks use media-union album-level gate; list covers + login wall aligned with curated albums |

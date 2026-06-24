@@ -437,18 +437,22 @@ export function IndividualProfilePage({ person }: { person: PublicIndividualProf
               </div>
                   <div className="grid gap-4">
                     {openQuestions.map((question) => (
-                    <article key={question.id} className="rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-4">
+                    <Link
+                      key={question.id}
+                      href={`/research/open-questions/${encodeURIComponent(question.id)}`}
+                      className="block rounded-xl border border-border-subtle/80 bg-surface-elevated/80 p-4 transition hover:border-link/25 hover:bg-link-soft-bg/30"
+                    >
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="rounded-full border border-link/20 bg-link-soft-bg px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-link">
                           {statusLabel(question.status)}
                         </span>
                         <span className="text-xs text-muted">Opened {question.createdAtLabel}</span>
                       </div>
-                      <h3 className="font-heading text-lg font-semibold text-heading">{question.question}</h3>
+                      <h3 className="font-heading text-lg font-semibold text-heading group-hover:text-link">{question.question}</h3>
                       {question.details ? (
-                        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">{question.details}</p>
+                        <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-muted">{question.details}</p>
                       ) : null}
-                    </article>
+                    </Link>
                     ))}
                   </div>
               </section>

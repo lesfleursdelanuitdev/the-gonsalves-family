@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@ligneous/prisma";
+import type { AlbumViewSource } from "@ligneous/album-view";
+import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
 import { NextResponse } from "next/server";
 import { authRequiredResponse } from "@/lib/auth/auth-required-response";
 import { LIVING_MEDIA_PLACEHOLDER_COVER } from "@/lib/auth/living-media-constants";
@@ -91,6 +93,41 @@ export function canViewLivingFamilyGeneratedAlbum(viewer: PublicViewer, family: 
   return isAuthenticatedViewer(viewer);
 }
 
+export type EventParticipantsInput = {
+  individualEvents: Array<{ individual: LinkedPerson }>;
+  familyEvents: Array<{ family: FamilyPartners }>;
+};
+
+/** Individuals and family partners attached to a GEDCOM event (generated event scrapbooks). */
+export function collectEventLinkedPeople(input: EventParticipantsInput): Map<string, boolean> {
+  const byId = new Map<string, boolean>();
+  for (const link of input.individualEvents) addLinkedPerson(byId, link.individual);
+  for (const link of input.familyEvents) {
+    addLinkedPerson(byId, link.family.husband);
+    addLinkedPerson(byId, link.family.wife);
+  }
+  return byId;
+}
+
+export function hasAnyLivingEventParticipants(input: EventParticipantsInput): boolean {
+  return hasAnyLivingLinkedPeople(collectEventLinkedPeople(input));
+}
+
+export function canViewLivingEventGeneratedAlbum(viewer: PublicViewer, event: EventParticipantsInput): boolean {
+  if (!hasAnyLivingEventParticipants(event)) return true;
+  return isAuthenticatedViewer(viewer);
+}
+
+export function generatedAlbumPlaceholderCover(
+  viewer: PublicViewer,
+  hasLivingLinkedPeople: boolean,
+  coverSrc: string,
+): string {
+  return shouldGateLivingLinkedEntity(viewer, hasLivingLinkedPeople)
+    ? LIVING_MEDIA_PLACEHOLDER_COVER
+    : coverSrc;
+}
+
 /** @deprecated Use hasAnyLivingLinkedPeople — kept for incremental migration. */
 export function areAllLinkedPeopleLiving(people: Map<string, boolean>): boolean {
   if (people.size === 0) return false;
@@ -150,20 +187,16 @@ export const gateAllLivingLinkedMediaAccess = gateLivingLinkedMediaAccess;
 /** @deprecated Use gateLivingLinkedMediaAccess */
 export const gateExclusiveLivingMediaAccess = gateLivingLinkedMediaAccess;
 
-export async function isCuratedAlbumLinkedToAnyLivingPeople(
+export async function isMediaIdsLinkedToAnyLivingPeople(
   prisma: PrismaClient,
   fileUuid: string,
-  albumId: string,
+  mediaIds: readonly string[],
 ): Promise<boolean> {
-  const joins = await prisma.albumGedcomMedia.findMany({
-    where: { albumId, gedcomMedia: { fileUuid } },
-    select: { gedcomMediaId: true },
-  });
-  const mediaIds = joins.map((join) => join.gedcomMediaId);
-  if (mediaIds.length === 0) return false;
+  const unique = [...new Set(mediaIds.map((id) => id.trim()).filter(Boolean))];
+  if (unique.length === 0) return false;
 
   const rows = await prisma.gedcomMedia.findMany({
-    where: { id: { in: mediaIds }, fileUuid },
+    where: { id: { in: unique }, fileUuid },
     select: MEDIA_LIVING_LINK_SELECT,
   });
 
@@ -174,6 +207,46 @@ export async function isCuratedAlbumLinkedToAnyLivingPeople(
     }
   }
   return hasAnyLivingLinkedPeople(combined);
+}
+
+export type GeneratedMediaUnionSource = Extract<
+  AlbumViewSource,
+  { type: "place" } | { type: "date" } | { type: "tag" } | { type: "note" }
+>;
+
+/** Scrapbooks keyed by place/date/tag/note: union linked people across all member media (§6.6). */
+export async function isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople(
+  prisma: PrismaClient,
+  fileUuid: string,
+  source: GeneratedMediaUnionSource,
+): Promise<boolean> {
+  const { mediaIds } = await collectMediaIdsForGenerated(prisma, fileUuid, source);
+  return isMediaIdsLinkedToAnyLivingPeople(prisma, fileUuid, mediaIds);
+}
+
+export async function resolveGeneratedMediaUnionScrapbookListCover(
+  prisma: PrismaClient,
+  fileUuid: string,
+  viewer: PublicViewer,
+  source: GeneratedMediaUnionSource,
+  coverSrc: string,
+): Promise<string> {
+  if (isAuthenticatedViewer(viewer)) return coverSrc;
+  const hasLiving = await isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople(prisma, fileUuid, source);
+  return generatedAlbumPlaceholderCover(viewer, hasLiving, coverSrc);
+}
+
+export async function isCuratedAlbumLinkedToAnyLivingPeople(
+  prisma: PrismaClient,
+  fileUuid: string,
+  albumId: string,
+): Promise<boolean> {
+  const joins = await prisma.albumGedcomMedia.findMany({
+    where: { albumId, gedcomMedia: { fileUuid } },
+    select: { gedcomMediaId: true },
+  });
+  const mediaIds = joins.map((join) => join.gedcomMediaId);
+  return isMediaIdsLinkedToAnyLivingPeople(prisma, fileUuid, mediaIds);
 }
 
 /** @deprecated Use isCuratedAlbumLinkedToAnyLivingPeople */

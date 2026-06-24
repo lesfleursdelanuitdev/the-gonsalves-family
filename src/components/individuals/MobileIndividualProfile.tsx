@@ -33,6 +33,7 @@ import {
 } from "@/lib/individuals/profile-section-ids";
 import { cn } from "@/lib/utils";
 import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 import { MobileProfileNotes } from "@/components/notes/MobileProfileNotes";
 import { MobileProfileTimeline } from "@/components/timeline/MobileProfileTimeline";
 import { ProfileCharts } from "./ProfileCharts";
@@ -213,39 +214,32 @@ function RelationsGroup({
         {items.map((item) => {
           const suffix = relationSuffix?.(item);
           const restricted = shouldShowMinimalLiving(item.isLiving);
-
-          if (restricted) {
-            return (
-              <li key={`${label}-${item.id}`} className="py-4">
-                <span className="block truncate font-heading text-[0.94rem] font-semibold leading-snug text-heading">
-                  {formatMinimalLivingLabel(item.fullName, item.birthYear)}
-                </span>
-              </li>
-            );
-          }
+          const profilePath = `/individuals/${encodeURIComponent(item.id)}`;
+          const href = restricted ? buildLoginWallPath(profilePath) : profilePath;
 
           return (
             <li key={`${label}-${item.id}`}>
-              <Link
-                href={`/individuals/${encodeURIComponent(item.id)}`}
-                className="group flex items-center gap-3.5 py-4"
-              >
-                <RelationAvatar relation={item} />
+              <Link href={href} className="group flex items-center gap-3.5 py-4">
+                <RelationAvatar
+                  relation={restricted ? { fullName: item.fullName, portraitSrc: null } : item}
+                />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-heading text-[0.94rem] font-semibold leading-snug text-heading group-hover:text-link">
-                    {item.fullName}
+                    {restricted ? formatMinimalLivingLabel(item.fullName, item.birthYear) : item.fullName}
                   </span>
-                  <span className="mt-0.5 block truncate font-body text-[0.8rem] leading-snug text-muted">
-                    {lifeRange(item.birthYear, item.deathYear)}
-                    {suffix ? (
-                      <>
-                        {" "}
-                        <span className="font-body text-[0.58rem] font-semibold not-italic uppercase tracking-[0.14em] text-link">
-                          {suffix}
-                        </span>
-                      </>
-                    ) : null}
-                  </span>
+                  {!restricted ? (
+                    <span className="mt-0.5 block truncate font-body text-[0.8rem] leading-snug text-muted">
+                      {lifeRange(item.birthYear, item.deathYear)}
+                      {suffix ? (
+                        <>
+                          {" "}
+                          <span className="font-body text-[0.58rem] font-semibold not-italic uppercase tracking-[0.14em] text-link">
+                            {suffix}
+                          </span>
+                        </>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </span>
                 <ChevronRight
                   className="h-4 w-4 shrink-0 text-muted/60 transition group-hover:translate-x-0.5 group-hover:text-link"
@@ -955,9 +949,14 @@ export function MobileIndividualProfile({
           </div>
           <ul className="mt-4 space-y-3">
             {openQuestions.map((q) => (
-              <li key={q.id} className="rounded-xl border border-border-subtle bg-surface-elevated p-4">
-                <p className="font-heading text-base font-semibold text-heading">{q.question}</p>
-                {q.details ? <p className="mt-1 text-sm text-muted">{q.details}</p> : null}
+              <li key={q.id}>
+                <Link
+                  href={`/research/open-questions/${encodeURIComponent(q.id)}`}
+                  className="block rounded-xl border border-border-subtle bg-surface-elevated p-4 transition hover:border-link/25 hover:bg-link-soft-bg/30"
+                >
+                  <p className="font-heading text-base font-semibold text-heading">{q.question}</p>
+                  {q.details ? <p className="mt-1 line-clamp-3 text-sm text-muted">{q.details}</p> : null}
+                </Link>
               </li>
             ))}
           </ul>

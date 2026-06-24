@@ -176,18 +176,18 @@ Applies to `/api/tree/advanced-search`, `/api/tree/advanced-search/general`, and
 
 ---
 
-### 6.7 Generated albums (scrapbooks) — living subject
+### 6.7 Generated albums (scrapbooks) — living subjects
 
-**Route:** `/media/album-view?kind=generated&type=individual&id=<livingIndividualId>`
+**Routes:** `/media/album-view?kind=generated&type=individual|family|event|place|date|tag|note&id=…`
 
-| Viewer | Behavior |
-|--------|----------|
-| Anonymous | **Login wall** with `returnTo` = full album-view URL. |
-| Authenticated | Full generated album. |
+| Type | Gate when | Anonymous list cover (`/archive`, `/media`) | Anonymous album view |
+|------|-----------|---------------------------------------------|----------------------|
+| **Individual** | Subject is living | Placeholder | Login wall |
+| **Family** | Any husband/wife partner is living | Placeholder | Login wall |
+| **Event** | Any event participant is living | Placeholder | Login wall |
+| **Place / date / tag / note** | Union of linked people across scrapbook media includes any living person | Placeholder | Login wall |
 
-**API:** `GET /api/album-view?kind=generated&type=individual&id=…` returns **401** + login hint when anonymous and subject is living.
-
-Other generated types (`family`, `place`, `event`, `date`, `tag`, `note`) remain public in v1 unless the URL is `type=individual` for a living person.
+**API:** `GET /api/album-view?kind=generated&type=…&id=…` returns **401** + login hint when anonymous and the scrapbook-level gate applies.
 
 ---
 

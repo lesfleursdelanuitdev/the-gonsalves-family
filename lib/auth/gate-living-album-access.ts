@@ -4,6 +4,9 @@ import { authRequiredResponse } from "@/lib/auth/auth-required-response";
 import {
   isCuratedAlbumLinkedToAnyLivingPeople,
   hasAnyLivingFamilyPartners,
+  hasAnyLivingEventParticipants,
+  isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople,
+  type GeneratedMediaUnionSource,
 } from "@/lib/auth/living-exclusive-media";
 import { canViewFullIndividual, isAuthenticatedViewer, resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { loadIndividualLivingStatus } from "@/lib/individuals/load-individual-living-status";
@@ -59,3 +62,45 @@ export async function gateCuratedAlbumAttachedToLivingAccess(
 
 /** @deprecated Use gateCuratedAlbumAttachedToLivingAccess — name kept for call sites. */
 export const gateCuratedAlbumAllLivingLinkedAccess = gateCuratedAlbumAttachedToLivingAccess;
+
+const EVENT_PARTICIPANTS_SELECT = {
+  individualEvents: {
+    select: { individual: { select: { id: true, isLiving: true } } },
+  },
+  familyEvents: {
+    select: { family: { select: FAMILY_PARTNERS_SELECT } },
+  },
+} as const;
+
+export async function gateGeneratedEventAlbumAccess(
+  prisma: PrismaClient,
+  fileUuid: string,
+  eventId: string,
+  returnPath: string,
+): Promise<NextResponse | null> {
+  const event = await prisma.gedcomEvent.findFirst({
+    where: { id: eventId, fileUuid },
+    select: EVENT_PARTICIPANTS_SELECT,
+  });
+  if (!event || !hasAnyLivingEventParticipants(event)) return null;
+
+  const viewer = await resolvePublicViewer();
+  if (isAuthenticatedViewer(viewer)) return null;
+
+  return authRequiredResponse(returnPath);
+}
+
+export async function gateGeneratedMediaUnionScrapbookAccess(
+  prisma: PrismaClient,
+  fileUuid: string,
+  source: GeneratedMediaUnionSource,
+  returnPath: string,
+): Promise<NextResponse | null> {
+  const hasLiving = await isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople(prisma, fileUuid, source);
+  if (!hasLiving) return null;
+
+  const viewer = await resolvePublicViewer();
+  if (isAuthenticatedViewer(viewer)) return null;
+
+  return authRequiredResponse(returnPath);
+}
