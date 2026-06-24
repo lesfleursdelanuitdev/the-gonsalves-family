@@ -155,6 +155,10 @@ export interface HomeStatDonutChart {
   lineHoverCountsLabel?: string;
   barXAxisTitle?: string;
   barHoverCountsLabel?: string;
+  /** Shown in donut legend after slice counts, e.g. "surnames". */
+  legendCountLabel?: string;
+  /** Short explanation below the chart (donut / staggered). */
+  caption?: string;
 }
 
 /** Response from GET /api/tree/home-statistics (homepage “By the numbers” block). */
@@ -168,7 +172,7 @@ export interface HomeStatisticsPayload {
   distribution: { label: HomeStatisticsDistributionLabel; count: number; percent: number }[];
   examples: {
     individual: { displayName: string; xref: string } | null;
-    family: { displayName: string; xref: string } | null;
+    family: { id: string; displayName: string; xref: string } | null;
     surname: { surname: string } | null;
     place: { displayLabel: string } | null;
   };

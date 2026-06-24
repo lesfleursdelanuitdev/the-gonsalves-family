@@ -203,13 +203,14 @@ describe("GET /api/tree/advanced-search/general — with database", () => {
     }
   });
 
-  it("returns at most 5 items per category", async () => {
+  it("returns at most MAX_CATEGORY_RESULTS items per category", async () => {
     if (!process.env.DATABASE_URL) return;
     const res = await GET(req({ q: "a" }));
     if (res.status !== 200) return;
-    const json = await res.json() as Record<string, { items: unknown[] }>;
+    const json = await res.json() as Record<string, { items: unknown[]; total: number }>;
     for (const key of EXPECTED_KEYS) {
-      expect(json[key]!.items.length).toBeLessThanOrEqual(5);
+      expect(json[key]!.items.length).toBeLessThanOrEqual(json[key]!.total);
+      expect(json[key]!.items.length).toBeLessThanOrEqual(1000);
     }
   });
 

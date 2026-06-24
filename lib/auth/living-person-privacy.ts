@@ -129,7 +129,6 @@ export function redactSearchIndividualForViewer<T extends SearchIndividualPrivac
     birthYear: individual.birthYear ?? null,
     deathYear: null,
     portraitSrc: null,
-    profileHref: null,
   };
 }
 
@@ -145,6 +144,143 @@ export type FeaturedIndividualPrivacyFields = {
   isLiving?: boolean;
 };
 
+export const LIVING_PEOPLE_SUMMARY_ID = "__living-people-summary__";
+
+export function formatLivingPeopleCountSuffix(count: number): string {
+  if (count <= 0) return "";
+  if (count === 1) return "+ 1 living person";
+  return `+ ${count} living people`;
+}
+
+export function formatLivingPeopleOnlyLabel(count: number): string {
+  if (count <= 0) return "";
+  if (count === 1) return "1 living person";
+  return `${count} living people`;
+}
+
+export type LinkedIndividualForPrivacy = {
+  id: string;
+  displayName: string;
+  isLiving?: boolean;
+  isLivingSummary?: boolean;
+  xref?: string;
+  gedcomName?: string;
+  mediaCount?: number;
+  thumbnailUrl?: string | null;
+};
+
+export function countFeaturedPeople<
+  T extends { isLivingSummary?: boolean; isLiving?: boolean; displayName?: string },
+>(people: T[], livingSummaryCount?: number): number {
+  const summary = people.find((person) => person.isLivingSummary);
+  const deceasedCount = people.filter((person) => !person.isLivingSummary).length;
+  if (summary && livingSummaryCount != null && livingSummaryCount > 0) {
+    return deceasedCount + livingSummaryCount;
+  }
+  if (summary) {
+    const match = summary.displayName?.match(/^(\d+)\s+living/);
+    if (match) return deceasedCount + Number(match[1]);
+  }
+  return people.length;
+}
+
+export function collapseLinkedIndividualsForViewer<T extends LinkedIndividualForPrivacy>(
+  people: T[],
+  viewer: PublicViewer,
+): T[] {
+  const livingPeople = people.filter((person) => person.isLiving);
+  if (livingPeople.length === 0) return people;
+  if (!shouldRedactLivingPerson(viewer, true)) return people;
+
+  const deceased = people.filter((person) => !person.isLiving);
+  const livingCount = livingPeople.length;
+  const summary = {
+    id: LIVING_PEOPLE_SUMMARY_ID,
+    xref: "",
+    gedcomName: "",
+    displayName:
+      deceased.length > 0
+        ? formatLivingPeopleCountSuffix(livingCount)
+        : formatLivingPeopleOnlyLabel(livingCount),
+    isLivingSummary: true,
+  } as T;
+
+  return deceased.length > 0 ? [...deceased, summary] : [summary];
+}
+
+export type PersonLinkInput = {
+  id: string;
+  xref: string;
+  fullName: string | null;
+  isLiving: boolean;
+};
+
+export function collectUniquePersonLinksFromMediaRow(row: {
+  individualMedia: Array<{ individual: PersonLinkInput }>;
+  individualProfileFor: Array<{ individual: PersonLinkInput }>;
+  familyMedia: Array<{
+    family: {
+      husband: PersonLinkInput | null;
+      wife: PersonLinkInput | null;
+    };
+  }>;
+  familyProfileFor?: Array<{
+    family: {
+      husband: PersonLinkInput | null;
+      wife: PersonLinkInput | null;
+    };
+  }>;
+}): PersonLinkInput[] {
+  const byId = new Map<string, PersonLinkInput>();
+  const add = (person: PersonLinkInput | null | undefined) => {
+    if (!person?.id || byId.has(person.id)) return;
+    byId.set(person.id, person);
+  };
+  for (const link of row.individualMedia) add(link.individual);
+  for (const link of row.individualProfileFor) add(link.individual);
+  for (const link of row.familyMedia) {
+    add(link.family.husband);
+    add(link.family.wife);
+  }
+  for (const link of row.familyProfileFor ?? []) {
+    add(link.family.husband);
+    add(link.family.wife);
+  }
+  return [...byId.values()];
+}
+
+export function buildCollapsedPersonMediaLinks(args: {
+  people: PersonLinkInput[];
+  viewer: PublicViewer;
+  personLabel: (fullName: string | null, xref: string) => string;
+  personHref: (individualId: string) => string;
+}): Array<{ label: string; href?: string; isLivingSummary?: boolean }> {
+  const livingCount = args.people.filter((person) => person.isLiving).length;
+  if (livingCount === 0 || !shouldRedactLivingPerson(args.viewer, true)) {
+    return args.people.map((person) => ({
+      label: args.personLabel(person.fullName, person.xref),
+      href: args.personHref(person.id),
+    }));
+  }
+
+  const deceased = args.people.filter((person) => !person.isLiving);
+  const links: Array<{ label: string; href?: string; isLivingSummary?: boolean }> = deceased.map(
+    (person) => ({
+      label: args.personLabel(person.fullName, person.xref),
+      href: args.personHref(person.id),
+    }),
+  );
+
+  links.push({
+    label:
+      deceased.length > 0
+        ? formatLivingPeopleCountSuffix(livingCount)
+        : formatLivingPeopleOnlyLabel(livingCount),
+    isLivingSummary: true,
+  });
+  return links;
+}
+
 export function filterFeaturedIndividualsForViewer<T extends FeaturedIndividualPrivacyFields>(
   individuals: T[],
   viewer: PublicViewer,
@@ -153,6 +289,21 @@ export function filterFeaturedIndividualsForViewer<T extends FeaturedIndividualP
     if (!individual.isLiving) return true;
     return !shouldRedactLivingPerson(viewer, true);
   });
+}
+
+export type EventLinkedPersonPrivacyFields = {
+  id: string;
+  displayName: string;
+  profileHref?: string | null;
+  isLiving?: boolean;
+};
+
+/** Keep linked person names on events; profile pages gate living access behind login. */
+export function redactEventLinkedPeopleForViewer<T extends EventLinkedPersonPrivacyFields>(
+  people: T[],
+  _viewer: PublicViewer,
+): T[] {
+  return people;
 }
 
 export type FamilyPartnerPrivacyFields = {
@@ -178,7 +329,6 @@ export function redactFamilyPartnerForViewer<T extends FamilyPartnerPrivacyField
     fullName: displayName,
     birthYear: partner.birthYear ?? null,
     deathYear: null,
-    profileHref: null,
   };
 }
 
@@ -243,17 +393,18 @@ export function redactHomeStatisticsIndividualExample(
 
 export function redactHomeStatisticsFamilyExample(
   args: {
+    id: string;
     displayName: string;
     xref: string;
     partners: Array<{ displayName: string; isLiving: boolean; birthYear: number | null }>;
   },
   viewer: PublicViewer,
-): { displayName: string; xref: string } {
+): { id: string; displayName: string; xref: string } {
   const redactedNames = args.partners.map((partner) => {
     if (!shouldRedactLivingPerson(viewer, partner.isLiving)) return partner.displayName;
     return formatMinimalLivingLabel(partner.displayName, partner.birthYear);
   });
   const displayName =
     redactedNames.filter(Boolean).join(" & ").trim() || args.displayName;
-  return { displayName, xref: args.xref };
+  return { id: args.id, displayName, xref: args.xref };
 }

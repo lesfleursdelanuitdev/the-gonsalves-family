@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -203,7 +204,12 @@ export function AhnentafelChart({ xref }: { xref: string }) {
 
                     <div className="min-w-0 flex-1">
                       {restricted ? (
-                        <span className="font-body text-sm font-medium text-text">{label}</span>
+                        <Link
+                          href={buildLoginWallPath(`/individuals/${encodeURIComponent(entry.id)}`)}
+                          className="font-body text-sm font-medium text-link hover:underline"
+                        >
+                          {label}
+                        </Link>
                       ) : (
                         <Link
                           href={`/individuals/${encodeURIComponent(entry.id)}`}

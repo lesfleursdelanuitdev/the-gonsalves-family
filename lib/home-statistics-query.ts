@@ -19,6 +19,7 @@ import {
 } from "@/lib/gedcom-place-display";
 import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
 import { buildHomeChartsFromPythonAnalytics } from "@/lib/home-statistics-analytics-charts";
+import { mergeStatSlicesByLabel } from "@/lib/home-stat-slices";
 
 const DISTRIBUTION_ORDER: readonly HomeStatisticsDistributionLabel[] = [
   "Guyana",
@@ -248,10 +249,13 @@ async function buildHomeMiniCharts(
           label.length > 42 ? `${label.slice(0, 40).trimEnd()}…` : label;
         labelById.set(p.id, short);
       }
-      placeSlices = topBirthPlaceRows.map((r) => ({
-        label: labelById.get(r.id) ?? "Place",
-        value: Number(r.c),
-      }));
+      placeSlices = mergeStatSlicesByLabel(
+        topBirthPlaceRows.map((r) => ({
+          label: labelById.get(r.id) ?? "Place",
+          value: Number(r.c),
+        })),
+        10,
+      );
     }
 
     return {
@@ -333,6 +337,7 @@ export async function buildHomeStatisticsPayload(
       const f = await prisma.gedcomFamily.findMany({
         where: { fileUuid },
         select: {
+          id: true,
           xref: true,
           husbandId: true,
           wifeId: true,
@@ -370,7 +375,7 @@ export async function buildHomeStatisticsPayload(
           isLiving: person.isLiving,
           birthYear: yearFromDisplayDateString(person.birthDate),
         }));
-      return { displayName, xref: fam.xref, partners };
+      return { id: fam.id, displayName, xref: fam.xref, partners };
     })(),
     (async () => {
       const c = await prisma.gedcomSurname.count({ where: { fileUuid } });
@@ -425,6 +430,7 @@ export async function buildHomeStatisticsPayload(
       family: exFam
         ? redactHomeStatisticsFamilyExample(
             {
+              id: exFam.id,
               displayName: exFam.displayName,
               xref: exFam.xref,
               partners: exFam.partners,

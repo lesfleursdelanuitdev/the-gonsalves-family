@@ -86,15 +86,24 @@ export function MediaPlayerModal({
                 Linked to
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {item.linkedTo.map((link, i) => (
-                  <Link
-                    key={`${link.kind}-${i}`}
-                    href={link.href}
-                    className="inline-flex max-w-full items-center rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-[#f4ecd8] transition hover:bg-white/15"
-                  >
-                    <span className="min-w-0 truncate">{link.label}</span>
-                  </Link>
-                ))}
+                {item.linkedTo.map((link, i) =>
+                  link.href ? (
+                    <Link
+                      key={`${link.kind}-${i}`}
+                      href={link.href}
+                      className="inline-flex max-w-full items-center rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-[#f4ecd8] transition hover:bg-white/15"
+                    >
+                      <span className="min-w-0 truncate">{link.label}</span>
+                    </Link>
+                  ) : (
+                    <span
+                      key={`${link.kind}-${i}`}
+                      className="inline-flex max-w-full items-center rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-[#f4ecd8]"
+                    >
+                      <span className="min-w-0 truncate">{link.label}</span>
+                    </span>
+                  ),
+                )}
               </div>
             </div>
           ) : null}

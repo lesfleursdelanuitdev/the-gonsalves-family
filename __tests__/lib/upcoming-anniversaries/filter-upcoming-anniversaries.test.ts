@@ -14,6 +14,7 @@ const person = {
   fullName: "Ada Lovelace",
   birthYear: 1815,
   deathYear: 1852,
+  isLiving: false,
   currentLocationLabel: null,
   placeLabels: [],
   age: null,
@@ -204,6 +205,7 @@ describe("filterUpcomingAnniversaryMonthGroups", () => {
       fullName: "Young Relative",
       birthYear: 2010,
       deathYear: null,
+      isLiving: true,
     };
     const oldNoDeath = {
       ...person,

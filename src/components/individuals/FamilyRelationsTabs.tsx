@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Heart, Home, Leaf } from "lucide-react";
 import { useState } from "react";
 import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 import type { PublicIndividualFamilyGroup, PublicIndividualRelation } from "./types";
 
 type FamilyTab = "origin" | "descendants";
@@ -23,12 +24,18 @@ function initials(name: string): string {
   return (first + last) || "?";
 }
 
-function MiniPortrait({ relation, hidden }: { relation: PublicIndividualRelation; hidden?: boolean }) {
-  if (hidden) return null;
+function MiniPortrait({
+  relation,
+  privacyRestricted = false,
+}: {
+  relation: PublicIndividualRelation;
+  privacyRestricted?: boolean;
+}) {
+  const portraitSrc = privacyRestricted ? null : relation.portraitSrc;
   return (
     <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border-subtle/80 bg-surface">
-      {relation.portraitSrc ? (
-        <Image src={relation.portraitSrc} alt="" fill className="object-cover sepia-[0.18]" sizes="48px" />
+      {portraitSrc ? (
+        <Image src={portraitSrc} alt="" fill className="object-cover sepia-[0.18]" sizes="48px" />
       ) : (
         <span className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(129,89,58,0.12),rgba(129,89,58,0.05))] font-heading text-base font-semibold tracking-[0.04em] text-link/80">
           {initials(relation.fullName)}
@@ -41,30 +48,19 @@ function MiniPortrait({ relation, hidden }: { relation: PublicIndividualRelation
 function MobilePersonRow({ relation }: { relation: PublicIndividualRelation }) {
   const { shouldShowMinimalLiving, formatMinimalLivingLabel } = useLivingPrivacyDisplay();
   const restricted = shouldShowMinimalLiving(relation.isLiving);
-
-  if (restricted) {
-    return (
-      <div className="flex min-w-0 items-center gap-3 py-2.5">
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-heading text-base font-semibold leading-snug text-heading">
-            {formatMinimalLivingLabel(relation.fullName, relation.birthYear)}
-          </span>
-        </span>
-      </div>
-    );
-  }
+  const profilePath = `/individuals/${encodeURIComponent(relation.id)}`;
+  const href = restricted ? buildLoginWallPath(profilePath) : profilePath;
 
   return (
-    <Link
-      href={`/individuals/${encodeURIComponent(relation.id)}`}
-      className="group flex min-w-0 items-center gap-3 py-2.5"
-    >
-      <MiniPortrait relation={relation} />
+    <Link href={href} className="group flex min-w-0 items-center gap-3 py-2.5">
+      <MiniPortrait relation={relation} privacyRestricted={restricted} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-heading text-base font-semibold leading-snug text-heading group-hover:text-link">
-          {relation.fullName}
+          {restricted ? formatMinimalLivingLabel(relation.fullName, relation.birthYear) : relation.fullName}
         </span>
-        <span className="mt-0.5 block text-sm text-muted">{lifeLabel(relation.birthYear, relation.deathYear)}</span>
+        {!restricted ? (
+          <span className="mt-0.5 block text-sm text-muted">{lifeLabel(relation.birthYear, relation.deathYear)}</span>
+        ) : null}
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted/70 transition group-hover:translate-x-0.5 group-hover:text-link" aria-hidden />
     </Link>
@@ -183,9 +179,11 @@ function RelationList({
             {visibleItems.map((relation) => {
               const isProfilePerson = relation.relationship === "Profile person";
               const restricted = shouldShowMinimalLiving(relation.isLiving);
+              const profilePath = `/individuals/${encodeURIComponent(relation.id)}`;
+              const href = restricted ? buildLoginWallPath(profilePath) : profilePath;
               const rowContent = (
                 <>
-                  <MiniPortrait relation={relation} hidden={restricted} />
+                  <MiniPortrait relation={relation} privacyRestricted={restricted} />
                   <span className="min-w-0 flex-1">
                     <span className="block break-words font-heading text-base font-semibold leading-snug text-heading group-hover:text-link">
                       {restricted
@@ -206,21 +204,10 @@ function RelationList({
                 </>
               );
 
-              if (restricted) {
-                return (
-                  <div
-                    key={`${title}-${relation.id}`}
-                    className="flex min-w-0 items-center gap-3 px-4 py-3"
-                  >
-                    {rowContent}
-                  </div>
-                );
-              }
-
               return (
                 <Link
                   key={`${title}-${relation.id}`}
-                  href={`/individuals/${encodeURIComponent(relation.id)}`}
+                  href={href}
                   className={`group flex min-w-0 items-center gap-3 px-4 py-3 transition hover:bg-link-soft-bg/60 ${
                     isProfilePerson
                       ? "m-2 rounded-xl border border-[#c8a24a]/80 bg-[rgba(201,162,74,0.12)] shadow-[0_8px_20px_rgba(201,162,74,0.14)]"

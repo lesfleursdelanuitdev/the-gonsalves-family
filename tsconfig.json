@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,10 +23,18 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/genealogy-visualization-engine": ["../packages/genealogy-visualization-engine/src"],
-      "@/genealogy-visualization-engine/*": ["../packages/genealogy-visualization-engine/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/genealogy-visualization-engine": [
+        "../packages/genealogy-visualization-engine/src"
+      ],
+      "@/genealogy-visualization-engine/*": [
+        "../packages/genealogy-visualization-engine/src/*"
+      ]
     }
   },
   "include": [
@@ -31,7 +43,11 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next-dev-local/types/**/*.ts",
+    ".next-dev-local/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

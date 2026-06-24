@@ -8,14 +8,14 @@ import {
   individualDisplayPhotoMediaToPublicUrl,
 } from "@/lib/tree/individual-display-photo";
 import {
-  filterFeaturedIndividualsForViewer,
+  redactEventLinkedPeopleForViewer,
   redactFamilyPartnerForViewer,
   redactSearchIndividualForViewer,
 } from "@/lib/auth/living-person-privacy";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { type P, mc, parseTerms, termsBlock } from "./sql-helpers";
 
-const LIMIT = 5;
+const MAX_CATEGORY_RESULTS = 1000;
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   BIRT: "Born", DEAT: "Died", BURI: "Buried", CHR: "Christened",
@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
         WHERE s.tree_id = $2::uuid AND s.deleted_at IS NULL AND s.is_published = true
           AND (${mediaGedTagConds.str})
       )
-      SELECT *, COUNT(*) OVER() AS total FROM res ORDER BY LOWER(title) NULLS LAST LIMIT ${LIMIT}
+      SELECT *, COUNT(*) OVER() AS total FROM res ORDER BY LOWER(title) NULLS LAST LIMIT ${MAX_CATEGORY_RESULTS}
     `;
 
     // All queries run in parallel
@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
           ...pPpl,
         ),
         prisma.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT id FROM gedcom_individuals_v2 WHERE file_uuid = $1::uuid AND ${pplCond} ORDER BY full_name_lower NULLS LAST LIMIT ${LIMIT}`,
+          `SELECT id FROM gedcom_individuals_v2 WHERE file_uuid = $1::uuid AND ${pplCond} ORDER BY full_name_lower NULLS LAST LIMIT ${MAX_CATEGORY_RESULTS}`,
           ...pPpl,
         ),
       ]),
@@ -206,7 +206,7 @@ export async function GET(req: NextRequest) {
            LEFT JOIN gedcom_individuals_v2 hi ON hi.id = f.husband_id
            LEFT JOIN gedcom_individuals_v2 wi ON wi.id = f.wife_id
            WHERE f.file_uuid = $1::uuid AND ${famCond}
-           ORDER BY COALESCE(hi.full_name_lower, wi.full_name_lower) NULLS LAST LIMIT ${LIMIT}`,
+           ORDER BY COALESCE(hi.full_name_lower, wi.full_name_lower) NULLS LAST LIMIT ${MAX_CATEGORY_RESULTS}`,
           ...pFam,
         ),
       ]),
@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
           `SELECT DISTINCT ev.id FROM gedcom_events_v2 ev
            LEFT JOIN gedcom_places_v2 pl ON pl.id = ev.place_id
            WHERE ev.file_uuid = $1::uuid AND ${evCond}
-           LIMIT ${LIMIT}`,
+           LIMIT ${MAX_CATEGORY_RESULTS}`,
           ...pEv,
         ),
       ]),
@@ -238,7 +238,7 @@ export async function GET(req: NextRequest) {
           ...pSur,
         ),
         prisma.$queryRawUnsafe<Array<{ id: string; surname: string; frequency: bigint }>>(
-          `SELECT s.id, s.surname, s.frequency FROM gedcom_surnames_v2 s WHERE s.file_uuid = $1::uuid AND ${surCond} ORDER BY s.frequency DESC NULLS LAST LIMIT ${LIMIT}`,
+          `SELECT s.id, s.surname, s.frequency FROM gedcom_surnames_v2 s WHERE s.file_uuid = $1::uuid AND ${surCond} ORDER BY s.frequency DESC NULLS LAST LIMIT ${MAX_CATEGORY_RESULTS}`,
           ...pSur,
         ),
       ]),
@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
           ...pGiv,
         ),
         prisma.$queryRawUnsafe<Array<{ id: string; given_name: string; frequency: bigint }>>(
-          `SELECT gn.id, gn.given_name, gn.frequency FROM gedcom_given_names_v2 gn WHERE gn.file_uuid = $1::uuid AND ${givCond} ORDER BY gn.frequency DESC NULLS LAST LIMIT ${LIMIT}`,
+          `SELECT gn.id, gn.given_name, gn.frequency FROM gedcom_given_names_v2 gn WHERE gn.file_uuid = $1::uuid AND ${givCond} ORDER BY gn.frequency DESC NULLS LAST LIMIT ${MAX_CATEGORY_RESULTS}`,
           ...pGiv,
         ),
       ]),
@@ -264,7 +264,7 @@ export async function GET(req: NextRequest) {
          WHERE pl.file_uuid = $1::uuid AND ${plCond}
          GROUP BY pl.id, pl.original, pl.name
          ORDER BY COUNT(ev.id) DESC NULLS LAST
-         LIMIT ${LIMIT}`,
+         LIMIT ${MAX_CATEGORY_RESULTS}`,
         ...pPl,
       ),
       // NOTES -----------------------------------------------------------------
@@ -284,7 +284,7 @@ export async function GET(req: NextRequest) {
          ) owner ON TRUE
          WHERE n.file_uuid = $1::uuid AND ${notCond}
          ORDER BY LENGTH(n.content) DESC NULLS LAST
-         LIMIT ${LIMIT}`,
+         LIMIT ${MAX_CATEGORY_RESULTS}`,
         ...pNot,
       ),
     ]);
@@ -325,7 +325,6 @@ export async function GET(req: NextRequest) {
       eventIds.length > 0
         ? prisma.gedcomIndividualEvent.findMany({
             where: { eventId: { in: eventIds } },
-            take: LIMIT * 3,
             select: {
               eventId: true,
               individual: { select: { id: true, fullName: true, isLiving: true } },
@@ -420,7 +419,7 @@ export async function GET(req: NextRequest) {
           dateDisplay: (row.date?.original as string | null) || null,
           year: (row.date?.year as number | null) || null,
           placeDisplay: fullPlaceLabelFromGedcomPlace(row.place) || null,
-          linkedPeople: filterFeaturedIndividualsForViewer(linkedIndMap.get(row.id as string) ?? [], viewer),
+          linkedPeople: redactEventLinkedPeopleForViewer(linkedIndMap.get(row.id as string) ?? [], viewer),
         };
       });
 

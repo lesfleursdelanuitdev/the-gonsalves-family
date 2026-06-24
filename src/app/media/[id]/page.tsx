@@ -25,6 +25,11 @@ import { resolveGedcomMediaFileRef } from "@/lib/images";
 import { readJsonResponse } from "@/lib/read-json-response";
 import { handleAuthRequiredResponse } from "@/lib/auth/client-auth-required";
 import { buildPublicMediaPath, parseSourceFromSearchParams, sourceToAlbumPath } from "@/lib/album/public-album-links";
+import {
+  FeaturedPeopleHeading,
+  FeaturedPeopleLinks,
+} from "@/components/media/FeaturedPeopleLinks";
+import { countFeaturedPeople } from "@/lib/auth/living-person-privacy";
 import { formatGedcomDateDisplayLabel } from "@ligneous/gedcom-dates";
 
 type MediaViewPayload = {
@@ -41,7 +46,8 @@ type MediaViewPayload = {
     fileRef: string | null;
     form: string | null;
     description: string | null;
-    linkedIndividuals: Array<{ id: string; displayName: string }>;
+    linkedIndividuals: Array<{ id: string; displayName: string; isLivingSummary?: boolean }>;
+    featuredPeopleCount?: number;
     places: Array<{ id: string; original: string; name: string | null; county: string | null; state: string | null; country: string | null }>;
     dates: Array<{ id: string; original: string | null; dateType: string; year: number | null; month: number | null; day: number | null; endYear: number | null; endMonth: number | null; endDay: number | null }>;
     events: Array<{
@@ -615,19 +621,10 @@ function Inner() {
 
             {media.linkedIndividuals.length ? (
               <div className="mt-3 border-t border-border/40 pt-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b2e2e]">
-                  People Featured ({media.linkedIndividuals.length})
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-text">
-                  {media.linkedIndividuals.map((p, i) => (
-                    <span key={p.id}>
-                      {i > 0 ? ", " : ""}
-                      <Link href={`/media/album-view?kind=generated&type=individual&id=${encodeURIComponent(p.id)}`} className="font-medium text-link hover:text-link-hover hover:underline">
-                        {p.displayName}
-                      </Link>
-                    </span>
-                  ))}
-                </p>
+                <FeaturedPeopleHeading
+                  count={media.featuredPeopleCount ?? countFeaturedPeople(media.linkedIndividuals)}
+                />
+                <FeaturedPeopleLinks people={media.linkedIndividuals} />
               </div>
             ) : null}
           </section>

@@ -7,7 +7,9 @@ export type MediaLinkKind = "person" | "family" | "event" | "place" | "source";
 export type MediaLink = {
   kind: MediaLinkKind;
   label: string;
-  href: string;
+  href?: string;
+  /** Anonymous collapsed living count — render as text, not a link. */
+  isLivingSummary?: boolean;
 };
 
 export type MediaListItem = {

@@ -88,6 +88,18 @@ export type PublicIndividualLinkedAccount = {
   linkedAtLabel: string;
 };
 
+export type PublicIndividualStory = {
+  id: string;
+  slug: string;
+  title: string;
+  kind: "story" | "article" | "post" | "folklore";
+  kindLabel: string;
+  href: string;
+  excerpt: string | null;
+  coverUrl: string | null;
+  updatedAtLabel: string;
+};
+
 export type PublicIndividualProfile = PublicIndividual & {
   biography: string;
   birthDateLabel: string | null;
@@ -114,4 +126,5 @@ export type PublicIndividualProfile = PublicIndividual & {
   associates: PublicIndividualAssociate[];
   openQuestions: PublicIndividualOpenQuestion[];
   linkedAccounts: PublicIndividualLinkedAccount[];
+  stories: PublicIndividualStory[];
 };

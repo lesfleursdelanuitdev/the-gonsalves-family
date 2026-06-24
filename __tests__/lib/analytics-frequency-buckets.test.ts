@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bucketByOccurrenceCount,
+  formatFrequencyBucketDisplayLabel,
   frequencyDistributionFromOccurrences,
 } from "@/lib/analytics-frequency-buckets";
 
@@ -32,6 +33,18 @@ describe("bucketByOccurrenceCount", () => {
   it("buckets 51+ into '50+'", () => {
     expect(bucketByOccurrenceCount(51)).toBe("50+");
     expect(bucketByOccurrenceCount(1000)).toBe("50+");
+  });
+});
+
+describe("formatFrequencyBucketDisplayLabel", () => {
+  it("returns readable labels for each bucket", () => {
+    expect(formatFrequencyBucketDisplayLabel("1")).toBe("Used once");
+    expect(formatFrequencyBucketDisplayLabel("2-5")).toBe("Used 2–5 times");
+    expect(formatFrequencyBucketDisplayLabel("50+")).toBe("Used 50+ times");
+  });
+
+  it("returns the bucket unchanged when unknown", () => {
+    expect(formatFrequencyBucketDisplayLabel("other")).toBe("other");
   });
 });
 

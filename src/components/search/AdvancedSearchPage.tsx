@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -100,12 +100,12 @@ interface EventResult {
 interface IndividualResult {
   id: string; xref: string; displayName: string; portraitSrc: string | null;
   birthYear: number | null; deathYear: number | null;
-  gender: string | null; isLiving: boolean; profileHref: string;
+  gender: string | null; isLiving: boolean; profileHref: string | null;
   events: EventResult[];
 }
 
 interface PartnerResult {
-  id: string; displayName: string; birthYear: number | null; deathYear: number | null; profileHref: string;
+  id: string; displayName: string; birthYear: number | null; deathYear: number | null; profileHref: string | null;
 }
 
 interface FamilyResult {
@@ -184,10 +184,10 @@ interface EventSearchResults {
 // General search types
 interface GeneralPersonItem {
   id: string; displayName: string; birthYear: number | null; deathYear: number | null;
-  isLiving: boolean; gender: string | null; portraitSrc: string | null; profileHref: string;
+  isLiving: boolean; gender: string | null; portraitSrc: string | null; profileHref: string | null;
 }
 interface GeneralFamilyPartner {
-  id: string; displayName: string; birthYear: number | null; deathYear: number | null; profileHref: string;
+  id: string; displayName: string; birthYear: number | null; deathYear: number | null; profileHref: string | null;
 }
 interface GeneralFamilyItem {
   id: string; title: string; husband: GeneralFamilyPartner | null; wife: GeneralFamilyPartner | null;
@@ -196,7 +196,7 @@ interface GeneralFamilyItem {
 interface GeneralEventItem {
   id: string; label: string; value: string | null; dateDisplay: string | null;
   year: number | null; placeDisplay: string | null;
-  linkedPeople: { id: string; displayName: string; profileHref: string }[];
+  linkedPeople: { id: string; displayName: string; profileHref: string | null }[];
 }
 interface GeneralMediaItem {
   id: string; source: string; title: string | null; mediaType: string; kind: string | null; profileHref: string;
@@ -544,7 +544,7 @@ function IndividualCard({ individual }: { individual: IndividualResult }) {
         )}
       </div>
       <Link
-        href={individual.profileHref}
+        href={individual.profileHref ?? `/individuals/${encodeURIComponent(individual.id)}`}
         className="shrink-0 self-center rounded-lg border border-border-subtle bg-surface px-3 py-1.5 font-body text-xs font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
       >
         View
@@ -555,15 +555,29 @@ function IndividualCard({ individual }: { individual: IndividualResult }) {
 
 function PartnerLine({ partner }: { partner: PartnerResult | null }) {
   if (!partner) return <span className="font-body text-sm text-muted italic">Unknown</span>;
-  return (
-    <Link href={partner.profileHref}
-      className="font-heading text-sm font-medium text-link hover:underline">
+  const name = (
+    <>
       {partner.displayName}
       {(partner.birthYear || partner.deathYear) && (
         <span className="ml-1.5 font-body text-xs font-normal text-muted">
           ({partner.birthYear ?? "?"}&thinsp;&ndash;&thinsp;{partner.deathYear ?? "?"})
         </span>
       )}
+    </>
+  );
+  if (!partner.profileHref) {
+    return (
+      <Link
+        href={`/individuals/${encodeURIComponent(partner.id)}`}
+        className="font-heading text-sm font-medium text-link hover:underline"
+      >
+        {name}
+      </Link>
+    );
+  }
+  return (
+    <Link href={partner.profileHref} className="font-heading text-sm font-medium text-link hover:underline">
+      {name}
     </Link>
   );
 }
@@ -1095,63 +1109,109 @@ function EventsSearchPanel() {
 // ---------------------------------------------------------------------------
 // General search — compact result cards
 // ---------------------------------------------------------------------------
-function GeneralSection({ title, count, icon: Icon, children }: {
-  title: string; count: number; icon: typeof Users; children: React.ReactNode;
+const GENERAL_PAGE_SIZE = 10;
+
+const EMPTY_GENERAL_OFFSETS: Record<GeneralCategory, number> = {
+  people: 0,
+  givenNames: 0,
+  surnames: 0,
+  families: 0,
+  events: 0,
+  media: 0,
+  places: 0,
+  notes: 0,
+};
+
+function GeneralSection<T>({
+  title,
+  total,
+  icon: Icon,
+  items,
+  offset,
+  onPageChange,
+  renderItem,
+  getKey,
+}: {
+  title: string;
+  total: number;
+  icon: typeof Users;
+  items: T[];
+  offset: number;
+  onPageChange: (offset: number) => void;
+  renderItem: (item: T) => React.ReactNode;
+  getKey: (item: T) => string;
 }) {
+  const pageTotal = items.length;
+  const truncated = pageTotal < total;
+  const pageItems = items.slice(offset, offset + GENERAL_PAGE_SIZE);
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Icon size={14} className="shrink-0 text-muted" aria-hidden />
         <h3 className="font-heading text-sm font-semibold text-heading">{title}</h3>
         <span className="rounded-full border border-[#e0d8cc] bg-[#faf7f2] px-2 py-0.5 font-body text-[10px] text-muted">
-          {count > 5 ? `top 5 of ${count}` : count}
+          {total.toLocaleString()}
         </span>
+        {truncated ? (
+          <span className="font-body text-[10px] text-muted">
+            (showing first {pageTotal.toLocaleString()})
+          </span>
+        ) : null}
       </div>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-2">
+        {pageItems.map((item) => (
+          <Fragment key={getKey(item)}>{renderItem(item)}</Fragment>
+        ))}
+      </div>
+      <Pagination
+        total={pageTotal}
+        limit={GENERAL_PAGE_SIZE}
+        offset={offset}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }
 
 function GeneralPersonCard({ item }: { item: GeneralPersonItem }) {
-  return (
-    <Link href={item.profileHref} className="block">
-      <article className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)] transition hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,45,25,0.1)]">
-        <IndividualAvatar displayName={item.displayName} portraitSrc={item.portraitSrc} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-heading text-sm font-semibold text-heading">{item.displayName || "Unknown"}</p>
-          <p className="font-body text-xs text-muted">
-            <LifespanLine birthYear={item.birthYear} deathYear={item.deathYear} isLiving={item.isLiving} />
-          </p>
-        </div>
-        {item.isLiving && (
-          <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 font-body text-[10px] font-semibold text-emerald-700">Living</span>
-        )}
-      </article>
-    </Link>
+  const profileHref = item.profileHref ?? `/individuals/${encodeURIComponent(item.id)}`;
+  const inner = (
+    <article className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)] transition hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,45,25,0.1)]">
+      <IndividualAvatar displayName={item.displayName} portraitSrc={item.portraitSrc} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-heading text-sm font-semibold text-heading">{item.displayName || "Unknown"}</p>
+        <p className="font-body text-xs text-muted">
+          <LifespanLine birthYear={item.birthYear} deathYear={item.deathYear} isLiving={item.isLiving} />
+        </p>
+      </div>
+      {item.isLiving && (
+        <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 font-body text-[10px] font-semibold text-emerald-700">Living</span>
+      )}
+    </article>
   );
+  return <Link href={profileHref} className="block">{inner}</Link>;
 }
 
 function GeneralFamilyCard({ item }: { item: GeneralFamilyItem }) {
-  return (
-    <Link href={item.profileHref} className="block">
-      <article className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)] transition hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,45,25,0.1)]">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-[#f5f1ea]">
-          <Users size={15} className="text-muted" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-heading text-sm font-semibold text-heading">{item.title}</p>
-          {item.marriageYear && (
-            <p className="font-body text-xs text-muted">Married {item.marriageYear}</p>
-          )}
-        </div>
-      </article>
-    </Link>
+  const inner = (
+    <article className="flex min-w-0 items-center gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)] transition hover:-translate-y-px hover:shadow-[0_6px_20px_rgba(60,45,25,0.1)]">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-[#f5f1ea]">
+        <Users size={15} className="text-muted" aria-hidden />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-heading text-sm font-semibold text-heading">{item.title}</p>
+        {item.marriageYear && (
+          <p className="font-body text-xs text-muted">Married {item.marriageYear}</p>
+        )}
+      </div>
+    </article>
   );
+  return item.profileHref ? <Link href={item.profileHref} className="block">{inner}</Link> : inner;
 }
 
 function GeneralEventCard({ item }: { item: GeneralEventItem }) {
   const meta = [item.dateDisplay, item.placeDisplay].filter(Boolean).join(" · ");
-  const linkedName = item.linkedPeople[0]?.displayName;
+  const linkedPeople = item.linkedPeople.filter((person) => person.displayName.trim().length > 0);
   return (
     <article className="flex min-w-0 items-start gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)]">
       <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-[#f5f1ea]">
@@ -1162,9 +1222,26 @@ function GeneralEventCard({ item }: { item: GeneralEventItem }) {
           {item.label}
           {item.value && <span className="font-normal text-muted"> — {item.value}</span>}
         </p>
-        {(linkedName || meta) && (
-          <p className="truncate font-body text-xs text-muted">
-            {linkedName}{linkedName && meta ? " · " : ""}{meta}
+        {(linkedPeople.length > 0 || meta) && (
+          <p className="mt-0.5 font-body text-xs leading-relaxed text-muted">
+            {linkedPeople.length > 0 ? (
+              <span className="text-text/80">
+                {linkedPeople.map((person, index) => {
+                  const profileHref =
+                    person.profileHref ?? `/individuals/${encodeURIComponent(person.id)}`;
+                  return (
+                    <Fragment key={person.id}>
+                      {index > 0 ? " · " : null}
+                      <Link href={profileHref} className="text-link hover:underline">
+                        {person.displayName}
+                      </Link>
+                    </Fragment>
+                  );
+                })}
+              </span>
+            ) : null}
+            {linkedPeople.length > 0 && meta ? " · " : null}
+            {meta}
           </p>
         )}
       </div>
@@ -1268,7 +1345,12 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [categoryOffsets, setCategoryOffsets] = useState(EMPTY_GENERAL_OFFSETS);
   const abortRef = useRef<AbortController | null>(null);
+
+  const setCategoryOffset = useCallback((cat: GeneralCategory, offset: number) => {
+    setCategoryOffsets((prev) => ({ ...prev, [cat]: offset }));
+  }, []);
 
   const toggleCategory = useCallback((cat: GeneralCategory) => {
     setCategories((prev) =>
@@ -1295,6 +1377,7 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
         throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       setResults(await res.json() as GeneralResults);
+      setCategoryOffsets(EMPTY_GENERAL_OFFSETS);
       setHasSearched(true);
     } catch (e) {
       if ((e as { name?: string }).name === "AbortError") return;
@@ -1305,15 +1388,15 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
   }, []);
 
   useEffect(() => {
-    if (initialQ?.trim()) {
-      void doSearch(initialQ.trim(), "contains", "or");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const trimmed = initialQ?.trim();
+    if (!trimmed) return;
+    setQuery(trimmed);
+    void doSearch(trimmed, "contains", "or");
+  }, [initialQ, doSearch]);
 
   const handleSearch = useCallback(() => doSearch(query, matchType, keywordLogic), [query, matchType, keywordLogic, doSearch]);
   const handleReset = useCallback(() => {
-    setQuery(""); setMatchType("contains"); setKeywordLogic("or"); setCategories([]); setResults(null); setHasSearched(false); setError(null);
+    setQuery(""); setMatchType("contains"); setKeywordLogic("or"); setCategories([]); setResults(null); setHasSearched(false); setError(null); setCategoryOffsets(EMPTY_GENERAL_OFFSETS);
   }, []);
 
   const totalResults = results
@@ -1393,44 +1476,100 @@ function GeneralSearchPanel({ initialQ }: { initialQ?: string }) {
             </div>
           )}
           {show("people") && results.people.total > 0 && (
-            <GeneralSection title="People" count={results.people.total} icon={User}>
-              {results.people.items.map((item) => <GeneralPersonCard key={item.id} item={item} />)}
-            </GeneralSection>
+            <GeneralSection
+              title="People"
+              total={results.people.total}
+              icon={User}
+              items={results.people.items}
+              offset={categoryOffsets.people}
+              onPageChange={(o) => setCategoryOffset("people", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralPersonCard item={item} />}
+            />
           )}
           {show("surnames") && results.surnames.total > 0 && (
-            <GeneralSection title="Last names" count={results.surnames.total} icon={User}>
-              {results.surnames.items.map((item) => <GeneralNameCard key={item.id} item={item} kind="surname" />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Last names"
+              total={results.surnames.total}
+              icon={User}
+              items={results.surnames.items}
+              offset={categoryOffsets.surnames}
+              onPageChange={(o) => setCategoryOffset("surnames", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralNameCard item={item} kind="surname" />}
+            />
           )}
           {show("givenNames") && results.givenNames.total > 0 && (
-            <GeneralSection title="Given names" count={results.givenNames.total} icon={User}>
-              {results.givenNames.items.map((item) => <GeneralNameCard key={item.id} item={item} kind="givenName" />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Given names"
+              total={results.givenNames.total}
+              icon={User}
+              items={results.givenNames.items}
+              offset={categoryOffsets.givenNames}
+              onPageChange={(o) => setCategoryOffset("givenNames", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralNameCard item={item} kind="givenName" />}
+            />
           )}
           {show("families") && results.families.total > 0 && (
-            <GeneralSection title="Families" count={results.families.total} icon={Users}>
-              {results.families.items.map((item) => <GeneralFamilyCard key={item.id} item={item} />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Families"
+              total={results.families.total}
+              icon={Users}
+              items={results.families.items}
+              offset={categoryOffsets.families}
+              onPageChange={(o) => setCategoryOffset("families", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralFamilyCard item={item} />}
+            />
           )}
           {show("events") && results.events.total > 0 && (
-            <GeneralSection title="Events" count={results.events.total} icon={Calendar}>
-              {results.events.items.map((item) => <GeneralEventCard key={item.id} item={item} />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Events"
+              total={results.events.total}
+              icon={Calendar}
+              items={results.events.items}
+              offset={categoryOffsets.events}
+              onPageChange={(o) => setCategoryOffset("events", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralEventCard item={item} />}
+            />
           )}
           {show("media") && results.media.total > 0 && (
-            <GeneralSection title="Media & Stories" count={results.media.total} icon={ImageIcon}>
-              {results.media.items.map((item) => <GeneralMediaCard key={`${item.source}-${item.id}`} item={item} />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Media & Stories"
+              total={results.media.total}
+              icon={ImageIcon}
+              items={results.media.items}
+              offset={categoryOffsets.media}
+              onPageChange={(o) => setCategoryOffset("media", o)}
+              getKey={(item) => `${item.source}-${item.id}`}
+              renderItem={(item) => <GeneralMediaCard item={item} />}
+            />
           )}
           {show("places") && results.places.total > 0 && (
-            <GeneralSection title="Places" count={results.places.total} icon={MapPin}>
-              {results.places.items.map((item) => <GeneralPlaceCard key={item.id} item={item} />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Places"
+              total={results.places.total}
+              icon={MapPin}
+              items={results.places.items}
+              offset={categoryOffsets.places}
+              onPageChange={(o) => setCategoryOffset("places", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralPlaceCard item={item} />}
+            />
           )}
           {show("notes") && results.notes.total > 0 && (
-            <GeneralSection title="Notes" count={results.notes.total} icon={FileText}>
-              {results.notes.items.map((item) => <GeneralNoteCard key={item.id} item={item} />)}
-            </GeneralSection>
+            <GeneralSection
+              title="Notes"
+              total={results.notes.total}
+              icon={FileText}
+              items={results.notes.items}
+              offset={categoryOffsets.notes}
+              onPageChange={(o) => setCategoryOffset("notes", o)}
+              getKey={(item) => item.id}
+              renderItem={(item) => <GeneralNoteCard item={item} />}
+            />
           )}
         </div>
       )}
@@ -1711,7 +1850,7 @@ export function AdvancedSearchPage({ nlTreeId, initialMode, initialQ }: Advanced
   );
 
   // People & families form state
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQ ?? "");
   const [nameField, setNameField] = useState<NameField>("fullName");
   const [matchType, setMatchType] = useState<MatchType>("contains");
   const [scope, setScope] = useState<Scope>("both");
@@ -1776,6 +1915,15 @@ export function AdvancedSearchPage({ nlTreeId, initialMode, initialQ }: Advanced
     setIndOffset(0);
     setFamOffset(0);
   }, []);
+
+  useEffect(() => {
+    const trimmed = initialQ?.trim();
+    if (!trimmed || initialMode === "general" || searchMode !== "people") return;
+    setQ(trimmed);
+    setIndOffset(0);
+    setFamOffset(0);
+    void doSearch(trimmed, "fullName", "contains", "both", EMPTY_IND, EMPTY_FAM, 0, 0);
+  }, [initialQ, initialMode, searchMode, doSearch]);
 
   // Re-search on pagination
   useEffect(() => {

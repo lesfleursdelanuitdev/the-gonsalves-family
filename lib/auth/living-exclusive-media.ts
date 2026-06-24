@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@ligneous/prisma";
+import type { AlbumViewSource } from "@ligneous/album-view";
+import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
 import { NextResponse } from "next/server";
 import { authRequiredResponse } from "@/lib/auth/auth-required-response";
 import { LIVING_MEDIA_PLACEHOLDER_COVER } from "@/lib/auth/living-media-constants";
@@ -15,6 +17,7 @@ const FAMILY_PARTNERS_SELECT = {
 } as const;
 
 export const MEDIA_LIVING_LINK_SELECT = {
+  id: true,
   individualMedia: {
     select: { individual: { select: LINKED_PERSON_SELECT } },
   },
@@ -71,40 +74,84 @@ export function collectFamilyPartners(family: FamilyPartners): Map<string, boole
   return byId;
 }
 
-export function isFamilyAllLivingPartners(family: FamilyPartners): boolean {
-  return areAllLinkedPeopleLiving(collectFamilyPartners(family));
+/** True when the linked-people set is non-empty and includes at least one living person. */
+export function hasAnyLivingLinkedPeople(people: Map<string, boolean>): boolean {
+  if (people.size === 0) return false;
+  return [...people.values()].some((isLiving) => isLiving);
+}
+
+export function isMediaLinkedToAnyLivingPeople(input: MediaLivingLinkInput): boolean {
+  return hasAnyLivingLinkedPeople(collectLinkedPeople(input));
+}
+
+export function hasAnyLivingFamilyPartners(family: FamilyPartners): boolean {
+  return hasAnyLivingLinkedPeople(collectFamilyPartners(family));
 }
 
 export function canViewLivingFamilyGeneratedAlbum(viewer: PublicViewer, family: FamilyPartners): boolean {
-  if (!isFamilyAllLivingPartners(family)) return true;
+  if (!hasAnyLivingFamilyPartners(family)) return true;
   return isAuthenticatedViewer(viewer);
 }
 
-/** True when the entity links to at least one person and every linked person is living. */
+export type EventParticipantsInput = {
+  individualEvents: Array<{ individual: LinkedPerson }>;
+  familyEvents: Array<{ family: FamilyPartners }>;
+};
+
+/** Individuals and family partners attached to a GEDCOM event (generated event scrapbooks). */
+export function collectEventLinkedPeople(input: EventParticipantsInput): Map<string, boolean> {
+  const byId = new Map<string, boolean>();
+  for (const link of input.individualEvents) addLinkedPerson(byId, link.individual);
+  for (const link of input.familyEvents) {
+    addLinkedPerson(byId, link.family.husband);
+    addLinkedPerson(byId, link.family.wife);
+  }
+  return byId;
+}
+
+export function hasAnyLivingEventParticipants(input: EventParticipantsInput): boolean {
+  return hasAnyLivingLinkedPeople(collectEventLinkedPeople(input));
+}
+
+export function canViewLivingEventGeneratedAlbum(viewer: PublicViewer, event: EventParticipantsInput): boolean {
+  if (!hasAnyLivingEventParticipants(event)) return true;
+  return isAuthenticatedViewer(viewer);
+}
+
+export function generatedAlbumPlaceholderCover(
+  viewer: PublicViewer,
+  hasLivingLinkedPeople: boolean,
+  coverSrc: string,
+): string {
+  return shouldGateLivingLinkedEntity(viewer, hasLivingLinkedPeople)
+    ? LIVING_MEDIA_PLACEHOLDER_COVER
+    : coverSrc;
+}
+
+/** @deprecated Use hasAnyLivingLinkedPeople — kept for incremental migration. */
 export function areAllLinkedPeopleLiving(people: Map<string, boolean>): boolean {
   if (people.size === 0) return false;
   return [...people.values()].every((isLiving) => isLiving);
 }
 
+/** @deprecated Use isMediaLinkedToAnyLivingPeople */
 export function isMediaLinkedOnlyToLivingPeople(input: MediaLivingLinkInput): boolean {
   return areAllLinkedPeopleLiving(collectLinkedPeople(input));
 }
 
-export function shouldGateAllLivingLinkedEntity(viewer: PublicViewer, allLinkedLiving: boolean): boolean {
-  return allLinkedLiving && !isAuthenticatedViewer(viewer);
+/** @deprecated Use hasAnyLivingFamilyPartners */
+export function isFamilyAllLivingPartners(family: FamilyPartners): boolean {
+  return areAllLinkedPeopleLiving(collectFamilyPartners(family));
 }
 
-/** @deprecated Use shouldGateAllLivingLinkedEntity */
-export const shouldGateExclusiveLivingMedia = shouldGateAllLivingLinkedEntity;
-
-/** @deprecated Use isMediaLinkedOnlyToLivingPeople */
-export function isMediaExclusivelyLinkedToLivingPeople(
-  input: MediaLivingLinkInput & { _count?: Record<string, number> },
-): boolean {
-  return isMediaLinkedOnlyToLivingPeople(input);
+export function shouldGateLivingLinkedEntity(viewer: PublicViewer, hasLivingLinkedPeople: boolean): boolean {
+  return hasLivingLinkedPeople && !isAuthenticatedViewer(viewer);
 }
 
-export async function isGedcomMediaLinkedOnlyToLivingPeople(
+/** @deprecated Use shouldGateLivingLinkedEntity */
+export const shouldGateAllLivingLinkedEntity = shouldGateLivingLinkedEntity;
+
+export async function isGedcomMediaLinkedToAnyLivingPeople(
   prisma: PrismaClient,
   fileUuid: string,
   mediaId: string,
@@ -114,40 +161,42 @@ export async function isGedcomMediaLinkedOnlyToLivingPeople(
     select: MEDIA_LIVING_LINK_SELECT,
   });
   if (!row) return false;
-  return isMediaLinkedOnlyToLivingPeople(row);
+  return isMediaLinkedToAnyLivingPeople(row);
 }
 
-export async function gateAllLivingLinkedMediaAccess(
+/** @deprecated Use isGedcomMediaLinkedToAnyLivingPeople */
+export const isGedcomMediaLinkedOnlyToLivingPeople = isGedcomMediaLinkedToAnyLivingPeople;
+
+export async function gateLivingLinkedMediaAccess(
   prisma: PrismaClient,
   fileUuid: string,
   mediaId: string,
   returnPath: string,
 ): Promise<NextResponse | null> {
-  const allLiving = await isGedcomMediaLinkedOnlyToLivingPeople(prisma, fileUuid, mediaId);
-  if (!allLiving) return null;
+  const hasLiving = await isGedcomMediaLinkedToAnyLivingPeople(prisma, fileUuid, mediaId);
+  if (!hasLiving) return null;
   const { resolvePublicViewer } = await import("@/lib/auth/public-viewer-context");
   const viewer = await resolvePublicViewer();
   if (isAuthenticatedViewer(viewer)) return null;
   return authRequiredResponse(returnPath);
 }
 
-/** @deprecated Use gateAllLivingLinkedMediaAccess */
-export const gateExclusiveLivingMediaAccess = gateAllLivingLinkedMediaAccess;
+/** @deprecated Use gateLivingLinkedMediaAccess */
+export const gateAllLivingLinkedMediaAccess = gateLivingLinkedMediaAccess;
 
-export async function isCuratedAlbumLinkedOnlyToLivingPeople(
+/** @deprecated Use gateLivingLinkedMediaAccess */
+export const gateExclusiveLivingMediaAccess = gateLivingLinkedMediaAccess;
+
+export async function isMediaIdsLinkedToAnyLivingPeople(
   prisma: PrismaClient,
   fileUuid: string,
-  albumId: string,
+  mediaIds: readonly string[],
 ): Promise<boolean> {
-  const joins = await prisma.albumGedcomMedia.findMany({
-    where: { albumId, gedcomMedia: { fileUuid } },
-    select: { gedcomMediaId: true },
-  });
-  const mediaIds = joins.map((join) => join.gedcomMediaId);
-  if (mediaIds.length === 0) return false;
+  const unique = [...new Set(mediaIds.map((id) => id.trim()).filter(Boolean))];
+  if (unique.length === 0) return false;
 
   const rows = await prisma.gedcomMedia.findMany({
-    where: { id: { in: mediaIds }, fileUuid },
+    where: { id: { in: unique }, fileUuid },
     select: MEDIA_LIVING_LINK_SELECT,
   });
 
@@ -157,10 +206,53 @@ export async function isCuratedAlbumLinkedOnlyToLivingPeople(
       combined.set(id, isLiving);
     }
   }
-  return areAllLinkedPeopleLiving(combined);
+  return hasAnyLivingLinkedPeople(combined);
 }
 
-export async function batchCuratedAlbumIdsLinkedOnlyToLivingPeople(
+export type GeneratedMediaUnionSource = Extract<
+  AlbumViewSource,
+  { type: "place" } | { type: "date" } | { type: "tag" } | { type: "note" }
+>;
+
+/** Scrapbooks keyed by place/date/tag/note: union linked people across all member media (§6.6). */
+export async function isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople(
+  prisma: PrismaClient,
+  fileUuid: string,
+  source: GeneratedMediaUnionSource,
+): Promise<boolean> {
+  const { mediaIds } = await collectMediaIdsForGenerated(prisma, fileUuid, source);
+  return isMediaIdsLinkedToAnyLivingPeople(prisma, fileUuid, mediaIds);
+}
+
+export async function resolveGeneratedMediaUnionScrapbookListCover(
+  prisma: PrismaClient,
+  fileUuid: string,
+  viewer: PublicViewer,
+  source: GeneratedMediaUnionSource,
+  coverSrc: string,
+): Promise<string> {
+  if (isAuthenticatedViewer(viewer)) return coverSrc;
+  const hasLiving = await isGeneratedMediaUnionScrapbookLinkedToAnyLivingPeople(prisma, fileUuid, source);
+  return generatedAlbumPlaceholderCover(viewer, hasLiving, coverSrc);
+}
+
+export async function isCuratedAlbumLinkedToAnyLivingPeople(
+  prisma: PrismaClient,
+  fileUuid: string,
+  albumId: string,
+): Promise<boolean> {
+  const joins = await prisma.albumGedcomMedia.findMany({
+    where: { albumId, gedcomMedia: { fileUuid } },
+    select: { gedcomMediaId: true },
+  });
+  const mediaIds = joins.map((join) => join.gedcomMediaId);
+  return isMediaIdsLinkedToAnyLivingPeople(prisma, fileUuid, mediaIds);
+}
+
+/** @deprecated Use isCuratedAlbumLinkedToAnyLivingPeople */
+export const isCuratedAlbumLinkedOnlyToLivingPeople = isCuratedAlbumLinkedToAnyLivingPeople;
+
+export async function batchCuratedAlbumIdsWithLivingLinkedPeople(
   prisma: PrismaClient,
   fileUuid: string,
   albumIds: string[],
@@ -168,15 +260,18 @@ export async function batchCuratedAlbumIdsLinkedOnlyToLivingPeople(
   const gated = new Set<string>();
   await Promise.all(
     albumIds.map(async (albumId) => {
-      const allLiving = await isCuratedAlbumLinkedOnlyToLivingPeople(prisma, fileUuid, albumId);
-      if (allLiving) gated.add(albumId);
+      const hasLiving = await isCuratedAlbumLinkedToAnyLivingPeople(prisma, fileUuid, albumId);
+      if (hasLiving) gated.add(albumId);
     }),
   );
   return gated;
 }
 
-/** @deprecated Use batchCuratedAlbumIdsLinkedOnlyToLivingPeople */
-export const batchCuratedAlbumIdsAttachedToLivingPeople = batchCuratedAlbumIdsLinkedOnlyToLivingPeople;
+/** @deprecated Use batchCuratedAlbumIdsWithLivingLinkedPeople */
+export const batchCuratedAlbumIdsLinkedOnlyToLivingPeople = batchCuratedAlbumIdsWithLivingLinkedPeople;
+
+/** @deprecated Use batchCuratedAlbumIdsWithLivingLinkedPeople */
+export const batchCuratedAlbumIdsAttachedToLivingPeople = batchCuratedAlbumIdsWithLivingLinkedPeople;
 
 export function buildMediaLoginPath(mediaId: string, returnQuery?: string): string {
   const path =
@@ -184,6 +279,19 @@ export function buildMediaLoginPath(mediaId: string, returnQuery?: string): stri
       ? `/media/${encodeURIComponent(mediaId)}?${returnQuery.trim()}`
       : `/media/${encodeURIComponent(mediaId)}`;
   return buildLoginWallPath(path);
+}
+
+export async function loadMediaLivingLinksById(
+  prisma: PrismaClient,
+  fileUuid: string,
+  mediaIds: string[],
+): Promise<Map<string, MediaLivingLinkInput>> {
+  if (mediaIds.length === 0) return new Map();
+  const rows = await prisma.gedcomMedia.findMany({
+    where: { id: { in: mediaIds }, fileUuid },
+    select: MEDIA_LIVING_LINK_SELECT,
+  });
+  return new Map(rows.map((row) => [row.id, row]));
 }
 
 export function canViewLivingIndividualGeneratedAlbum(viewer: PublicViewer, isLiving: boolean): boolean {

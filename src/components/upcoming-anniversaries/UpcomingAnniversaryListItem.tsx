@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { PersonInlineAvatar } from "@/components/individuals/PersonInlineAvatar";
 import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 import type { UpcomingAnniversaryItem } from "@/lib/upcoming-anniversaries/group-upcoming-anniversaries";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
@@ -27,10 +28,10 @@ export function UpcomingAnniversaryListItem({ item }: { item: UpcomingAnniversar
   const href =
     item.kind === "person"
       ? personRestricted
-        ? null
+        ? buildLoginWallPath(`/individuals/${encodeURIComponent(item.person.id)}`)
         : `/individuals/${encodeURIComponent(item.person.id)}`
       : familyRestricted
-        ? null
+        ? buildLoginWallPath(item.family.profileHref)
         : item.family.profileHref;
 
   const displayYearsText =
@@ -46,13 +47,11 @@ export function UpcomingAnniversaryListItem({ item }: { item: UpcomingAnniversar
         <div className="flex min-w-0 items-center gap-2">
           {item.kind === "person" ? (
             <>
-              {!personRestricted ? (
-                <PersonInlineAvatar
-                  portraitSrc={item.person.portraitSrc}
-                  fullName={item.person.fullName}
-                  size="sm"
-                />
-              ) : null}
+              <PersonInlineAvatar
+                portraitSrc={personRestricted ? null : item.person.portraitSrc}
+                fullName={item.person.fullName}
+                size="sm"
+              />
               <span className="min-w-0 truncate text-sm font-bold text-heading">
                 {personRestricted
                   ? formatMinimalLivingLabel(item.person.fullName, item.person.birthYear)
@@ -61,19 +60,17 @@ export function UpcomingAnniversaryListItem({ item }: { item: UpcomingAnniversar
             </>
           ) : (
             <>
-              {!familyRestricted ? (
-                <div className="flex items-center">
-                  {item.family.partners.slice(0, 2).map((p, i) => (
-                    <div key={p.id} className={i > 0 ? "-ml-2" : ""}>
-                      <PersonInlineAvatar
-                        portraitSrc={p.portraitSrc}
-                        fullName={p.fullName}
-                        size="sm"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+              <div className="flex items-center">
+                {item.family.partners.slice(0, 2).map((p, i) => (
+                  <div key={p.id} className={i > 0 ? "-ml-2" : ""}>
+                    <PersonInlineAvatar
+                      portraitSrc={familyRestricted ? null : p.portraitSrc}
+                      fullName={p.fullName}
+                      size="sm"
+                    />
+                  </div>
+                ))}
+              </div>
               <span className="min-w-0 truncate text-sm font-bold text-heading">
                 {item.family.title}
               </span>

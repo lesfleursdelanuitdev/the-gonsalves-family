@@ -61,6 +61,32 @@ function timelineDateSortKey(dateLabel: string): { year: number; month: number; 
   return { year, month, day };
 }
 
+const timelineDotPrimaryClass =
+  "h-3.5 w-3.5 box-content rounded-full bg-crimson ring-4 ring-bg";
+const timelineDotSecondaryClass =
+  "h-3.5 w-3.5 box-content rounded-full border-2 border-accent-muted bg-surface-elevated ring-4 ring-bg";
+
+function TimelineDotLegend() {
+  return (
+    <div
+      className="mb-4 rounded-xl border border-border-subtle/70 bg-surface/70 px-3 py-2.5"
+      aria-label="Timeline marker key"
+    >
+      <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-muted">Marker key</p>
+      <ul className="mt-2 flex flex-col gap-2">
+        <li className="flex min-w-0 items-center gap-2.5">
+          <span className={cn("shrink-0", timelineDotPrimaryClass)} aria-hidden />
+          <span className="font-body text-xs leading-snug text-muted">This person&apos;s own events</span>
+        </li>
+        <li className="flex min-w-0 items-center gap-2.5">
+          <span className={cn("shrink-0", timelineDotSecondaryClass)} aria-hidden />
+          <span className="font-body text-xs leading-snug text-muted">A relative&apos;s events during their lifetime</span>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 export function MobileProfileTimeline({ items }: { items: PublicProfileTimelineItem[] }) {
   const [page, setPage] = useState(1);
   const sortedItems = useMemo(() => {
@@ -89,6 +115,12 @@ export function MobileProfileTimeline({ items }: { items: PublicProfileTimelineI
     return sortedItems.slice(start, start + MOBILE_TIMELINE_PAGE_SIZE);
   }, [safePage, sortedItems]);
 
+  const showDotLegend = useMemo(() => {
+    const hasPrimary = sortedItems.some((item) => isPrimaryTimelineContext(item.context));
+    const hasSecondary = sortedItems.some((item) => !isPrimaryTimelineContext(item.context));
+    return hasPrimary && hasSecondary;
+  }, [sortedItems]);
+
   if (items.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border-subtle bg-surface/60 px-4 py-8 text-center font-body text-sm leading-relaxed text-muted">
@@ -99,6 +131,7 @@ export function MobileProfileTimeline({ items }: { items: PublicProfileTimelineI
 
   return (
     <div className="min-w-0">
+      {showDotLegend ? <TimelineDotLegend /> : null}
       <ol className="relative ml-1 space-y-0 pb-2 pl-6">
         <span
           className="pointer-events-none absolute bottom-2 left-[7px] top-2 w-0.5 bg-gradient-to-b from-crimson via-crimson/70 to-accent-muted"
@@ -110,10 +143,8 @@ export function MobileProfileTimeline({ items }: { items: PublicProfileTimelineI
             <li key={item.id} className="relative pb-6 last:pb-0">
               <span
                 className={cn(
-                  "absolute -left-6 top-1.5 box-content rounded-full ring-4 ring-bg",
-                  primary
-                    ? "h-3.5 w-3.5 bg-crimson"
-                    : "h-3.5 w-3.5 border-2 border-accent-muted bg-surface-elevated",
+                  "absolute -left-6 top-1.5",
+                  primary ? timelineDotPrimaryClass : timelineDotSecondaryClass,
                 )}
                 aria-hidden
               />

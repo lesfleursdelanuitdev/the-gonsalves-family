@@ -7,6 +7,7 @@ export const MOBILE_PROFILE_SECTION_ID = {
   media: "profile-m-media",
   charts: "profile-m-charts",
   notes: "profile-m-notes",
+  stories: "profile-m-stories",
   openQuestions: "profile-m-open-questions",
   relationship: "profile-m-relationship",
 } as const;

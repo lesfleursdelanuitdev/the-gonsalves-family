@@ -14,6 +14,7 @@ import {
 import { getNameBackgroundColor } from "@/lib/person-name-accent";
 import { cn } from "@/lib/utils";
 import { useLivingPrivacyDisplay } from "@/hooks/useLivingPrivacyDisplay";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
 import type { PublicFamilyMember, PublicFamilyPartner } from "./types";
 
 function initials(name: string): string {
@@ -81,13 +82,29 @@ export function FamilyMemberCard({
           !flat && "shadow-[0_4px_14px_rgba(40,28,18,0.06)]",
         )}
       >
-        <div className="min-w-0">
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-crimson">{member.role}</p>
-          <h3 className="mt-0.5 font-heading text-lg font-semibold text-heading" title={member.fullName}>
-            {formatMinimalLivingLabel(member.fullName, member.birthYear)}
-          </h3>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="shrink-0 p-0.5">
+            <div
+              className={cn(
+                "relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-[3px] bg-surface font-heading text-sm font-semibold text-link",
+                !flat && "shadow-[0_6px_16px_rgba(40,28,18,0.14)]",
+              )}
+              style={{ borderColor }}
+            >
+              {initials(member.fullName)}
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-crimson">{member.role}</p>
+            <h3 className="mt-0.5 font-heading text-lg font-semibold text-heading" title={member.fullName}>
+              {formatMinimalLivingLabel(member.fullName, member.birthYear)}
+            </h3>
+          </div>
         </div>
         <p className="text-sm text-muted">Sign in to view this family member&apos;s profile.</p>
+        <Link href={buildLoginWallPath(member.profileHref)} className={actionLinkClass}>
+          View Profile <span aria-hidden>&rarr;</span>
+        </Link>
       </article>
     );
   }
