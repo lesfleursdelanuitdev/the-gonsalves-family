@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:local": "NEXT_DIST_DIR=.next-dev-local next dev --webpack -p 3000",
-    "dev:webpack": "next dev --webpack",
+    "dev": "next dev -H 127.0.0.1",
+    "dev:local": "NEXT_DIST_DIR=.next-dev-local next dev --webpack -H 127.0.0.1 -p 3000",
+    "dev:webpack": "next dev --webpack -H 127.0.0.1",
     "build": "next build --webpack",
     "start": "next start",
     "start:prod": "next start -p 3039",
