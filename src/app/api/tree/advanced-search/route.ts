@@ -13,6 +13,7 @@ import {
 import {
   redactFamilyPartnerForViewer,
   redactSearchIndividualForViewer,
+  shouldRedactLivingPerson,
 } from "@/lib/auth/living-person-privacy";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
@@ -648,7 +649,11 @@ export async function GET(req: NextRequest) {
           eventsMap.get(row.id) ?? [],
         );
         const { events, ...searchFields } = formatted;
-        return { ...redactSearchIndividualForViewer(searchFields, viewer), events };
+        const redacted = redactSearchIndividualForViewer(searchFields, viewer);
+        return {
+          ...redacted,
+          events: shouldRedactLivingPerson(viewer, row.isLiving as boolean) ? [] : events,
+        };
       });
     const families = [...famRows]
       .sort((a, b) => (famOrder.get(a.id) ?? 0) - (famOrder.get(b.id) ?? 0))

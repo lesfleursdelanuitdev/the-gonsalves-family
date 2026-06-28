@@ -54,6 +54,8 @@ export type PublicIndividualTimelineItem = {
   place: string | null;
   description: string;
   context: "Personal event" | "Family" | "Parent" | "Sibling" | "Grandparent" | "Child" | "Grandchild";
+  privacyRestricted?: boolean;
+  loginHref?: string | null;
 };
 
 export type PublicIndividualPhoto = {
@@ -66,6 +68,8 @@ export type PublicIndividualNote = {
   id: string;
   xref: string | null;
   content: string;
+  privacyRestricted?: boolean;
+  loginHref?: string | null;
 };
 
 export type PublicIndividualAssociate = PublicIndividualRelation & {

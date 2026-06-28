@@ -6,7 +6,9 @@ import Link from "next/link";
 import { motion, useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
-const CULTURE_TABS = ["All", "Food", "Language", "Folklore"] as const;
+import type { HomeArticleSpotlight } from "@/lib/stories/load-home-article-spotlight";
+
+const CULTURE_TABS = ["All", "Food", "Language", "Articles"] as const;
 type CultureTab = (typeof CULTURE_TABS)[number];
 type CultureCategory = Exclude<CultureTab, "All">;
 
@@ -37,7 +39,7 @@ type CultureFeatureCard = {
   href: string;
 };
 
-const CULTURE_CARDS: CultureFeatureCard[] = [
+const STATIC_CULTURE_CARDS: CultureFeatureCard[] = [
   {
     kind: "Food",
     ribbon: "Stew / Beef / 12 hrs",
@@ -61,16 +63,31 @@ const CULTURE_CARDS: CultureFeatureCard[] = [
     ],
     href: "/culture",
   },
-  {
-    kind: "Folklore",
-    ribbon: "Folklore / Memory",
-    initials: "FL",
-    category: "Folklore",
-    title: "Family Stories",
-    description: "Folklore, sayings and remembered tales carried through family kitchens, yards and gatherings.",
-    href: "/culture",
-  },
 ];
+
+function articleCultureCard(article: HomeArticleSpotlight): CultureFeatureCard {
+  return {
+    kind: "Articles",
+    ribbon: "Article / Profile",
+    imageSrc: article.coverUrl,
+    category: "Article",
+    title: article.title,
+    description: article.excerpt,
+    href: article.href,
+  };
+}
+
+function buildCultureCards(articleSpotlight: HomeArticleSpotlight | null): CultureFeatureCard[] {
+  const articleCard = articleSpotlight ? articleCultureCard(articleSpotlight) : null;
+  if (!articleCard) {
+    return STATIC_CULTURE_CARDS;
+  }
+  return [
+    STATIC_CULTURE_CARDS[0]!,
+    STATIC_CULTURE_CARDS[1]!,
+    articleCard,
+  ];
+}
 
 function CultureFeatureCard({
   ribbon,
@@ -167,13 +184,18 @@ function CultureFeatureCard({
   );
 }
 
-export function CultureColumns() {
+export function CultureColumns({
+  articleSpotlight = null,
+}: {
+  articleSpotlight?: HomeArticleSpotlight | null;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true, amount: 0.2 });
   const [activeTab, setActiveTab] = useState<CultureTab>("All");
+  const cultureCards = buildCultureCards(articleSpotlight);
   const visibleCards = activeTab === "All"
-    ? CULTURE_CARDS
-    : CULTURE_CARDS.filter((card) => card.kind === activeTab);
+    ? cultureCards
+    : cultureCards.filter((card) => card.kind === activeTab);
 
   return (
     <div

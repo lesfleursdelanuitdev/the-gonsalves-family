@@ -7,6 +7,7 @@ import remarkBreaks from "remark-breaks";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { MOBILE_PROFILE_SECTION_ID } from "@/lib/individuals/profile-section-ids";
 import type { PublicProfileNote } from "@/lib/notes/public-profile-note";
+import { LivingGatedNotePrompt } from "@/components/notes/LivingGatedNotePrompt";
 
 const MOBILE_NOTES_PAGE_SIZE = 3;
 
@@ -70,11 +71,17 @@ export function MobileProfileNotes({
             className="rounded-xl border border-border-subtle bg-surface-elevated p-4 shadow-[0_6px_18px_rgba(60,45,25,0.06)] [border-left-width:3px] border-l-crimson"
           >
             <p className="font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-crimson">From the record</p>
-            <div className="mt-2 whitespace-pre-wrap font-body text-[0.94rem] leading-relaxed text-heading">
-              <ReactMarkdown remarkPlugins={[remarkBreaks]} skipHtml components={noteMarkdownComponents}>
-                {note.content}
-              </ReactMarkdown>
-            </div>
+            {note.privacyRestricted && note.loginHref ? (
+              <div className="mt-2">
+                <LivingGatedNotePrompt loginHref={note.loginHref} />
+              </div>
+            ) : (
+              <div className="mt-2 whitespace-pre-wrap font-body text-[0.94rem] leading-relaxed text-heading">
+                <ReactMarkdown remarkPlugins={[remarkBreaks]} skipHtml components={noteMarkdownComponents}>
+                  {note.content}
+                </ReactMarkdown>
+              </div>
+            )}
           </article>
         ))}
       </div>

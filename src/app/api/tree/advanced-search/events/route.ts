@@ -6,6 +6,11 @@ import {
   GEDCOM_PLACE_DISPLAY_SELECT,
 } from "@/lib/gedcom-place-display";
 import { formatGedcomFullNameForDisplay } from "@/lib/individual-mapper";
+import { shouldGateLivingEventContent } from "@/lib/auth/living-event-privacy";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import { redactEventLinkedPeopleForViewer } from "@/lib/auth/living-person-privacy";
+import { eventLoginPath, loadEventLivingLinksByIds } from "@/lib/events/map-event-living-privacy";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -254,7 +259,7 @@ export async function GET(req: NextRequest) {
           role: true,
           participantKind: true,
           sortOrder: true,
-          individual: { select: { id: true, fullName: true } },
+          individual: { select: { id: true, fullName: true, isLiving: true } },
         },
       }),
       prisma.gedcomFamilyEvent.findMany({
@@ -265,8 +270,8 @@ export async function GET(req: NextRequest) {
             select: {
               id: true,
               xref: true,
-              husband: { select: { id: true, fullName: true } },
-              wife: { select: { id: true, fullName: true } },
+              husband: { select: { id: true, fullName: true, isLiving: true } },
+              wife: { select: { id: true, fullName: true, isLiving: true } },
             },
           },
         },
@@ -304,6 +309,8 @@ export async function GET(req: NextRequest) {
     }
 
     const eventOrder = new Map(eventIds.map((id, i) => [id, i]));
+    const viewer = await resolvePublicViewer();
+    const eventLinksById = await loadEventLivingLinksByIds(fileUuid, eventIds);
 
     const events = [...eventRows]
       .sort((a, b) => (eventOrder.get(a.id) ?? 0) - (eventOrder.get(b.id) ?? 0))
@@ -314,20 +321,28 @@ export async function GET(req: NextRequest) {
         const displayLabel = type === "EVEN"
           ? (custom ?? (label && label !== "Event" ? label : null) ?? "Event")
           : (EVENT_TYPE_LABELS[type] ?? label ?? custom ?? type);
+        const links = eventLinksById.get(ev.id) ?? { individualEvents: [], familyEvents: [] };
+        const privacyRestricted = shouldGateLivingEventContent(viewer, links);
+        const eventPath = eventLoginPath(ev.id);
 
         return {
           id: ev.id,
           eventType: type,
-          label: displayLabel,
-          dateDisplay: ev.date?.original ?? null,
-          year: ev.date?.year ?? null,
-          placeDisplay: fullPlaceLabelFromGedcomPlace(ev.place) ?? null,
-          value: ev.value ?? null,
-          linkedIndividuals: indsByEvent.get(ev.id) ?? [],
-          linkedFamilies: famsByEvent.get(ev.id) ?? [],
+          label: privacyRestricted ? "Event (sign in to view)" : displayLabel,
+          dateDisplay: privacyRestricted ? null : (ev.date?.original ?? null),
+          year: privacyRestricted ? null : (ev.date?.year ?? null),
+          placeDisplay: privacyRestricted ? null : (fullPlaceLabelFromGedcomPlace(ev.place) ?? null),
+          value: privacyRestricted ? null : (ev.value ?? null),
+          linkedIndividuals: privacyRestricted
+            ? []
+            : redactEventLinkedPeopleForViewer(indsByEvent.get(ev.id) ?? [], viewer),
+          linkedFamilies: privacyRestricted ? [] : (famsByEvent.get(ev.id) ?? []),
           hasNotes: ev.eventNotes.length > 0,
           hasMedia: ev.eventMedia.length > 0,
           hasSources: ev.eventSources.length > 0,
+          privacyRestricted,
+          loginHref: privacyRestricted ? buildLoginWallPath(eventPath) : null,
+          profileHref: privacyRestricted ? buildLoginWallPath(eventPath) : eventPath,
         };
       });
 

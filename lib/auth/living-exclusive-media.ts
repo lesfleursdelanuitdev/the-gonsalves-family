@@ -297,3 +297,67 @@ export async function loadMediaLivingLinksById(
 export function canViewLivingIndividualGeneratedAlbum(viewer: PublicViewer, isLiving: boolean): boolean {
   return canViewFullIndividual(viewer, isLiving);
 }
+
+/** Resolve a gedcom-admin disk path to living-linked gate status. */
+export async function isGedcomAdminUploadPathLinkedToLivingPeople(
+  prisma: PrismaClient,
+  fileUuid: string,
+  segments: string[],
+): Promise<{ gated: boolean; mediaId: string | null }> {
+  const fileRef = `/uploads/gedcom-admin/${segments.join("/")}`;
+  const media = await prisma.gedcomMedia.findFirst({
+    where: {
+      fileUuid,
+      OR: [{ fileRef }, { fileRef: fileRef.replace(/^\//, "") }],
+    },
+    select: MEDIA_LIVING_LINK_SELECT,
+  });
+  if (!media) return { gated: false, mediaId: null };
+  return { gated: isMediaLinkedToAnyLivingPeople(media), mediaId: media.id };
+}
+
+export async function gateGedcomAdminUploadPath(
+  prisma: PrismaClient,
+  fileUuid: string,
+  segments: string[],
+): Promise<NextResponse | null> {
+  const { gated, mediaId } = await isGedcomAdminUploadPathLinkedToLivingPeople(prisma, fileUuid, segments);
+  if (!gated || !mediaId) return null;
+  const { resolvePublicViewer } = await import("@/lib/auth/public-viewer-context");
+  const viewer = await resolvePublicViewer();
+  if (isAuthenticatedViewer(viewer)) return null;
+  return authRequiredResponse(buildMediaLoginPath(mediaId));
+}
+
+export function applyLivingPrivacyToGedcomMediaSearchItem<
+  T extends { id: string; source: string; fileRef?: string | null; profileHref: string },
+>(
+  item: T,
+  viewer: PublicViewer,
+  hasLivingLinked: boolean,
+): T & { privacyRestricted: boolean; loginHref: string | null; fileRef: string | null } {
+  if (!shouldGateLivingLinkedEntity(viewer, hasLivingLinked)) {
+    return { ...item, privacyRestricted: false, loginHref: null, fileRef: item.fileRef ?? null };
+  }
+  const loginHref = buildLoginWallPath(item.profileHref);
+  return {
+    ...item,
+    fileRef: null,
+    profileHref: loginHref,
+    privacyRestricted: true,
+    loginHref,
+  };
+}
+
+export async function batchGedcomMediaIdsWithLivingLinkedPeople(
+  prisma: PrismaClient,
+  fileUuid: string,
+  mediaIds: string[],
+): Promise<Set<string>> {
+  const links = await loadMediaLivingLinksById(prisma, fileUuid, mediaIds);
+  const gated = new Set<string>();
+  for (const [id, row] of links) {
+    if (isMediaLinkedToAnyLivingPeople(row)) gated.add(id);
+  }
+  return gated;
+}

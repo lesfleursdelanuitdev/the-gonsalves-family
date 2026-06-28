@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@ligneous/prisma";
 import { prisma } from "@/lib/database/prisma";
+import { mapNoteRowsWithLivingPrivacy } from "@/lib/notes/map-note-living-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { getPersonDetailContext, requireFullPersonDetailAccess, type Row } from "../lib";
 
 export async function GET(
@@ -32,11 +34,17 @@ export async function GET(
       `
     );
 
-    const notes = notesRows.map((r: Row) => ({
-      id: r.id,
-      xref: r.xref ?? null,
-      content: r.content,
-    }));
+    const viewer = await resolvePublicViewer();
+    const notes = await mapNoteRowsWithLivingPrivacy(
+      viewer,
+      fileUuid,
+      notesRows.map((r: Row) => ({
+        id: String(r.id),
+        xref: (r.xref as string | null | undefined) ?? null,
+        content: String(r.content ?? ""),
+      })),
+      `/individuals/${encodeURIComponent(personId)}#notes`,
+    );
 
     return NextResponse.json({ notes });
   } catch (err) {

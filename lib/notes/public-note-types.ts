@@ -21,6 +21,8 @@ export type PublicNote = {
   linkedIndividualIds: string[];
   /** Partner individual ids on linked families (for person filter via spouse names). */
   linkedFamilyPartnerIndividualIds: string[];
+  privacyRestricted: boolean;
+  loginHref: string | null;
 };
 
 export type NotesSelectedPerson = {

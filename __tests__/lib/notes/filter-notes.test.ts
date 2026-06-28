@@ -18,6 +18,8 @@ const baseNote = (overrides: Partial<PublicNote>): PublicNote => ({
   linkKinds: ["individual"],
   linkedIndividualIds: ["person-a"],
   linkedFamilyPartnerIndividualIds: [],
+  privacyRestricted: false,
+  loginHref: null,
   ...overrides,
 });
 

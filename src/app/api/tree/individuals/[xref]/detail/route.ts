@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@ligneous/prisma";
 import { gateLivingIndividualAccessById, isLivingFromPersonRow } from "@/lib/auth/gate-living-individual-access";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import { mapNoteRowsWithLivingPrivacy } from "@/lib/notes/map-note-living-privacy";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import {
@@ -363,11 +365,16 @@ export async function GET(
       children: fam.children.slice().sort(sortSpouseChildrenByBirth),
     }));
 
-    const notes = notesRows.map((r: Row) => ({
-      id: r.id,
-      xref: r.xref ?? null,
-      content: r.content,
-    }));
+    const notes = await mapNoteRowsWithLivingPrivacy(
+      await resolvePublicViewer(),
+      fileUuid,
+      notesRows.map((r: Row) => ({
+        id: String(r.id),
+        xref: (r.xref as string | null | undefined) ?? null,
+        content: String(r.content ?? ""),
+      })),
+      `/individuals/${encodeURIComponent(String(personId))}#notes`,
+    );
 
     const sources = sourcesRows.map((r: Row) => ({
       source: {

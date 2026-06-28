@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import { HeritageTextRotate } from "./HeritageTextRotate";
 import { CultureColumns } from "./CultureColumns";
+import type { HomeArticleSpotlight } from "@/lib/stories/load-home-article-spotlight";
 
 const contentVariants = {
   hidden: { opacity: 0, x: -32 },
@@ -22,7 +23,11 @@ const contentVariants = {
  * Identity component — blank state for remake.
  * Replaces IdentitySection with a new implementation.
  */
-export function Identity() {
+export function Identity({
+  articleSpotlight = null,
+}: {
+  articleSpotlight?: HomeArticleSpotlight | null;
+}) {
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
 
@@ -93,7 +98,7 @@ export function Identity() {
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
             transition={{ duration: 0.6, delay: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <CultureColumns />
+            <CultureColumns articleSpotlight={articleSpotlight} />
           </motion.div>
         </div>
       </div>

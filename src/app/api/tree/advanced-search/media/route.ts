@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid, resolveTreeId } from "@/lib/tree";
+import {
+  applyLivingPrivacyToGedcomMediaSearchItem,
+  batchGedcomMediaIdsWithLivingLinkedPeople,
+} from "@/lib/auth/living-exclusive-media";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -205,18 +210,33 @@ export async function GET(req: NextRequest) {
 
     const total = Number(countRows[0]?.n ?? 0);
 
-    const items = itemRows.map(r => ({
-      id:        r.id,
-      source:    r.source as "gedcom" | "site" | "user" | "story",
-      title:     r.title,
-      mediaType: normalizeMediaType(r.source, r.form_display),
-      fileRef:   r.file_ref,
-      slug:      r.slug,
-      kind:      r.kind,
-      profileHref: r.source === "story"
-        ? (r.slug ? `/stories/${r.slug}` : `/stories/${r.id}`)
-        : `/media/${r.id}`,
-    }));
+    const viewer = await resolvePublicViewer();
+    const gedcomIds = itemRows.filter((r) => r.source === "gedcom").map((r) => r.id);
+    const gatedMediaIds = await batchGedcomMediaIdsWithLivingLinkedPeople(prisma, fileUuid, gedcomIds);
+
+    const items = itemRows.map((r) => {
+      const base = {
+        id: r.id,
+        source: r.source as "gedcom" | "site" | "user" | "story",
+        title: r.title,
+        mediaType: normalizeMediaType(r.source, r.form_display),
+        fileRef: r.file_ref,
+        slug: r.slug,
+        kind: r.kind,
+        profileHref:
+          r.source === "story"
+            ? r.slug
+              ? `/stories/${r.slug}`
+              : `/stories/${r.id}`
+            : `/media/${r.id}`,
+      };
+      if (r.source !== "gedcom") return base;
+      return applyLivingPrivacyToGedcomMediaSearchItem(
+        base,
+        viewer,
+        gatedMediaIds.has(r.id),
+      );
+    });
 
     return NextResponse.json({ items, total, hasMore: offset + items.length < total, limit, offset });
   } catch (err) {

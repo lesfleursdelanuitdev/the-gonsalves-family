@@ -10,6 +10,7 @@ export type PublicFamilyPartner = {
   portraitSrc: string | null;
   sex: string | null;
   gender: string | null;
+  isLiving: boolean;
 };
 
 export type PublicFamily = {

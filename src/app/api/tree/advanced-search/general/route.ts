@@ -13,6 +13,11 @@ import {
   redactSearchIndividualForViewer,
 } from "@/lib/auth/living-person-privacy";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import { shouldGateLivingNoteContent } from "@/lib/auth/living-note-privacy";
+import { shouldGateLivingEventContent } from "@/lib/auth/living-event-privacy";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
+import { loadNoteLivingLinksByIds } from "@/lib/notes/map-note-living-privacy";
+import { eventLoginPath, loadEventLivingLinksByIds } from "@/lib/events/map-event-living-privacy";
 import { type P, mc, parseTerms, termsBlock } from "./sql-helpers";
 
 const MAX_CATEGORY_RESULTS = 1000;
@@ -403,6 +408,8 @@ export async function GET(req: NextRequest) {
       });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const eventLinksById = await loadEventLivingLinksByIds(fileUuid, eventIds);
+
     const events = [...(eventRows as any[])]
       .sort((a, b) => (evOrder.get(a.id) ?? 0) - (evOrder.get(b.id) ?? 0))
       .map((row) => {
@@ -412,14 +419,22 @@ export async function GET(req: NextRequest) {
         const displayLabel = type === "EVEN"
           ? (custom ?? (labelVal && labelVal !== "Event" ? labelVal : null) ?? "Event")
           : (EVENT_TYPE_LABELS[type] ?? labelVal ?? custom ?? type);
+        const links = eventLinksById.get(row.id as string) ?? { individualEvents: [], familyEvents: [] };
+        const privacyRestricted = shouldGateLivingEventContent(viewer, links);
+        const eventPath = eventLoginPath(row.id as string);
         return {
           id: row.id as string,
-          label: displayLabel,
-          value: (row.value as string | null) || null,
-          dateDisplay: (row.date?.original as string | null) || null,
-          year: (row.date?.year as number | null) || null,
-          placeDisplay: fullPlaceLabelFromGedcomPlace(row.place) || null,
-          linkedPeople: redactEventLinkedPeopleForViewer(linkedIndMap.get(row.id as string) ?? [], viewer),
+          label: privacyRestricted ? "Event (sign in to view)" : displayLabel,
+          value: privacyRestricted ? null : ((row.value as string | null) || null),
+          dateDisplay: privacyRestricted ? null : ((row.date?.original as string | null) || null),
+          year: privacyRestricted ? null : ((row.date?.year as number | null) || null),
+          placeDisplay: privacyRestricted ? null : (fullPlaceLabelFromGedcomPlace(row.place) || null),
+          linkedPeople: privacyRestricted
+            ? []
+            : redactEventLinkedPeopleForViewer(linkedIndMap.get(row.id as string) ?? [], viewer),
+          privacyRestricted,
+          loginHref: privacyRestricted ? buildLoginWallPath(eventPath) : null,
+          profileHref: privacyRestricted ? buildLoginWallPath(eventPath) : eventPath,
         };
       });
 
@@ -447,17 +462,28 @@ export async function GET(req: NextRequest) {
     }));
     const placesTotal = placeRows.length > 0 ? Number(placeRows[0]!.total) : 0;
 
-    const notes = noteRows.map((r) => ({
-      id: r.id,
-      snippet: r.snippet ?? "",
-      ownerName: r.individual_name
-        ? formatGedcomFullNameForDisplay(r.individual_name)
-        : null,
-      ownerHref: r.individual_id
-        ? `/individuals/${encodeURIComponent(r.individual_id)}`
-        : null,
-      total: undefined,
-    }));
+    const noteLinksById = await loadNoteLivingLinksByIds(
+      fileUuid,
+      noteRows.map((row) => row.id),
+    );
+
+    const notes = noteRows.map((r) => {
+      const links = noteLinksById.get(r.id) ?? { individualNotes: [], familyNotes: [] };
+      const privacyRestricted = shouldGateLivingNoteContent(viewer, links);
+      return {
+        id: r.id,
+        snippet: privacyRestricted ? "" : (r.snippet ?? ""),
+        ownerName: r.individual_name
+          ? formatGedcomFullNameForDisplay(r.individual_name)
+          : null,
+        ownerHref: r.individual_id
+          ? `/individuals/${encodeURIComponent(r.individual_id)}`
+          : null,
+        privacyRestricted,
+        loginHref: privacyRestricted ? buildLoginWallPath("/archive/notes") : null,
+        total: undefined,
+      };
+    });
     const notesTotal = noteRows.length > 0 ? Number(noteRows[0]!.total) : 0;
 
     return NextResponse.json({

@@ -156,6 +156,12 @@ function LinkRow({ link }: { link: PublicOpenQuestionLink }) {
           {link.kind === "media" && link.privacyRestricted ? (
             <span className="mt-1 block text-xs text-muted">Sign in to view this media item.</span>
           ) : null}
+          {link.kind === "note" && link.privacyRestricted ? (
+            <span className="mt-1 block text-xs text-muted">Sign in to view this note.</span>
+          ) : null}
+          {link.kind === "event" && link.privacyRestricted ? (
+            <span className="mt-1 block text-xs text-muted">Sign in to view this event.</span>
+          ) : null}
         </span>
       </Link>
     </li>

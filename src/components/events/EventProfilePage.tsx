@@ -5,6 +5,8 @@ import { Footer } from "@/components/homepage";
 import { Navbar } from "@/components/homepage/HeroAndMenu/Navbar";
 import { PageContainer, Section } from "@/components/wireframe";
 import { MarkdownNote } from "@/components/shared/MarkdownNote";
+import { LivingGatedNotePrompt } from "@/components/notes/LivingGatedNotePrompt";
+import { LivingGatedEventPrompt } from "@/components/events/LivingGatedEventPrompt";
 import type { PublicEventProfile } from "./types";
 
 function MetadataRow({
@@ -40,6 +42,8 @@ function MetadataRow({
 }
 
 export function EventProfilePage({ event }: { event: PublicEventProfile }) {
+  const gated = event.privacyRestricted && event.loginHref;
+
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col overflow-x-hidden bg-bg text-text">
       <Navbar />
@@ -68,43 +72,47 @@ export function EventProfilePage({ event }: { event: PublicEventProfile }) {
                     <span className="inline-flex items-center rounded-full border border-link/20 bg-link/10 px-3 py-1 font-body text-xs font-semibold text-link">
                       {event.typeLabel}
                     </span>
-                    {event.year ? (
+                    {!gated && event.year ? (
                       <span className="font-body text-sm text-muted">{event.year}</span>
                     ) : null}
                   </div>
                   <h1 className="break-words font-heading text-4xl font-semibold leading-[1.05] tracking-tight text-heading sm:text-5xl">
-                    {event.subjectName ?? event.typeLabel}
+                    {gated ? "Private event" : (event.subjectName ?? event.typeLabel)}
                   </h1>
                 </div>
 
                 <div className="h-px w-24 bg-gradient-to-r from-link/70 via-link/30 to-transparent" />
 
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                  {event.subjectName && event.subjectHref ? (
-                    <MetadataRow icon={User} label="Person / Family" value={event.subjectName} href={event.subjectHref} />
-                  ) : null}
-                  {event.dateLabel ? (
-                    <MetadataRow icon={Calendar} label="Date" value={event.dateLabel} />
-                  ) : null}
-                  {event.placeLabel ? (
-                    <MetadataRow icon={MapPin} label="Place" value={event.placeLabel} href={event.placeHref ?? undefined} />
-                  ) : null}
-                  {event.value ? (
-                    <MetadataRow icon={FileText} label="Value" value={event.value} markdown />
-                  ) : null}
-                  {event.cause ? (
-                    <MetadataRow icon={FileText} label="Cause" value={event.cause} markdown />
-                  ) : null}
-                  {event.eventLabel ? (
-                    <MetadataRow icon={FileText} label="Label" value={event.eventLabel} />
-                  ) : null}
-                </div>
+                {gated ? (
+                  <LivingGatedEventPrompt loginHref={event.loginHref!} />
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    {event.subjectName && event.subjectHref ? (
+                      <MetadataRow icon={User} label="Person / Family" value={event.subjectName} href={event.subjectHref} />
+                    ) : null}
+                    {event.dateLabel ? (
+                      <MetadataRow icon={Calendar} label="Date" value={event.dateLabel} />
+                    ) : null}
+                    {event.placeLabel ? (
+                      <MetadataRow icon={MapPin} label="Place" value={event.placeLabel} href={event.placeHref ?? undefined} />
+                    ) : null}
+                    {event.value ? (
+                      <MetadataRow icon={FileText} label="Value" value={event.value} markdown />
+                    ) : null}
+                    {event.cause ? (
+                      <MetadataRow icon={FileText} label="Cause" value={event.cause} markdown />
+                    ) : null}
+                    {event.eventLabel ? (
+                      <MetadataRow icon={FileText} label="Label" value={event.eventLabel} />
+                    ) : null}
+                  </div>
+                )}
               </div>
             </PageContainer>
           </div>
         </Section>
 
-        {event.notes.length > 0 ? (
+        {!gated && event.notes.length > 0 ? (
           <Section noPadding className="min-w-0 overflow-x-hidden pb-10 pt-4 md:pt-8">
             <PageContainer narrow>
               <div className="rounded-2xl border border-border/80 bg-surface/90 shadow-[0_10px_26px_rgba(60,45,25,0.06)]">
@@ -112,9 +120,13 @@ export function EventProfilePage({ event }: { event: PublicEventProfile }) {
                   <h2 className="font-heading text-base font-semibold text-heading">Notes</h2>
                 </div>
                 <ul className="divide-y divide-border-subtle/50">
-                  {event.notes.map((note, i) => (
-                    <li key={i} className="px-5 py-4">
-                      <MarkdownNote content={note} className="font-body text-sm leading-relaxed text-text" />
+                  {event.notes.map((note) => (
+                    <li key={note.id} className="px-5 py-4">
+                      {note.privacyRestricted && note.loginHref ? (
+                        <LivingGatedNotePrompt loginHref={note.loginHref} />
+                      ) : (
+                        <MarkdownNote content={note.content} className="font-body text-sm leading-relaxed text-text" />
+                      )}
                     </li>
                   ))}
                 </ul>

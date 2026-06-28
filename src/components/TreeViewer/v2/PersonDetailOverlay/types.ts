@@ -83,7 +83,13 @@ export interface FamiliesAsSpouseResponse {
 }
 
 export interface NotesResponse {
-  notes: { id: string; xref: string | null; content: string }[];
+  notes: {
+    id: string;
+    xref: string | null;
+    content: string;
+    privacyRestricted?: boolean;
+    loginHref?: string | null;
+  }[];
 }
 
 export interface SourcesResponse {

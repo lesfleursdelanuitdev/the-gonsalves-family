@@ -11,7 +11,10 @@ import { LIVING_MEDIA_PLACEHOLDER_COVER } from "@/lib/auth/living-media-constant
 import type { PublicViewer } from "@/lib/auth/public-viewer";
 
 const anonymous: PublicViewer = { kind: "anonymous" };
-const authenticated: PublicViewer = { kind: "authenticated", userId: "u1" };
+const authenticated: PublicViewer = {
+  kind: "authenticated",
+  user: { id: "u1" } as never,
+};
 
 describe("event generated scrapbook living helpers", () => {
   it("detects living event participants from individuals and family partners", () => {

@@ -111,6 +111,7 @@ describe("redactPublicFamilyForAnniversaryViewer", () => {
         portraitSrc: "/jane.jpg",
         sex: "F",
         gender: "female",
+        isLiving: true,
       },
       {
         id: "w1",
@@ -119,6 +120,7 @@ describe("redactPublicFamilyForAnniversaryViewer", () => {
         portraitSrc: "/john.jpg",
         sex: "M",
         gender: "male",
+        isLiving: false,
       },
     ],
     childrenCount: 1,

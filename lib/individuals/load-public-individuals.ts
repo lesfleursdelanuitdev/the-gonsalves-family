@@ -25,6 +25,12 @@ import { personAgeYears } from "@/lib/individuals/person-age";
 import type { PublicViewer } from "@/lib/auth/public-viewer-context";
 import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { redactPublicIndividualForViewer, redactRelationForViewer } from "@/lib/auth/living-person-privacy";
+import { NOTE_LIVING_LINK_SELECT } from "@/lib/auth/living-note-privacy";
+import { mapPublicProfileNoteWithLivingPrivacy } from "@/lib/notes/map-note-living-privacy";
+import {
+  applyLivingPrivacyToTimelineItem,
+  loadEventLivingLinksByIds,
+} from "@/lib/events/map-event-living-privacy";
 import { fetchPublishedStoriesForIndividual } from "@/lib/stories/story-queries";
 import { parentsHeaderLabelFromPedigreeRows } from "@/lib/tree/parents-label-for-family";
 import type {
@@ -202,6 +208,8 @@ function sortTimeline(items: TimelineBuildItem[]): PublicIndividualTimelineItem[
       place: item.place,
       description: item.description,
       context: item.context,
+      privacyRestricted: item.privacyRestricted,
+      loginHref: item.loginHref,
     }));
 }
 
@@ -606,13 +614,18 @@ export async function loadPublicIndividualById(
     },
   });
 
+  const directEventLinksById = await loadEventLivingLinksByIds(
+    fileUuid,
+    directEventRows.map(({ event }) => event.id),
+  );
+
   const timelineItems: TimelineBuildItem[] = directEventRows
     .map<TimelineBuildItem | null>(({ event }) => {
       const year = event.date?.year ?? null;
       const title = eventTitle(event.eventType, event.customType);
       if (title === "Life event") return null;
       const place = fullPlaceLabel(event.place);
-      return {
+      const base: TimelineBuildItem = {
         id: `direct-${event.id}`,
         dateLabel: dateLabelFromParts(event.date?.original, year),
         title,
@@ -623,6 +636,12 @@ export async function loadPublicIndividualById(
         sortMonth: event.date?.month ?? 0,
         sortDay: event.date?.day ?? 0,
         sortPriority: 10,
+      };
+      const links = directEventLinksById.get(event.id);
+      if (!links) return base;
+      return {
+        ...base,
+        ...applyLivingPrivacyToTimelineItem(viewer, base, links, event.id),
       };
     })
     .filter((item): item is TimelineBuildItem => item != null);
@@ -722,7 +741,14 @@ export async function loadPublicIndividualById(
     prisma.gedcomIndividualNote.findMany({
       where: { fileUuid, individualId: r.id },
       select: {
-        note: { select: { id: true, xref: true, content: true } },
+        note: {
+          select: {
+            id: true,
+            xref: true,
+            content: true,
+            ...NOTE_LIVING_LINK_SELECT,
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     }),
@@ -860,11 +886,9 @@ export async function loadPublicIndividualById(
   const partners = uniqueRelations(familiesAsPartner.flatMap((family) => family.partners));
   const partner = partners[0] ?? null;
   const children = uniqueRelations(familiesAsPartner.flatMap((family) => family.children));
-  const notes: PublicIndividualNote[] = noteRows.map(({ note }) => ({
-    id: note.id,
-    xref: note.xref ?? null,
-    content: note.content,
-  }));
+  const notes: PublicIndividualNote[] = noteRows.map(({ note }) =>
+    mapPublicProfileNoteWithLivingPrivacy(viewer, note, `/individuals/${encodeURIComponent(r.id)}#notes`),
+  );
   const associatesById = new Map<string, PublicIndividualAssociate>();
   for (const rel of associationRows) {
     const others = rel.participants.filter((p) => p.individualId !== r.id);

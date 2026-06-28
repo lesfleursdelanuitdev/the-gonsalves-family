@@ -6,7 +6,10 @@ import {
   formatMinimalLivingLabel,
   redactHomeStatisticsIndividualExample,
   redactEventLinkedPeopleForViewer,
+  redactFamilyPartnerForViewer,
+  redactPublicFamilyMemberForViewer,
   redactPublicIndividualForViewer,
+  redactSearchIndividualForViewer,
   redactRelationForViewer,
   redactTreePersonForViewer,
 } from "@/lib/auth/living-person-privacy";
@@ -98,6 +101,32 @@ describe("redactPublicIndividualForViewer", () => {
   });
 });
 
+describe("redactSearchIndividualForViewer", () => {
+  const person = {
+    id: "abc",
+    fullName: "Jane Doe",
+    displayName: "Jane Doe",
+    birthYear: 1987,
+    deathYear: null,
+    portraitSrc: "/photo.jpg",
+    profileHref: "/individuals/abc",
+    isLiving: true,
+    birthCountry: "USA",
+    ageAtDeath: null,
+    generationDepth: 3,
+  };
+
+  it("strips profile link and demographics for anonymous viewers", () => {
+    const redacted = redactSearchIndividualForViewer(person, anonymous);
+    expect(redacted.displayName).toBe("Jane Doe · b. 1987");
+    expect(redacted.profileHref).toContain("/login");
+    expect(redacted.portraitSrc).toBeNull();
+    expect(redacted.birthCountry).toBeNull();
+    expect(redacted.ageAtDeath).toBeNull();
+    expect(redacted.generationDepth).toBeNull();
+  });
+});
+
 describe("redactRelationForViewer", () => {
   const relation = {
     id: "abc",
@@ -114,6 +143,58 @@ describe("redactRelationForViewer", () => {
       ...relation,
       portraitSrc: null,
       deathYear: null,
+    });
+  });
+});
+
+describe("redactFamilyPartnerForViewer", () => {
+  const partner = {
+    id: "p1",
+    fullName: "Jane Doe",
+    portraitSrc: "/photo.jpg",
+    isLiving: true,
+    birthYear: 1987,
+    deathYear: null,
+  };
+
+  it("strips portrait for anonymous viewers", () => {
+    expect(redactFamilyPartnerForViewer(partner, anonymous)).toMatchObject({
+      portraitSrc: null,
+      deathYear: null,
+      displayName: "Jane Doe · b. 1987",
+      profileHref: expect.stringContaining("/login"),
+    });
+  });
+
+  it("leaves authenticated payloads unchanged", () => {
+    expect(redactFamilyPartnerForViewer(partner, authenticated)).toEqual(partner);
+  });
+});
+
+describe("redactPublicFamilyMemberForViewer", () => {
+  const member = {
+    id: "m1",
+    fullName: "Jane Doe",
+    isLiving: true,
+    birthYear: 1987,
+    birthDateLabel: "15 Jan 1987",
+    deathDateLabel: null,
+    partnersCount: 2,
+    childrenCount: 1,
+    portraitSrc: "/photo.jpg",
+    profileHref: "/individuals/m1",
+  };
+
+  it("strips sensitive fields for anonymous viewers", () => {
+    expect(redactPublicFamilyMemberForViewer(member, anonymous)).toEqual({
+      ...member,
+      fullName: "Jane Doe · b. 1987",
+      birthDateLabel: "1987",
+      deathDateLabel: null,
+      partnersCount: 0,
+      childrenCount: 0,
+      portraitSrc: null,
+      profileHref: expect.stringContaining("/login"),
     });
   });
 });

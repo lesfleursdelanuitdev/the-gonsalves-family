@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/database/prisma";
 import { formatNoteLinkedEventLabel } from "@ligneous/gedcom-events";
 import { markdownToPlainPreview } from "@ligneous/gedcom-events";
+import {
+  shouldGateLivingNoteContent,
+} from "@/lib/auth/living-note-privacy";
+import { buildLoginWallPath } from "@/lib/auth/public-viewer";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import type { PublicNote, PublicNoteLink, PublicNoteLinkKind } from "@/lib/notes/public-note-types";
 import { stripSlashesFromName } from "@/lib/surnames/surname-query";
 import { resolveTreeFileUuid } from "@/lib/tree";
@@ -27,12 +32,14 @@ export async function loadPublicNotes(): Promise<PublicNote[]> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return [];
 
+  const viewer = await resolvePublicViewer();
+
   const rows = await prisma.gedcomNote.findMany({
     where: { fileUuid },
     include: {
       individualNotes: {
         include: {
-          individual: { select: { id: true, fullName: true } },
+          individual: { select: { id: true, fullName: true, isLiving: true } },
         },
       },
       familyNotes: {
@@ -42,8 +49,8 @@ export async function loadPublicNotes(): Promise<PublicNote[]> {
               id: true,
               husbandId: true,
               wifeId: true,
-              husband: { select: { id: true, fullName: true } },
-              wife: { select: { id: true, fullName: true } },
+              husband: { select: { id: true, fullName: true, isLiving: true } },
+              wife: { select: { id: true, fullName: true, isLiving: true } },
             },
           },
         },
@@ -123,8 +130,10 @@ export async function loadPublicNotes(): Promise<PublicNote[]> {
 
     const uniquePartnerIds = [...new Set(linkedFamilyPartnerIndividualIds)];
 
-    const contentPlain = markdownToPlainPreview(note.content, 10_000);
-    const contentPreview = markdownToPlainPreview(note.content, 320);
+    const privacyRestricted = shouldGateLivingNoteContent(viewer, note);
+    const loginHref = privacyRestricted ? buildLoginWallPath("/archive/notes") : null;
+    const contentPlain = privacyRestricted ? "" : markdownToPlainPreview(note.content, 10_000);
+    const contentPreview = privacyRestricted ? "" : markdownToPlainPreview(note.content, 320);
     const xref = note.xref?.trim() || null;
     const linkedLabels = linkedTargets.map((t) => t.label).join(" ");
 
@@ -140,6 +149,8 @@ export async function loadPublicNotes(): Promise<PublicNote[]> {
       linkKinds: [...linkKindSet],
       linkedIndividualIds,
       linkedFamilyPartnerIndividualIds: uniquePartnerIds,
+      privacyRestricted,
+      loginHref,
     };
   });
 }

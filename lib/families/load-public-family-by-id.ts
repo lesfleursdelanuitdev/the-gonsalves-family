@@ -14,6 +14,13 @@ import {
   type GedcomPlaceDisplayRow,
 } from "@/lib/gedcom-place-display";
 import { buildFamilyTimeline } from "@/lib/families/build-family-timeline";
+import { NOTE_LIVING_LINK_SELECT } from "@/lib/auth/living-note-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import {
+  redactFamilyPartnerForViewer,
+  redactPublicFamilyMembersForViewer,
+} from "@/lib/auth/living-person-privacy";
+import { mapPublicProfileNoteWithLivingPrivacy } from "@/lib/notes/map-note-living-privacy";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import {
   batchIndividualDisplayPhotoMedia,
@@ -50,6 +57,7 @@ function partnerFromRow(
     fullName: string | null;
     sex: string | null;
     gender: string | null;
+    isLiving: boolean;
   },
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
 ): PublicFamilyPartner {
@@ -60,6 +68,7 @@ function partnerFromRow(
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
     sex: row.sex ?? null,
     gender: row.gender ?? null,
+    isLiving: row.isLiving,
   };
 }
 
@@ -209,19 +218,16 @@ export async function loadPublicFamilyById(id: string): Promise<PublicFamilyProf
 
   if (!row) return null;
 
-  const partners = [row.husband, row.wife]
-    .filter((item): item is NonNullable<typeof item> => item != null)
-    .map((item) => partnerFromRow(item, new Map()));
-
   const childRows = row.familyChildren
     .map(({ child }) => child)
     .filter((child): child is NonNullable<typeof child> => child != null);
 
   const memberIds = [
     ...new Set([
-      ...partners.map((p) => p.id),
+      row.husband?.id,
+      row.wife?.id,
       ...childRows.map((c) => c.id),
-    ]),
+    ].filter((id): id is string => Boolean(id))),
   ];
 
   const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, memberIds);
@@ -231,12 +237,21 @@ export async function loadPublicFamilyById(id: string): Promise<PublicFamilyProf
     .filter((item): item is NonNullable<typeof item> => item != null)
     .map((item) => partnerFromRow(item, photoMap));
 
-  const members: PublicFamilyMember[] = [
-    ...[row.husband, row.wife]
-      .filter((item): item is NonNullable<typeof item> => item != null)
-      .map((item) => memberFromIndividual(item, "Partner", photoMap, counts)),
-    ...childRows.map((child) => memberFromIndividual(child, "Child", photoMap, counts)),
-  ];
+  const viewer = await resolvePublicViewer();
+
+  const redactedPartners = partnersWithPhotos.map(
+    (partner) => redactFamilyPartnerForViewer(partner, viewer)!,
+  );
+
+  const members: PublicFamilyMember[] = redactPublicFamilyMembersForViewer(
+    [
+      ...[row.husband, row.wife]
+        .filter((item): item is NonNullable<typeof item> => item != null)
+        .map((item) => memberFromIndividual(item, "Partner", photoMap, counts)),
+      ...childRows.map((child) => memberFromIndividual(child, "Child", photoMap, counts)),
+    ],
+    viewer,
+  );
 
   const marriagePlaceLabel =
     fullPlaceLabelFromGedcomPlace(row.marriagePlace as GedcomPlaceDisplayRow | null) ??
@@ -250,27 +265,33 @@ export async function loadPublicFamilyById(id: string): Promise<PublicFamilyProf
       fileUuid,
       row.id,
       members.map((m) => ({ id: m.id, fullName: m.fullName, role: m.role })),
+      viewer,
     ),
     prisma.gedcomFamilyNote.findMany({
       where: { fileUuid, familyId: row.id },
       select: {
-        note: { select: { id: true, xref: true, content: true } },
+        note: {
+          select: {
+            id: true,
+            xref: true,
+            content: true,
+            ...NOTE_LIVING_LINK_SELECT,
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     }),
   ]);
 
-  const notes = noteRows.map(({ note }) => ({
-    id: note.id,
-    xref: note.xref ?? null,
-    content: note.content,
-  }));
+  const notes = noteRows.map(({ note }) =>
+    mapPublicProfileNoteWithLivingPrivacy(viewer, note, `/families/${encodeURIComponent(row.id)}#notes`),
+  );
 
   return {
     id: row.id,
     xref: row.xref,
-    title: familyTitle(partnersWithPhotos),
-    partners: partnersWithPhotos,
+    title: familyTitle(redactedPartners),
+    partners: redactedPartners,
     childrenCount: row.childrenCount ?? childRows.length,
     marriageDateLabel,
     marriagePlaceLabel,

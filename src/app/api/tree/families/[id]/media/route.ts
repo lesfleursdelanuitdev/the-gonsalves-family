@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { collectMediaIdsForGenerated } from "@ligneous/album-generated-queries";
 import { prisma } from "@/lib/database/prisma";
 import { resolveTreeFileUuid } from "@/lib/tree";
+import { gateGeneratedFamilyAlbumAccess } from "@/lib/auth/gate-living-album-access";
+import { LIVING_MEDIA_PLACEHOLDER_COVER } from "@/lib/auth/living-media-constants";
 
 /**
  * GET — three random linked family OBJEs and total count for album preview.
@@ -24,6 +26,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (!family) {
       return NextResponse.json({ error: "Family not found" }, { status: 404 });
     }
+
+    const returnPath = `/families/${encodeURIComponent(familyId)}`;
+    const accessDenied = await gateGeneratedFamilyAlbumAccess(prisma, fileUuid, familyId, returnPath);
+    const gated = accessDenied != null;
 
     const collected = await collectMediaIdsForGenerated(prisma, fileUuid, {
       type: "family",
@@ -66,7 +72,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       samples: samples.map((m) => ({
         id: m.id,
         title: m.title,
-        fileRef: m.fileRef,
+        fileRef: gated ? LIVING_MEDIA_PLACEHOLDER_COVER : m.fileRef,
         form: m.form,
       })),
     });

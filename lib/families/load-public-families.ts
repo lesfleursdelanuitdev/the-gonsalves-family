@@ -12,6 +12,8 @@ import {
   individualDisplayPhotoMediaToPublicUrl,
   type IndividualDisplayPhotoMedia,
 } from "@/lib/tree/individual-display-photo";
+import { redactFamilyPartnerForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import type { DivorcedStatus, PublicFamily, PublicFamilyPartner } from "@/components/families/types";
 
 function displayName(fullName: string | null | undefined, xref: string | null | undefined): string {
@@ -43,6 +45,7 @@ function partnerFromRow(
     fullName: string | null;
     sex: string | null;
     gender: string | null;
+    isLiving: boolean;
   },
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
 ): PublicFamilyPartner {
@@ -53,6 +56,7 @@ function partnerFromRow(
     portraitSrc: individualDisplayPhotoMediaToPublicUrl(photoMap.get(row.id)),
     sex: row.sex ?? null,
     gender: row.gender ?? null,
+    isLiving: row.isLiving,
   };
 }
 
@@ -67,10 +71,10 @@ const PUBLIC_FAMILY_LIST_SELECT = {
   divorceDateId: true,
   childrenCount: true,
   husband: {
-    select: { id: true, xref: true, fullName: true, sex: true, gender: true },
+    select: { id: true, xref: true, fullName: true, sex: true, gender: true, isLiving: true },
   },
   wife: {
-    select: { id: true, xref: true, fullName: true, sex: true, gender: true },
+    select: { id: true, xref: true, fullName: true, sex: true, gender: true, isLiving: true },
   },
   familyEvents: {
     where: { event: { eventType: "DIV" } },
@@ -95,6 +99,7 @@ type PublicFamilyListRow = {
     fullName: string | null;
     sex: string | null;
     gender: string | null;
+    isLiving: boolean;
   } | null;
   wife: {
     id: string;
@@ -102,6 +107,7 @@ type PublicFamilyListRow = {
     fullName: string | null;
     sex: string | null;
     gender: string | null;
+    isLiving: boolean;
   } | null;
   familyEvents: { id: string }[];
 };
@@ -109,10 +115,12 @@ type PublicFamilyListRow = {
 function mapPublicFamilyListRow(
   row: PublicFamilyListRow,
   photoMap: Map<string, IndividualDisplayPhotoMedia>,
+  viewer: Awaited<ReturnType<typeof resolvePublicViewer>>,
 ): PublicFamily {
   const partners = [row.husband, row.wife]
     .filter((item): item is NonNullable<typeof item> => item != null)
-    .map((item) => partnerFromRow(item, photoMap));
+    .map((item) => partnerFromRow(item, photoMap))
+    .map((partner) => redactFamilyPartnerForViewer(partner, viewer)!);
   const marriagePlaceLabel =
     fullPlaceLabelFromGedcomPlace(row.marriagePlace) ??
     row.marriagePlaceDisplay?.trim() ??
@@ -166,26 +174,29 @@ export async function loadPublicFamilies(): Promise<PublicFamily[]> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid) return [];
 
-  const rows = await loadPublicFamilyListRows(fileUuid);
+  const [rows, viewer] = await Promise.all([loadPublicFamilyListRows(fileUuid), resolvePublicViewer()]);
   const partnerIds = [
     ...new Set(
       rows.flatMap((row) => [row.husband?.id, row.wife?.id].filter((id): id is string => Boolean(id))),
     ),
   ];
   const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, partnerIds);
-  return rows.map((row) => mapPublicFamilyListRow(row, photoMap));
+  return rows.map((row) => mapPublicFamilyListRow(row, photoMap, viewer));
 }
 
 export async function loadPublicFamiliesByIds(ids: string[]): Promise<PublicFamily[]> {
   const fileUuid = await resolveTreeFileUuid();
   if (!fileUuid || ids.length === 0) return [];
 
-  const rows = await loadPublicFamilyListRows(fileUuid, { ids });
+  const [rows, viewer] = await Promise.all([
+    loadPublicFamilyListRows(fileUuid, { ids }),
+    resolvePublicViewer(),
+  ]);
   const partnerIds = [
     ...new Set(
       rows.flatMap((row) => [row.husband?.id, row.wife?.id].filter((id): id is string => Boolean(id))),
     ),
   ];
   const photoMap = await batchIndividualDisplayPhotoMedia(prisma, fileUuid, partnerIds);
-  return rows.map((row) => mapPublicFamilyListRow(row, photoMap));
+  return rows.map((row) => mapPublicFamilyListRow(row, photoMap, viewer));
 }

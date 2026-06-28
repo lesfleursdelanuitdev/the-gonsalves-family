@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { LivingGatedNotePrompt } from "@/components/notes/LivingGatedNotePrompt";
 import type { PublicProfileNote } from "@/lib/notes/public-profile-note";
 
 const NOTES_PER_PAGE = 3;
@@ -42,7 +43,11 @@ export function ProfileNotes({
                   {note.xref ?? "Note"}
                 </span>
               </div>
-              <p className="whitespace-pre-line text-sm leading-relaxed text-text">{note.content}</p>
+              {note.privacyRestricted && note.loginHref ? (
+                <LivingGatedNotePrompt loginHref={note.loginHref} />
+              ) : (
+                <p className="whitespace-pre-line text-sm leading-relaxed text-text">{note.content}</p>
+              )}
             </article>
           ))
         ) : (

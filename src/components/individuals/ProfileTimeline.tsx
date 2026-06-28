@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { LivingGatedEventPrompt } from "@/components/events/LivingGatedEventPrompt";
 import type { PublicProfileTimelineItem } from "@/lib/timeline/public-timeline";
 
 const EVENTS_PER_PAGE = 4;
@@ -88,13 +89,21 @@ export function ProfileTimeline({ items }: { items: PublicProfileTimelineItem[] 
                     </p>
                   </div>
                   <h3 className="mt-3 font-heading text-xl font-semibold leading-snug text-heading">{item.title}</h3>
-                  {item.place ? (
-                    <p className="mt-2 flex items-start gap-1.5 text-sm text-muted">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-link" aria-hidden />
-                      <span>{item.place}</span>
-                    </p>
-                  ) : null}
-                  <p className="mt-3 text-sm leading-relaxed text-muted">{item.description}</p>
+                  {item.privacyRestricted && item.loginHref ? (
+                    <div className="mt-3">
+                      <LivingGatedEventPrompt loginHref={item.loginHref} />
+                    </div>
+                  ) : (
+                    <>
+                      {item.place ? (
+                        <p className="mt-2 flex items-start gap-1.5 text-sm text-muted">
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-link" aria-hidden />
+                          <span>{item.place}</span>
+                        </p>
+                      ) : null}
+                      <p className="mt-3 text-sm leading-relaxed text-muted">{item.description}</p>
+                    </>
+                  )}
                 </article>
               </div>
               {index < visibleItems.length - 1 ? <hr className="bg-border-subtle" /> : null}

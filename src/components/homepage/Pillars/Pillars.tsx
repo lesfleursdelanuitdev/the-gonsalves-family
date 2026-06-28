@@ -1,7 +1,7 @@
 "use client";
 
-import { PillarsComboB } from "./PillarsComboB";
+import { PillarsThreeWaysIn } from "./PillarsThreeWaysIn";
 
 export function Pillars() {
-  return <PillarsComboB />;
+  return <PillarsThreeWaysIn />;
 }

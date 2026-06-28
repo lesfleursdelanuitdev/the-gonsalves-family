@@ -3,6 +3,9 @@ import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
 import { loadParentChildMaps, loadSpouseMap, getAncestorIds, getDescendantIds } from "@/lib/tree-ancestry";
 import { DEFAULT_MAX_DEPTH } from "@/genealogy-visualization-engine";
+import { formatMinimalLivingLabel } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
+import { canViewFullIndividual } from "@/lib/auth/public-viewer";
 
 export type PersonChartOptionKey = "pedigree" | "vertical_pedigree" | "fan_chart" | "descendancy";
 
@@ -51,11 +54,17 @@ export async function GET(req: NextRequest) {
 
     const row = await prisma.gedcomIndividual.findFirst({
       where: { fileUuid, id: personId },
-      select: { id: true, xref: true, fullName: true },
+      select: { id: true, xref: true, fullName: true, isLiving: true, birthYear: true },
     });
     if (!row) {
       return NextResponse.json({ error: "Individual not found" }, { status: 404 });
     }
+
+    const viewer = await resolvePublicViewer();
+    const rawName = row.fullName?.trim() || row.xref;
+    const displayName = canViewFullIndividual(viewer, row.isLiving)
+      ? rawName
+      : formatMinimalLivingLabel(rawName, row.birthYear ?? null);
 
     const maxDepth = DEFAULT_MAX_DEPTH;
     const [{ childToParents, parentToChildren }, spouseMap] = await Promise.all([
@@ -101,7 +110,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       personId: row.id,
       xref: row.xref,
-      displayName: row.fullName?.trim() || row.xref,
+      displayName,
       depth: maxDepth,
       options,
     });

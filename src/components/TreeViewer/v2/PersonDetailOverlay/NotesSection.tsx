@@ -6,6 +6,7 @@ import type { CSSProperties } from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
+import Link from "next/link";
 import {
   listUlStyle,
   iconColor,
@@ -264,7 +265,34 @@ export function NotesSection({ notes, isMobile, open, onOpenChange }: NotesSecti
                     </span>
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <NoteMarkdown content={n.content} />
+                    {n.privacyRestricted && n.loginHref ? (
+                      <div
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border: "1px solid rgba(20, 83, 45, 0.15)",
+                          background: "rgba(20, 83, 45, 0.06)",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "rgba(20, 40, 25, 0.78)" }}>
+                          This note relates to one or more living family members. Sign in to view its content.
+                        </p>
+                        <Link
+                          href={n.loginHref}
+                          style={{
+                            display: "inline-flex",
+                            marginTop: 8,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "#14532d",
+                          }}
+                        >
+                          Sign in to view
+                        </Link>
+                      </div>
+                    ) : (
+                      <NoteMarkdown content={n.content} />
+                    )}
                   </div>
                 </li>
               );

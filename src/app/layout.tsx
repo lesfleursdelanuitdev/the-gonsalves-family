@@ -46,13 +46,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var darkModeEnabled=false;if(darkModeEnabled){var t=localStorage.getItem('gonsalves-theme');document.documentElement.classList.toggle('dark',t==='dark');}else{document.documentElement.classList.remove('dark');}})();`,
-          }}
-        />
-      </head>
       <body
         className={`${playfair.variable} ${cormorant.variable} ${inter.variable} antialiased`}
         suppressHydrationWarning

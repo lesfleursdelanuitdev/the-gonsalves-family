@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { prisma } from "@/lib/database/prisma";
-import { mapIndividualRow } from "@/lib/individual-mapper";
+import { mapIndividualRow, yearFromDisplayDateString } from "@/lib/individual-mapper";
 import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
 import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
+import { formatMinimalLivingLabel, shouldRedactLivingPerson } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 const individualSelect = {
   id: true,
@@ -16,6 +18,7 @@ const individualSelect = {
   ...individualBirthDeathPlaceSelect,
   ...gedcomIndividualNlDenormSelect,
   isLiving: true,
+  birthYear: true,
   sex: true,
   gender: true,
   individualNameForms: {
@@ -85,6 +88,8 @@ export async function GET() {
 
     const row = raw;
 
+    const viewer = await resolvePublicViewer();
+
     const xrefs = [row.husbandXref, row.wifeXref].filter(
       (x): x is string => x != null && x !== ""
     );
@@ -100,16 +105,30 @@ export async function GET() {
         individuals.map((r) => [r.xref, mapIndividualRow(r)])
       );
       husbandName = row.husbandXref
-        ? displayName(
-            byXref.get(row.husbandXref)?.firstName ?? null,
-            byXref.get(row.husbandXref)?.lastName ?? null
-          )
+        ? (() => {
+            const mapped = byXref.get(row.husbandXref);
+            const name = displayName(mapped?.firstName ?? null, mapped?.lastName ?? null);
+            if (mapped?.isLiving && shouldRedactLivingPerson(viewer, true)) {
+              return formatMinimalLivingLabel(
+                name,
+                yearFromDisplayDateString(mapped.birthDate),
+              );
+            }
+            return name;
+          })()
         : "";
       wifeName = row.wifeXref
-        ? displayName(
-            byXref.get(row.wifeXref)?.firstName ?? null,
-            byXref.get(row.wifeXref)?.lastName ?? null
-          )
+        ? (() => {
+            const mapped = byXref.get(row.wifeXref);
+            const name = displayName(mapped?.firstName ?? null, mapped?.lastName ?? null);
+            if (mapped?.isLiving && shouldRedactLivingPerson(viewer, true)) {
+              return formatMinimalLivingLabel(
+                name,
+                yearFromDisplayDateString(mapped.birthDate),
+              );
+            }
+            return name;
+          })()
         : "";
     }
 

@@ -16,6 +16,14 @@ import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 import { eventTitle, dateLabelFromParts } from "@/lib/timeline/public-timeline";
 import { resolveTreeFileUuid } from "@/lib/tree";
 import { sourceDisplayLabel } from "@/components/research/source-label";
+import type { NoteLivingLinkInput } from "@/lib/auth/living-note-privacy";
+import { NOTE_LIVING_LINK_SELECT, shouldGateLivingNoteContent } from "@/lib/auth/living-note-privacy";
+import {
+  EVENT_LIVING_PARTICIPANT_SELECT,
+  shouldGateLivingEventContent,
+  type EventLivingLinkInput,
+} from "@/lib/auth/living-event-privacy";
+import { eventLoginPath } from "@/lib/events/map-event-living-privacy";
 import {
   isPublicSafeOpenQuestionCoverMedia,
   openQuestionMediaRasterUrl,
@@ -41,10 +49,10 @@ export type PublicOpenQuestion = {
 export type PublicOpenQuestionLink =
   | { kind: "individual"; id: string; label: string; href: string }
   | { kind: "family"; id: string; label: string; href: string }
-  | { kind: "event"; id: string; label: string; href: string }
+  | { kind: "event"; id: string; label: string; href: string; privacyRestricted: boolean }
   | { kind: "media"; id: string; label: string; href: string; coverSrc: string | null; privacyRestricted: boolean }
   | { kind: "source"; id: string; label: string; href: string }
-  | { kind: "note"; id: string; label: string; href: string };
+  | { kind: "note"; id: string; label: string; href: string; privacyRestricted: boolean };
 
 export type PublicOpenQuestionDetail = PublicOpenQuestion & {
   links: PublicOpenQuestionLink[];
@@ -105,6 +113,7 @@ const OPEN_QUESTION_BASE_SELECT = {
           customType: true,
           eventLabel: true,
           date: { select: { original: true, year: true } },
+          ...EVENT_LIVING_PARTICIPANT_SELECT,
         },
       },
     },
@@ -136,6 +145,7 @@ const OPEN_QUESTION_BASE_SELECT = {
           id: true,
           xref: true,
           content: true,
+          ...NOTE_LIVING_LINK_SELECT,
         },
       },
     },
@@ -239,13 +249,17 @@ function mapOpenQuestionLinks(row: OpenQuestionRow, viewer: PublicViewer): Publi
   }
 
   for (const { event } of row.eventLinks) {
+    const privacyRestricted = shouldGateLivingEventContent(viewer, event as EventLivingLinkInput);
+    const eventPath = eventLoginPath(event.id);
     const title = event.eventLabel?.trim() || eventTitle(event.eventType, event.customType);
     const date = dateLabelFromParts(event.date?.original, event.date?.year);
+    const detailLabel = date && date !== "Undated" ? `${title} · ${date}` : title;
     links.push({
       kind: "event",
       id: event.id,
-      label: date && date !== "Undated" ? `${title} · ${date}` : title,
-      href: `/tree/events/${encodeURIComponent(event.id)}`,
+      label: privacyRestricted ? "Event (sign in to view)" : detailLabel,
+      href: privacyRestricted ? buildLoginWallPath(eventPath) : eventPath,
+      privacyRestricted,
     });
   }
 
@@ -273,11 +287,14 @@ function mapOpenQuestionLinks(row: OpenQuestionRow, viewer: PublicViewer): Publi
   }
 
   for (const { note } of row.noteLinks) {
+    const privacyRestricted = shouldGateLivingNoteContent(viewer, note as NoteLivingLinkInput & { id: string });
+    const archivePath = "/archive/notes";
     links.push({
       kind: "note",
       id: note.id,
-      label: notePreview(note.content),
-      href: "/archive/notes",
+      label: privacyRestricted ? "Note (sign in to view)" : notePreview(note.content),
+      href: privacyRestricted ? buildLoginWallPath(archivePath) : archivePath,
+      privacyRestricted,
     });
   }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { NOTE_LINKED_LIST_VISIBLE_MAX } from "@ligneous/gedcom-events";
 import type { PublicNote, PublicNoteLink, PublicNoteLinkKind } from "@/lib/notes/public-note-types";
+import { LivingGatedNotePrompt } from "@/components/notes/LivingGatedNotePrompt";
 import "./note-card.css";
 
 function ChipIcon({ kind }: { kind: PublicNoteLinkKind }) {
@@ -62,7 +63,7 @@ export function NoteCard({ note }: { note: PublicNote }) {
   const linked = note.linkedTargets;
   const visible = linked.slice(0, NOTE_LINKED_LIST_VISIBLE_MAX);
   const overflow = Math.max(0, linked.length - visible.length);
-  const hasPreview = note.contentPreview.trim().length > 0;
+  const hasPreview = !note.privacyRestricted && note.contentPreview.trim().length > 0;
 
   return (
     <article className="note-card">
@@ -76,9 +77,13 @@ export function NoteCard({ note }: { note: PublicNote }) {
         </h2>
       </header>
 
-      <p className={`note-card__body${hasPreview ? "" : " note-card__body--empty"}`}>
-        {hasPreview ? note.contentPreview : "No content recorded for this note."}
-      </p>
+      {note.privacyRestricted && note.loginHref ? (
+        <LivingGatedNotePrompt loginHref={note.loginHref} className="note-card__body mb-0" />
+      ) : (
+        <p className={`note-card__body${hasPreview ? "" : " note-card__body--empty"}`}>
+          {hasPreview ? note.contentPreview : "No content recorded for this note."}
+        </p>
+      )}
 
       <hr className="note-card__divider" />
 

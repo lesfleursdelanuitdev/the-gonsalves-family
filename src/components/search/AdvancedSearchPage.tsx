@@ -174,6 +174,9 @@ interface EventSearchResult {
   linkedIndividuals: (EventLinkedEntity & { displayName: string; role: string })[];
   linkedFamilies: (EventLinkedEntity & { title: string })[];
   hasNotes: boolean; hasMedia: boolean; hasSources: boolean;
+  privacyRestricted?: boolean;
+  loginHref?: string | null;
+  profileHref?: string | null;
 }
 
 interface EventSearchResults {
@@ -194,16 +197,30 @@ interface GeneralFamilyItem {
   marriageYear: number | null; profileHref: string;
 }
 interface GeneralEventItem {
-  id: string; label: string; value: string | null; dateDisplay: string | null;
-  year: number | null; placeDisplay: string | null;
+  id: string;
+  label: string;
+  value: string | null;
+  dateDisplay: string | null;
+  year: number | null;
+  placeDisplay: string | null;
   linkedPeople: { id: string; displayName: string; profileHref: string | null }[];
+  privacyRestricted?: boolean;
+  loginHref?: string | null;
+  profileHref?: string | null;
 }
 interface GeneralMediaItem {
   id: string; source: string; title: string | null; mediaType: string; kind: string | null; profileHref: string;
 }
 interface GeneralNameItem { id: string; name: string; frequency: number; }
 interface GeneralPlaceItem { id: string; displayName: string; eventCount: number; profileHref: string; }
-interface GeneralNoteItem { id: string; snippet: string; ownerName: string | null; ownerHref: string | null; }
+interface GeneralNoteItem {
+  id: string;
+  snippet: string;
+  ownerName: string | null;
+  ownerHref: string | null;
+  privacyRestricted?: boolean;
+  loginHref?: string | null;
+}
 interface GeneralCategoryResult<T> { items: T[]; total: number; }
 interface GeneralResults {
   people:     GeneralCategoryResult<GeneralPersonItem>;
@@ -743,6 +760,19 @@ const EVENT_TYPE_ICONS: Record<string, typeof Baby> = {
 };
 
 function EventSearchCard({ event }: { event: EventSearchResult }) {
+  if (event.privacyRestricted && event.loginHref) {
+    return (
+      <article className="min-w-0 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3.5 shadow-[0_2px_8px_rgba(60,45,25,0.06)]">
+        <p className="font-body text-sm text-muted">
+          This event relates to living family members. Sign in to view its details.
+        </p>
+        <Link href={event.loginHref} className="mt-1 inline-flex text-sm font-semibold text-link hover:underline">
+          Sign in to view
+        </Link>
+      </article>
+    );
+  }
+
   const Icon = EVENT_TYPE_ICONS[event.eventType] ?? Calendar;
   const meta = [event.dateDisplay, event.placeDisplay].filter(Boolean).join(" · ");
 
@@ -1210,6 +1240,24 @@ function GeneralFamilyCard({ item }: { item: GeneralFamilyItem }) {
 }
 
 function GeneralEventCard({ item }: { item: GeneralEventItem }) {
+  if (item.privacyRestricted && item.loginHref) {
+    return (
+      <article className="flex min-w-0 items-start gap-3 rounded-xl border border-border/80 bg-surface-elevated px-4 py-3 shadow-[0_2px_8px_rgba(60,45,25,0.06)]">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border-subtle bg-[#f5f1ea]">
+          <Calendar size={15} className="text-muted" aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-body text-sm text-muted">
+            This event relates to living family members. Sign in to view its details.
+          </p>
+          <Link href={item.loginHref} className="mt-1 inline-flex text-sm font-semibold text-link hover:underline">
+            Sign in to view
+          </Link>
+        </div>
+      </article>
+    );
+  }
+
   const meta = [item.dateDisplay, item.placeDisplay].filter(Boolean).join(" · ");
   const linkedPeople = item.linkedPeople.filter((person) => person.displayName.trim().length > 0);
   return (
@@ -1315,13 +1363,31 @@ function GeneralNoteCard({ item }: { item: GeneralNoteItem }) {
         <FileText size={15} className="text-muted" aria-hidden />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 font-body text-sm text-heading">{item.snippet || <span className="italic text-muted">No content</span>}</p>
-        {item.ownerName && (
-          <p className="mt-0.5 truncate font-body text-xs text-muted">Re: {item.ownerName}</p>
+        {item.privacyRestricted && item.loginHref ? (
+          <>
+            <p className="font-body text-sm text-muted">
+              This note relates to living family members. Sign in to view its content.
+            </p>
+            <Link href={item.loginHref} className="mt-1 inline-flex text-sm font-semibold text-link hover:underline">
+              Sign in to view
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="line-clamp-2 font-body text-sm text-heading">
+              {item.snippet || <span className="italic text-muted">No content</span>}
+            </p>
+            {item.ownerName ? (
+              <p className="mt-0.5 truncate font-body text-xs text-muted">Re: {item.ownerName}</p>
+            ) : null}
+          </>
         )}
       </div>
     </article>
   );
+  if (item.privacyRestricted && item.loginHref) {
+    return inner;
+  }
   return item.ownerHref
     ? <Link href={item.ownerHref} className="block">{inner}</Link>
     : inner;

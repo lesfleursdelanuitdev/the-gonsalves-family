@@ -10,6 +10,8 @@ export type PublicProfileTimelineItem = {
   place: string | null;
   description: string;
   context: string;
+  privacyRestricted?: boolean;
+  loginHref?: string | null;
 };
 
 export type TimelineBuildItem = PublicProfileTimelineItem & {
@@ -67,6 +69,8 @@ export function sortTimeline(items: TimelineBuildItem[]): PublicProfileTimelineI
       place: item.place,
       description: item.description,
       context: item.context,
+      privacyRestricted: item.privacyRestricted,
+      loginHref: item.loginHref,
     }));
 }
 

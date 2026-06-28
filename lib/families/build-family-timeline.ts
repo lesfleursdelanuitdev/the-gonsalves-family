@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/database/prisma";
+import type { PublicViewer } from "@/lib/auth/public-viewer-context";
+import {
+  applyLivingPrivacyToTimelineItem,
+  loadEventLivingLinksByIds,
+} from "@/lib/events/map-event-living-privacy";
 import {
   GEDCOM_PLACE_DISPLAY_SELECT,
   type GedcomPlaceDisplayRow,
@@ -61,6 +66,7 @@ export async function buildFamilyTimeline(
   fileUuid: string,
   familyId: string,
   members: FamilyTimelineMember[],
+  viewer: PublicViewer,
 ): Promise<PublicProfileTimelineItem[]> {
   const memberIds = members.map((m) => m.id);
   const memberById = new Map(members.map((m) => [m.id, m]));
@@ -123,5 +129,16 @@ export async function buildFamilyTimeline(
     }
   }
 
-  return sortTimeline(dedupeTimelineByEventId(items));
+  const eventLinksById = await loadEventLivingLinksByIds(
+    fileUuid,
+    [...new Set(items.map((item) => item.eventId))],
+  );
+
+  return sortTimeline(
+    dedupeTimelineByEventId(items).map((item) => {
+      const links = eventLinksById.get(item.eventId);
+      if (!links) return item;
+      return { ...item, ...applyLivingPrivacyToTimelineItem(viewer, item, links, item.eventId) };
+    }),
+  );
 }

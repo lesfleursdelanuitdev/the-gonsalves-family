@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { PublicProfileTimelineItem } from "@/lib/timeline/public-timeline";
 import { isPrimaryTimelineContext } from "@/lib/timeline/public-timeline";
+import { LivingGatedEventPrompt } from "@/components/events/LivingGatedEventPrompt";
 import { cn } from "@/lib/utils";
 
 const MOBILE_TIMELINE_PAGE_SIZE = 3;
@@ -165,15 +166,23 @@ export function MobileProfileTimeline({ items }: { items: PublicProfileTimelineI
                 })()}
                 <span>{friendlyTimelineLabel(item.title)}</span>
               </h3>
-              {item.place ? (
-                <p className="mt-1 flex items-start gap-1 font-body text-xs text-muted">
-                  <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-link/80" aria-hidden />
-                  <span>{item.place}</span>
-                </p>
-              ) : null}
-              {item.description ? (
-                <p className="mt-1.5 font-body text-sm leading-relaxed text-muted">{item.description}</p>
-              ) : null}
+              {item.privacyRestricted && item.loginHref ? (
+                <div className="mt-2">
+                  <LivingGatedEventPrompt loginHref={item.loginHref} />
+                </div>
+              ) : (
+                <>
+                  {item.place ? (
+                    <p className="mt-1 flex items-start gap-1 font-body text-xs text-muted">
+                      <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-link/80" aria-hidden />
+                      <span>{item.place}</span>
+                    </p>
+                  ) : null}
+                  {item.description ? (
+                    <p className="mt-1.5 font-body text-sm leading-relaxed text-muted">{item.description}</p>
+                  ) : null}
+                </>
+              )}
             </li>
           );
         })}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Calendar, MapPin, User } from "lucide-react";
 import { MarkdownNote } from "@/components/shared/MarkdownNote";
+import { LivingGatedEventPrompt } from "@/components/events/LivingGatedEventPrompt";
 import type { PublicEvent } from "./types";
 
 const TYPE_COLORS: Record<string, string> = {
@@ -32,57 +33,63 @@ export function EventCard({ event }: { event: PublicEvent }) {
         >
           {event.typeLabel}
         </span>
-        {event.year ? (
+        {!event.privacyRestricted && event.year ? (
           <span className="ml-auto font-body text-xs font-medium text-muted">{event.year}</span>
         ) : null}
       </div>
 
       <div className="space-y-3 p-4 sm:p-5">
-        {event.subjectName ? (
-          <div className="flex min-w-0 items-start gap-2">
-            <User className="mt-0.5 h-3.5 w-3.5 shrink-0 text-link/70" aria-hidden />
-            {event.subjectHref ? (
-              <Link href={event.subjectHref} className="min-w-0 break-words font-heading text-base font-semibold text-heading underline-offset-2 hover:underline hover:text-link">
-                {event.subjectName}
-              </Link>
-            ) : (
-              <p className="min-w-0 break-words font-heading text-base font-semibold text-heading">
-                {event.subjectName}
-              </p>
-            )}
-          </div>
-        ) : null}
+        {event.privacyRestricted && event.loginHref ? (
+          <LivingGatedEventPrompt loginHref={event.loginHref} />
+        ) : (
+          <>
+            {event.subjectName ? (
+              <div className="flex min-w-0 items-start gap-2">
+                <User className="mt-0.5 h-3.5 w-3.5 shrink-0 text-link/70" aria-hidden />
+                {event.subjectHref ? (
+                  <Link href={event.subjectHref} className="min-w-0 break-words font-heading text-base font-semibold text-heading underline-offset-2 hover:underline hover:text-link">
+                    {event.subjectName}
+                  </Link>
+                ) : (
+                  <p className="min-w-0 break-words font-heading text-base font-semibold text-heading">
+                    {event.subjectName}
+                  </p>
+                )}
+              </div>
+            ) : null}
 
-        {event.value ? (
-          <MarkdownNote content={event.value} className="text-sm text-heading" />
-        ) : null}
+            {event.value ? (
+              <MarkdownNote content={event.value} className="text-sm text-heading" />
+            ) : null}
 
-        <div className="space-y-1.5">
-          {event.dateLabel ? (
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Calendar className="h-3.5 w-3.5 shrink-0 text-link/60" aria-hidden />
-              <span>{event.dateLabel}</span>
+            <div className="space-y-1.5">
+              {event.dateLabel ? (
+                <div className="flex items-center gap-2 text-sm text-muted">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-link/60" aria-hidden />
+                  <span>{event.dateLabel}</span>
+                </div>
+              ) : null}
+              {event.placeLabel ? (
+                <div className="flex items-center gap-2 text-sm text-muted">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-link/60" aria-hidden />
+                  {event.placeHref ? (
+                    <Link href={event.placeHref} className="truncate underline-offset-2 hover:underline hover:text-link">
+                      {event.placeLabel}
+                    </Link>
+                  ) : (
+                    <span className="truncate">{event.placeLabel}</span>
+                  )}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-          {event.placeLabel ? (
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-link/60" aria-hidden />
-              {event.placeHref ? (
-                <Link href={event.placeHref} className="truncate underline-offset-2 hover:underline hover:text-link">
-                  {event.placeLabel}
-                </Link>
-              ) : (
-                <span className="truncate">{event.placeLabel}</span>
-              )}
-            </div>
-          ) : null}
-        </div>
+          </>
+        )}
 
         <Link
-          href={event.profileHref}
+          href={event.privacyRestricted && event.loginHref ? event.loginHref : event.profileHref}
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface px-4 py-2.5 text-sm font-semibold text-link transition hover:bg-link-soft-bg hover:text-link-soft-fg"
         >
-          View Event <span aria-hidden>&rarr;</span>
+          {event.privacyRestricted ? "Sign in to view" : "View Event"} <span aria-hidden>&rarr;</span>
         </Link>
       </div>
     </article>

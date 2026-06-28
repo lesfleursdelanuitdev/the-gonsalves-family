@@ -1,5 +1,5 @@
 import type { PublicViewer } from "@/lib/auth/public-viewer";
-import { canViewFullIndividual } from "@/lib/auth/public-viewer";
+import { buildLoginWallPath, canViewFullIndividual } from "@/lib/auth/public-viewer";
 import type { MappedIndividual } from "@/lib/individual-mapper";
 import { yearFromDisplayDateString } from "@/lib/individual-mapper";
 
@@ -114,6 +114,16 @@ export type SearchIndividualPrivacyFields = {
   isLiving: boolean;
   portraitSrc?: string | null;
   profileHref?: string | null;
+  birthCountry?: string | null;
+  birthCountryLower?: string | null;
+  deathCountry?: string | null;
+  deathCountryLower?: string | null;
+  ageAtDeath?: number | null;
+  generationDepth?: number | null;
+  birthDateDisplay?: string | null;
+  birthPlaceDisplay?: string | null;
+  deathDateDisplay?: string | null;
+  deathPlaceDisplay?: string | null;
 };
 
 export function redactSearchIndividualForViewer<T extends SearchIndividualPrivacyFields>(
@@ -121,14 +131,27 @@ export function redactSearchIndividualForViewer<T extends SearchIndividualPrivac
   viewer: PublicViewer,
 ): T {
   if (!shouldRedactLivingPerson(viewer, individual.isLiving)) return individual;
-  const displayName = individual.displayName ?? individual.fullName ?? "Unknown";
+  const rawName = individual.displayName ?? individual.fullName ?? "Unknown";
+  const minimal = formatMinimalLivingLabel(rawName, individual.birthYear ?? null);
+  const loginHref = buildLoginWallPath(`/individuals/${encodeURIComponent(individual.id)}`);
   return {
     ...individual,
-    displayName,
-    fullName: displayName,
+    displayName: minimal,
+    fullName: minimal,
     birthYear: individual.birthYear ?? null,
     deathYear: null,
     portraitSrc: null,
+    profileHref: loginHref,
+    birthCountry: null,
+    birthCountryLower: null,
+    deathCountry: null,
+    deathCountryLower: null,
+    ageAtDeath: null,
+    generationDepth: null,
+    birthDateDisplay: null,
+    birthPlaceDisplay: null,
+    deathDateDisplay: null,
+    deathPlaceDisplay: null,
   };
 }
 
@@ -312,6 +335,7 @@ export type FamilyPartnerPrivacyFields = {
   fullName?: string | null;
   birthYear?: number | null;
   deathYear?: number | null;
+  portraitSrc?: string | null;
   profileHref?: string | null;
   isLiving?: boolean;
 };
@@ -322,13 +346,90 @@ export function redactFamilyPartnerForViewer<T extends FamilyPartnerPrivacyField
 ): T | null {
   if (!partner) return null;
   if (!partner.isLiving || !shouldRedactLivingPerson(viewer, true)) return partner;
-  const displayName = partner.displayName ?? partner.fullName ?? "Unknown";
+  const rawName = partner.displayName ?? partner.fullName ?? "Unknown";
+  const minimal = formatMinimalLivingLabel(rawName, partner.birthYear ?? null);
   return {
     ...partner,
-    displayName,
-    fullName: displayName,
+    displayName: minimal,
+    fullName: minimal,
     birthYear: partner.birthYear ?? null,
     deathYear: null,
+    portraitSrc: null,
+    profileHref: buildLoginWallPath(`/individuals/${encodeURIComponent(partner.id)}`),
+  };
+}
+
+export type PublicFamilyMemberPrivacyFields = {
+  id: string;
+  fullName: string;
+  isLiving: boolean;
+  birthYear: number | null;
+  birthDateLabel?: string | null;
+  deathDateLabel?: string | null;
+  partnersCount?: number;
+  childrenCount?: number;
+  portraitSrc?: string | null;
+  profileHref?: string;
+};
+
+export function redactPublicFamilyMemberForViewer<T extends PublicFamilyMemberPrivacyFields>(
+  member: T,
+  viewer: PublicViewer,
+): T {
+  if (!shouldRedactLivingPerson(viewer, member.isLiving)) return member;
+  const minimal = formatMinimalLivingLabel(member.fullName, member.birthYear);
+  return {
+    ...member,
+    fullName: minimal,
+    birthDateLabel: member.birthYear != null ? String(member.birthYear) : null,
+    deathDateLabel: null,
+    partnersCount: 0,
+    childrenCount: 0,
+    portraitSrc: null,
+    profileHref: buildLoginWallPath(`/individuals/${encodeURIComponent(member.id)}`),
+  };
+}
+
+export function redactPublicFamilyMembersForViewer<T extends PublicFamilyMemberPrivacyFields>(
+  members: T[],
+  viewer: PublicViewer,
+): T[] {
+  return members.map((member) => redactPublicFamilyMemberForViewer(member, viewer));
+}
+
+/** @deprecated Use redactPublicFamilyMemberForViewer */
+export function redactPublicFamilyMemberPortraitForViewer<T extends { isLiving: boolean; portraitSrc?: string | null }>(
+  member: T,
+  viewer: PublicViewer,
+): T {
+  return redactPublicFamilyMemberForViewer(member as T & PublicFamilyMemberPrivacyFields, viewer);
+}
+
+/** @deprecated Use redactPublicFamilyMembersForViewer */
+export function redactPublicFamilyMemberPortraitsForViewer<T extends { isLiving: boolean; portraitSrc?: string | null }>(
+  members: T[],
+  viewer: PublicViewer,
+): T[] {
+  return redactPublicFamilyMembersForViewer(members as Array<T & PublicFamilyMemberPrivacyFields>, viewer);
+}
+
+export type PlacePersonPrivacyFields = {
+  id: string;
+  name: string;
+  year: number | null;
+  profileHref: string;
+  isLiving: boolean;
+};
+
+export function redactPlacePersonForViewer<T extends PlacePersonPrivacyFields>(
+  person: T,
+  viewer: PublicViewer,
+): T {
+  if (!shouldRedactLivingPerson(viewer, person.isLiving)) return person;
+  return {
+    ...person,
+    name: formatMinimalLivingLabel(person.name, person.year),
+    profileHref: buildLoginWallPath(`/individuals/${encodeURIComponent(person.id)}`),
   };
 }
 

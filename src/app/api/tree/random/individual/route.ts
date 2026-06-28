@@ -4,6 +4,8 @@ import { prisma } from "@/lib/database/prisma";
 import { mapIndividualRow } from "@/lib/individual-mapper";
 import { individualBirthDeathPlaceSelect } from "@/lib/gedcom-place-display";
 import { gedcomIndividualNlDenormSelect } from "@/lib/gedcom-individual-nl-select";
+import { redactMappedIndividualForViewer } from "@/lib/auth/living-person-privacy";
+import { resolvePublicViewer } from "@/lib/auth/public-viewer-context";
 
 const individualSelect = {
   id: true,
@@ -64,7 +66,11 @@ export async function GET() {
     });
 
     const individual = rows[0] ? mapIndividualRow(rows[0]) : null;
-    return NextResponse.json({ individual });
+    if (!individual) {
+      return NextResponse.json({ individual: null });
+    }
+    const viewer = await resolvePublicViewer();
+    return NextResponse.json({ individual: redactMappedIndividualForViewer(individual, viewer) });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database error";
     return NextResponse.json({ error: message }, { status: 500 });
